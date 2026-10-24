@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>งานวันนี้ของไรเดอร์</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A56B0}a:hover{color:#123F85}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F7FA; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif; color: #0F2236; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="background: #0F2236; color: #FFFFFF; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px">
+    <div style="display: flex; align-items: center; justify-content: space-between">
+      <div style="display: flex; flex-direction: column">
+        <span style="font-size: 18px; font-weight: 700">งานวันนี้</span>
+        <span style="font-size: 13px; color: #C5D2E0">สมชาย · อังคาร 20 ต.ค.</span>
+      </div>
+      <span style="font-size: 13px; font-weight: 600; color: #0F2236; background: #A8E6C1; padding: 6px 12px; border-radius: 14px">พร้อมรับงาน</span>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+      <div style="background: #1C3550; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column">
+        <span style="font-size: 12px; color: #C5D2E0">ส่งแล้ว</span>
+        <span style="font-size: 20px; font-weight: 700">2 / 6</span>
+      </div>
+      <div style="background: #1C3550; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column">
+        <span style="font-size: 12px; color: #C5D2E0">ถุงที่ต้องรับ</span>
+        <span style="font-size: 20px; font-weight: 700; color: #FFB3CB">5 ใบ</span>
+      </div>
+      <div style="background: #1C3550; border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column">
+        <span style="font-size: 12px; color: #C5D2E0">เงินสดในมือ</span>
+        <span style="font-size: 20px; font-weight: 700">฿[ยอด]</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+
+    <div style="background: #FFFFFF; border-radius: 16px; border: 2px solid {{accent}}; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: center; justify-content: space-between">
+        <span style="font-size: 12px; font-weight: 600; color: {{accent}}">งานถัดไป · จุดที่ 3</span>
+        <span style="font-size: 13px; color: #4A5B6E">#DG-1024 · 1.2 กม.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-size: 17px; font-weight: 700">คุณสมใจ</span>
+        <span style="font-size: 14px; color: #33475B">[ที่อยู่ลูกค้า] · ทางเข้าประตูหลัง</span>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px">
+        <span style="font-size: 13px; background: #E6EEF9; color: #123F85; padding: 4px 10px; border-radius: 10px">น้ำดื่มแบบถัง × 3</span>
+        <span style="font-size: 13px; font-weight: 600; background: #FCE8EF; color: #9B1B49; padding: 4px 10px; border-radius: 10px">รับถุงคืน 3 ใบ</span>
+        <span style="font-size: 13px; background: #E3F3E9; color: #17613A; padding: 4px 10px; border-radius: 10px">PromptPay ชำระแล้ว</span>
+      </div>
+      <div style="display: flex; gap: 8px">
+        <button style="flex: 1; min-height: 48px; border: none; border-radius: 12px; background: {{accent}}; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l18-8-8 18-2-8z"></path></svg>
+          นำทาง
+        </button>
+        <button aria-label="โทรหาลูกค้า" style="width: 48px; min-height: 48px; border: 1px solid #DCE4EC; border-radius: 12px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A56B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
+        </button>
+      </div>
+      <a href="RiderPOD.dc.html" style="min-height: 48px; border-radius: 12px; background: #1E7B45; color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center; justify-content: center">ถึงแล้ว · ยืนยันส่ง</a>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div style="font-size: 15px; font-weight: 600">งานที่เหลือ</div>
+      <div style="background: #FFFFFF; border-radius: 14px; border: 1px solid #DCE4EC">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #DCE4EC">
+          <span style="width: 28px; height: 28px; border-radius: 14px; background: #E6EEF9; color: #123F85; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">4</span>
+          <div style="flex: 1; display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 600">บริษัท [ชื่อลูกค้า]</span>
+            <span style="font-size: 12px; color: #4A5B6E">2.8 กม. · น้ำถัง × 6</span>
+          </div>
+          <span style="font-size: 12px; font-weight: 600; background: #FCE8EF; color: #9B1B49; padding: 3px 8px; border-radius: 8px">ถุง 2</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #DCE4EC">
+          <span style="width: 28px; height: 28px; border-radius: 14px; background: #E6EEF9; color: #123F85; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">5</span>
+          <div style="flex: 1; display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 600">คุณ [ชื่อลูกค้า]</span>
+            <span style="font-size: 12px; color: #4A5B6E">3.4 กม. · น้ำแพ็ก × 2 · เก็บเงินสด</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px 14px">
+          <span style="width: 28px; height: 28px; border-radius: 14px; background: #E6EEF9; color: #123F85; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center">6</span>
+          <div style="flex: 1; display: flex; flex-direction: column">
+            <span style="font-size: 14px; font-weight: 600">คุณ [ชื่อลูกค้า]</span>
+            <span style="font-size: 12px; color: #4A5B6E">4.1 กม. · น้ำถัง × 2</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border-top: 1px solid #DCE4EC; padding: 12px 16px 20px">
+    <button style="width: 100%; min-height: 52px; border: 1px solid #DCE4EC; border-radius: 14px; background: #FFFFFF; color: #0F2236; font-size: 15px; font-weight: 600; cursor: pointer">ปิดยอดเงินสดและคืนถุงเข้าคลัง</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1A56B0","options":["#1A56B0","#0B6E8A","#1E7B45"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1A56B0' };
+  }
+}
+</script>
+</body>
+</html>

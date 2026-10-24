@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ติดตามออเดอร์</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1A56B0}a:hover{color:#123F85}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: #F3F7FA; font-family: 'IBM Plex Sans Thai', system-ui, sans-serif; color: #0F2236; display: flex; flex-direction: column; overflow: hidden">
+
+  <div style="background: #FFFFFF; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #DCE4EC">
+    <div style="display: flex; flex-direction: column">
+      <span style="font-size: 12px; color: #4A5B6E">ออเดอร์</span>
+      <span style="font-size: 18px; font-weight: 700">#DG-1024</span>
+    </div>
+    <span style="font-size: 13px; font-weight: 600; color: #FFFFFF; background: {{accent}}; padding: 6px 12px; border-radius: 14px">กำลังไปส่ง</span>
+  </div>
+
+  <div style="flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 14px">
+
+    <div style="height: 150px; border-radius: 14px; background: #DCE8F5; position: relative; overflow: hidden; display: flex; align-items: flex-end">
+      <svg width="358" height="150" viewBox="0 0 358 150" fill="none" aria-hidden="true" style="position: absolute; left: 0; top: 0">
+        <path d="M0 110 C80 100 120 40 200 52 S320 30 358 20" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"></path>
+        <path d="M60 0 L90 150" stroke="#FFFFFF" stroke-width="6"></path>
+        <path d="M120 98 C170 70 210 56 262 46" stroke="#1A56B0" stroke-width="3" stroke-dasharray="6 5" stroke-linecap="round"></path>
+        <circle cx="120" cy="98" r="9" fill="#1A56B0"></circle>
+        <circle cx="120" cy="98" r="4" fill="#FFFFFF"></circle>
+        <path d="M262 46 c0-9 14-9 14 0 c0 7-7 13-7 13 s-7-6-7-13z" fill="#C2255C"></path>
+      </svg>
+      <div style="position: relative; margin: 10px; padding: 8px 12px; background: #FFFFFF; border-radius: 10px; font-size: 13px; font-weight: 500">ไรเดอร์ห่าง 1.2 กม. · ประมาณ 8 นาที</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 16px; background: #FFFFFF; border-radius: 14px; border: 1px solid #DCE4EC">
+      <div style="width: 44px; height: 44px; border-radius: 22px; background: #E6EEF9; color: #1A56B0; font-weight: 700; display: flex; align-items: center; justify-content: center">สช</div>
+      <div style="flex: 1; display: flex; flex-direction: column">
+        <span style="font-size: 15px; font-weight: 600">สมชาย</span>
+        <span style="font-size: 13px; color: #4A5B6E">ไรเดอร์ของร้าน · [ทะเบียนรถ]</span>
+      </div>
+      <button aria-label="โทรหาไรเดอร์" style="width: 44px; height: 44px; border-radius: 22px; border: 1px solid #DCE4EC; background: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1A56B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg>
+      </button>
+    </div>
+
+    <div style="background: #FFFFFF; border-radius: 14px; border: 1px solid #DCE4EC; padding: 14px 16px; display: flex; flex-direction: column">
+      <div style="font-size: 15px; font-weight: 600; margin-bottom: 6px">สถานะออเดอร์</div>
+
+      <div style="display: flex; gap: 12px; min-height: 40px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 14px; height: 14px; border-radius: 7px; background: #1E7B45; margin-top: 4px"></div>
+          <div style="flex: 1; width: 2px; background: #1E7B45"></div>
+        </div>
+        <div style="flex: 1; display: flex; justify-content: space-between; font-size: 14px"><span>รับคำสั่งซื้อแล้ว</span><span style="color: #4A5B6E">13:02</span></div>
+      </div>
+      <div style="display: flex; gap: 12px; min-height: 40px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 14px; height: 14px; border-radius: 7px; background: #1E7B45; margin-top: 4px"></div>
+          <div style="flex: 1; width: 2px; background: #1E7B45"></div>
+        </div>
+        <div style="flex: 1; display: flex; justify-content: space-between; font-size: 14px"><span>จัดของขึ้นรถแล้ว</span><span style="color: #4A5B6E">13:15</span></div>
+      </div>
+      <div style="display: flex; gap: 12px; min-height: 40px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 14px; height: 14px; border-radius: 7px; background: #1E7B45; margin-top: 4px"></div>
+          <div style="flex: 1; width: 2px; background: #1A56B0"></div>
+        </div>
+        <div style="flex: 1; display: flex; justify-content: space-between; font-size: 14px"><span>ไรเดอร์รับสินค้าแล้ว</span><span style="color: #4A5B6E">13:21</span></div>
+      </div>
+      <div style="display: flex; gap: 12px; min-height: 40px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF; border: 4px solid {{accent}}; box-sizing: border-box; margin-top: 2px"></div>
+          <div style="flex: 1; width: 2px; background: #DCE4EC"></div>
+        </div>
+        <div style="flex: 1; display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: {{accent}}"><span>กำลังไปส่ง</span><span>13:24</span></div>
+      </div>
+      <div style="display: flex; gap: 12px; min-height: 40px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF; border: 2px solid #9AABBD; box-sizing: border-box; margin-top: 4px"></div>
+          <div style="flex: 1; width: 2px; background: #DCE4EC"></div>
+        </div>
+        <div style="flex: 1; font-size: 14px; color: #4A5B6E">ส่งสำเร็จ (มีรูปหลักฐานให้ดู)</div>
+      </div>
+      <div style="display: flex; gap: 12px; min-height: 28px">
+        <div style="display: flex; flex-direction: column; align-items: center; width: 18px">
+          <div style="width: 14px; height: 14px; border-radius: 7px; background: #FFFFFF; border: 2px solid #C2255C; box-sizing: border-box; margin-top: 4px"></div>
+        </div>
+        <div style="flex: 1; font-size: 14px; color: #4A5B6E">รับถุงคืน 3 ใบ</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #FCE8EF; border-radius: 14px">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C2255C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h12l-1 12H7z"></path><path d="M9 8a3 3 0 0 1 6 0"></path></svg>
+      <div style="flex: 1; display: flex; flex-direction: column">
+        <span style="font-size: 14px; font-weight: 600; color: #9B1B49">ถุงค้าง 3 ใบ</span>
+        <span style="font-size: 13px; color: #33475B">เตรียมถุงไว้ให้ไรเดอร์รับคืนรอบนี้</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border-top: 1px solid #DCE4EC; padding: 12px 16px 20px">
+    <button style="width: 100%; min-height: 52px; border: 1px solid #DCE4EC; border-radius: 14px; background: #FFFFFF; color: #0F2236; font-size: 15px; font-weight: 600; cursor: pointer">แจ้งปัญหาออเดอร์</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1A56B0","options":["#1A56B0","#0B6E8A","#1E7B45"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1A56B0' };
+  }
+}
+</script>
+</body>
+</html>

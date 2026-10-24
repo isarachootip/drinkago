@@ -1,0 +1,99 @@
+### ตัวอย่างเรียก API ครบ Flow (VS Code + ส่วนเสริม REST Client)
+### รันทีละคำขอจากบนลงล่าง ค่าที่ต้องใช้ต่อจะถูกดึงจากคำตอบก่อนหน้าอัตโนมัติ
+
+@base = http://localhost:3000
+# บน VPS: เปลี่ยน base เป็น https://<DOMAIN> และใส่ key = ค่า DEV_AUTH_KEY
+@key =
+@customer = cust-demo
+
+### ลงทะเบียนลูกค้า (ครั้งแรกเท่านั้น)
+POST {{base}}/me/register
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "name": "สมใจ", "phone": "0812345678", "pdpaConsent": true }
+
+### เพิ่มที่อยู่
+# @name addr
+POST {{base}}/me/addresses
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "label": "บ้าน", "detail": "[ที่อยู่ลูกค้า]", "lat": 13.7563, "lng": 100.5018 }
+
+### ดูสินค้า
+GET {{base}}/products
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+
+### 1 สั่งซื้อ
+# @name order
+POST {{base}}/orders
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "addressId": "{{addr.response.body.id}}", "items": [{ "productId": 1, "qty": 3 }], "paymentMethod": "CASH" }
+
+### ดูออเดอร์ (ลูกค้าเห็นรหัส OTP)
+# @name view
+GET {{base}}/orders/{{order.response.body.id}}
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+
+### 2 คลังรับออเดอร์
+POST {{base}}/orders/{{order.response.body.id}}/confirm
+x-dev-user: dev-warehouse
+x-dev-key: {{key}}
+
+### 3 จัดของ
+POST {{base}}/orders/{{order.response.body.id}}/pack
+x-dev-user: dev-warehouse
+x-dev-key: {{key}}
+
+### หา id ไรเดอร์
+# @name rider
+GET {{base}}/me
+x-dev-user: dev-rider
+x-dev-key: {{key}}
+
+### มอบหมายไรเดอร์
+POST {{base}}/orders/{{order.response.body.id}}/assign
+x-dev-user: dev-warehouse
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "riderId": "{{rider.response.body.id}}" }
+
+### 4 ไรเดอร์รับสินค้า (ต้องมีรูป + GPS)
+POST {{base}}/orders/{{order.response.body.id}}/pickup
+x-dev-user: dev-rider
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "evidence": { "photoUrl": "https://files.example/pickup.jpg", "lat": 13.75, "lng": 100.5 } }
+
+### 5 เริ่มวิ่งส่ง
+POST {{base}}/orders/{{order.response.body.id}}/start
+x-dev-user: dev-rider
+x-dev-key: {{key}}
+
+### 6 ส่งสำเร็จ (รอบแรกยังไม่มีถุงคืน → ปิดงานอัตโนมัติ)
+POST {{base}}/orders/{{order.response.body.id}}/deliver
+x-dev-user: dev-rider
+x-dev-key: {{key}}
+Content-Type: application/json
+
+{ "evidence": { "photoUrl": "https://files.example/pod.jpg", "lat": 13.7563, "lng": 100.5018 }, "otp": "{{view.response.body.deliveryOtp}}", "bagsCollected": 0 }
+
+### ยอดถุงค้างของลูกค้า
+GET {{base}}/me/bags
+x-dev-user: {{customer}}
+x-dev-key: {{key}}
+
+### ประวัติทุกขั้นของออเดอร์ (audit trail)
+GET {{base}}/orders/{{order.response.body.id}}/events
+x-dev-user: dev-admin
+x-dev-key: {{key}}

@@ -1,0 +1,5 @@
+# Caddy ขอใบรับรอง HTTPS ให้อัตโนมัติ (LINE webhook และ LIFF ต้องเป็น HTTPS)
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy api:3000
+}

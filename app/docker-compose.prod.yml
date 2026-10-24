@@ -1,0 +1,51 @@
+# ใช้บน VPS: docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: drinkgo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?ต้องตั้ง DB_PASSWORD ใน .env.production}
+      POSTGRES_DB: drinkgo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # ไม่เปิดพอร์ตออกนอกเครื่อง: เข้าถึงได้จาก api เท่านั้น
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drinkgo"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://drinkgo:${DB_PASSWORD}@db:5432/drinkgo
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      retries: 6
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?ต้องตั้ง DOMAIN ใน .env.production}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
