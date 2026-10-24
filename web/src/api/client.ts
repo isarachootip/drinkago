@@ -21,10 +21,13 @@ const defaultApiOrigin =
     ? window.location.origin
     : 'http://localhost:3000';
 
+const buildTimeDevKey =
+  (import.meta as unknown as { env?: { VITE_DEV_AUTH_KEY?: string } }).env?.VITE_DEV_AUTH_KEY ?? '';
+
 export const DEFAULT_SETTINGS: DevAuthSettings = {
   apiBaseUrl: defaultApiOrigin,
   devUser: 'dev-rider',
-  devKey: '',
+  devKey: buildTimeDevKey,
   mockGps: true,
   mockLat: 13.7563,
   mockLng: 100.5018,
@@ -34,7 +37,12 @@ export function loadDevSettings(): DevAuthSettings {
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null;
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<DevAuthSettings>) };
+    const saved = JSON.parse(raw) as Partial<DevAuthSettings>;
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      devKey: saved.devKey || DEFAULT_SETTINGS.devKey,
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }

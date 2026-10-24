@@ -1,16 +1,20 @@
 # Stage 1: Build Frontend (Vite + React)
 FROM node:22-alpine AS build-web
 WORKDIR /web
+ENV NODE_ENV=development
 COPY web/package*.json ./
-RUN npm ci
+RUN npm ci --include=dev
 COPY web/ ./
+ARG DEV_AUTH_KEY=""
+ENV VITE_DEV_AUTH_KEY=$DEV_AUTH_KEY
 RUN npm run build
 
 # Stage 2: Build Backend (NestJS + TypeScript)
 FROM node:22-alpine AS build-app
 WORKDIR /app
+ENV NODE_ENV=development
 COPY app/package*.json ./
-RUN npm ci
+RUN npm ci --include=dev
 COPY app/ ./
 RUN npm run build
 
