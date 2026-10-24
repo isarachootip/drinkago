@@ -1,15 +1,23 @@
 import 'dotenv/config';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { loadConfig } from './config';
 
 async function bootstrap() {
   const cfg = loadConfig();
-  const app = await NestFactory.create(AppModule.forRoot(cfg), { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(cfg), { rawBody: true });
 
-  app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
+
+  const publicDir = join(__dirname, '..', 'public');
+  if (existsSync(publicDir)) {
+    app.useStaticAssets(publicDir);
+  }
 
   const origins =
     cfg.CORS_ORIGINS === '*'
@@ -31,7 +39,7 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
-  await app.listen(cfg.PORT);
-  console.log(`Drink&Go API พร้อมที่ http://localhost:${cfg.PORT} (AUTH_MODE=${cfg.AUTH_MODE})`);
+  await app.listen(cfg.PORT, '0.0.0.0');
+  console.log(`Drink&Go API พร้อมที่ http://0.0.0.0:${cfg.PORT} (AUTH_MODE=${cfg.AUTH_MODE})`);
 }
 void bootstrap();

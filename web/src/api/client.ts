@@ -16,8 +16,13 @@ import {
 
 const SETTINGS_KEY = 'drinkgo_rider_dev_settings';
 
+const defaultApiOrigin =
+  typeof window !== 'undefined' && window.location.port !== '5173'
+    ? window.location.origin
+    : 'http://localhost:3000';
+
 export const DEFAULT_SETTINGS: DevAuthSettings = {
-  apiBaseUrl: 'http://localhost:3000',
+  apiBaseUrl: defaultApiOrigin,
   devUser: 'dev-rider',
   devKey: '',
   mockGps: true,
