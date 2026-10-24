@@ -21,8 +21,18 @@ import { listOfflineMutations } from './storage/offline-queue';
 
 type AppRoleTab = 'customer' | 'warehouse' | 'rider' | 'admin';
 
+function resolveInitialCustomerUser(): string {
+  const fromQuery = new URLSearchParams(window.location.search).get('lineUserId')?.trim();
+  if (fromQuery) {
+    localStorage.setItem('drinkgo_customer_user_v1', fromQuery);
+    return fromQuery;
+  }
+  return localStorage.getItem('drinkgo_customer_user_v1') || 'dev-customer';
+}
+
 export const App: React.FC = () => {
   const [roleTab, setRoleTab] = useState<AppRoleTab>('customer');
+  const [customerUser] = useState<string>(() => resolveInitialCustomerUser());
   const [custScreen, setCustScreen] = useState<'shop' | 'track'>('shop');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
@@ -154,9 +164,9 @@ export const App: React.FC = () => {
 
       {roleTab === 'customer' &&
         (custScreen === 'shop' ? (
-          <CustomerOrderPage customerUser="dev-customer" onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onNotify={showNotice} />
+          <CustomerOrderPage customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onNotify={showNotice} />
         ) : (
-          <CustomerTrackPage customerUser="dev-customer" initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
+          <CustomerTrackPage customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
         ))}
 
       {roleTab === 'warehouse' && <WarehousePage onNotify={showNotice} />}

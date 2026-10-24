@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, formatBaht, OrderDetail, OrderEvent, StaffOrder } from '../api/schemas';
+import { LineBanner } from '../components/LineBanner';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
 
 interface Props {
@@ -107,6 +108,7 @@ export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderI
       </div>
 
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <LineBanner customerUser={customerUser} />
         {!detail ? (
           <div style={{ background: '#FFFFFF', padding: 20, borderRadius: 14, textAlign: 'center' }}>ยังไม่มีออเดอร์</div>
         ) : (

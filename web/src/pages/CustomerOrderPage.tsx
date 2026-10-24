@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder } from '../api/schemas';
+import { LineBanner } from '../components/LineBanner';
 
 interface Props {
   customerUser: string;
@@ -31,14 +32,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       setRegisteredName(me.name);
       setNeedsRegister(false);
       const [addrs, prods, bagSum, mine] = await Promise.all([
-        customerApi.listAddresses(customerUser),
-        customerApi.listProducts(customerUser),
-        customerApi.getBags(customerUser),
-        customerApi.myOrders(customerUser),
+        customerApi.listAddresses(customerUser), customerApi.listProducts(customerUser),
+        customerApi.getBags(customerUser), customerApi.myOrders(customerUser),
       ]);
-      const finalAddrs = addrs.length
-        ? addrs
-        : [await customerApi.addAddress({ label: 'บ้าน', detail: 'สุขุมวิท 50 แขวงพระโขนง', lat: 13.7563, lng: 100.5018, note: 'ทางเข้าประตูหลัง' }, customerUser)];
+      const finalAddrs = addrs.length ? addrs : [await customerApi.addAddress({ label: 'บ้าน', detail: 'สุขุมวิท 50 แขวงพระโขนง', lat: 13.7563, lng: 100.5018, note: 'ทางเข้าประตูหลัง' }, customerUser)];
       setAddresses(finalAddrs);
       setSelectedAddrId((cur) => cur || (finalAddrs[0]?.id ?? ''));
       setProducts(prods);
@@ -47,14 +44,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       setReturnBagQty(Math.min(bagSum.balance, 2));
       setHasReturnBag(bagSum.balance > 0);
       setLastOrder(mine[0] ?? null);
-    } catch {
-      setNeedsRegister(true);
-    }
+    } catch { setNeedsRegister(true); }
   }, [customerUser]);
 
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  useEffect(() => { void loadData(); }, [loadData]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,33 +56,22 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       await customerApi.register({ name: regName.trim(), phone: regPhone.trim() }, customerUser);
       onNotify('ลงทะเบียนและยอมรับ PDPA เรียบร้อย');
       await loadData();
-    } catch (err) {
-      onNotify(err instanceof Error ? err.message : 'ลงทะเบียนไม่สำเร็จ');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err) { onNotify(err instanceof Error ? err.message : 'ลงทะเบียนไม่สำเร็จ'); }
+    finally { setSubmitting(false); }
   };
 
   const totalSatang = products.reduce((sum, p) => sum + (cart[p.id] ?? 0) * p.priceSatang, 0);
 
   const handlePlaceOrder = async () => {
-    const items = Object.entries(cart)
-      .map(([id, qty]) => ({ productId: Number(id), qty }))
-      .filter((i) => i.qty > 0);
+    const items = Object.entries(cart).map(([id, qty]) => ({ productId: Number(id), qty })).filter((i) => i.qty > 0);
     if (items.length === 0) return onNotify('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
     setSubmitting(true);
     try {
-      const order = await customerApi.createOrder(
-        { addressId: selectedAddrId, items, expectBagReturn: hasReturnBag ? returnBagQty : 0, paymentMethod },
-        customerUser,
-      );
+      const order = await customerApi.createOrder({ addressId: selectedAddrId, items, expectBagReturn: hasReturnBag ? returnBagQty : 0, paymentMethod }, customerUser);
       onNotify(`สั่งซื้อสำเร็จ #${order.code} (ขั้นที่ 1 PENDING)`);
       onOrderCreated(order.id);
-    } catch (err) {
-      onNotify(err instanceof Error ? err.message : 'สั่งซื้อไม่สำเร็จ');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err) { onNotify(err instanceof Error ? err.message : 'สั่งซื้อไม่สำเร็จ'); }
+    finally { setSubmitting(false); }
   };
 
   const handleReorder = async () => {
@@ -98,16 +80,14 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       const order = await customerApi.reorder({ expectBagReturn: hasReturnBag ? returnBagQty : 0, addressId: selectedAddrId }, customerUser);
       onNotify(`สั่งซ้ำสำเร็จ #${order.code}`);
       onOrderCreated(order.id);
-    } catch (err) {
-      onNotify(err instanceof Error ? err.message : 'สั่งซ้ำไม่สำเร็จ');
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (err) { onNotify(err instanceof Error ? err.message : 'สั่งซ้ำไม่สำเร็จ'); }
+    finally { setSubmitting(false); }
   };
 
   if (needsRegister) {
     return (
       <form onSubmit={handleRegister} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <LineBanner customerUser={customerUser} />
         <div style={{ fontSize: 18, fontWeight: 700, color: '#1A56B0' }}>ลงทะเบียนลูกค้าใหม่ (PDPA)</div>
         <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="ชื่อ-นามสกุล" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
         <input value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="เบอร์โทรศัพท์ (เช่น 0812345678)" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
@@ -122,13 +102,14 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <div style={{ background: '#FFFFFF', padding: '18px 20px 14px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #DCE4EC' }}>
+      <div style={{ background: '#FFFFFF', padding: '16px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #DCE4EC' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1A56B0' }}>Drink&amp;Go</div>
           <button type="button" onClick={onGoTrack} style={{ padding: '6px 12px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            📦 ติดตามออเดอร์ / ดู OTP ({registeredName})
+            📦 ติดตามสถานะ / ดู OTP ({registeredName})
           </button>
         </div>
+        <LineBanner customerUser={customerUser} />
         {activeAddr && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid #DCE4EC', borderRadius: 12, background: '#F3F7FA' }}>
             <span>📍</span>
@@ -137,11 +118,11 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         )}
       </div>
 
-      <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {lastOrder && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#E6EEF9', borderRadius: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#E6EEF9', borderRadius: 14 }}>
             <div style={{ flex: 1, fontSize: 13 }}><b>ล่าสุด #{lastOrder.code}</b> · {formatBaht(lastOrder.totalSatang)} ({lastOrder.status})</div>
-            <button type="button" onClick={handleReorder} disabled={submitting} style={{ minHeight: 40, padding: '0 16px', border: 'none', borderRadius: 20, background: '#1A56B0', color: '#FFFFFF', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>สั่งซ้ำ</button>
+            <button type="button" onClick={handleReorder} disabled={submitting} style={{ minHeight: 38, padding: '0 14px', border: 'none', borderRadius: 20, background: '#1A56B0', color: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>สั่งซ้ำ</button>
           </div>
         )}
 
@@ -150,36 +131,36 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
             const qty = cart[p.id] ?? 0;
             return (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderBottom: idx < products.length - 1 ? '1px solid #DCE4EC' : 'none' }}>
-                <div style={{ width: 42, height: 42, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</div>
                   <div style={{ fontSize: 13, color: '#4A5B6E' }}>{formatBaht(p.priceSatang)} {p.isReturnable ? '(มีถุงหมุนเวียน)' : ''}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: Math.max(0, qty - 1) })} style={{ width: 40, height: 40, borderRadius: 20, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-                  <span style={{ width: 24, textAlign: 'center', fontSize: 16, fontWeight: 700 }}>{qty}</span>
-                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: qty + 1 })} style={{ width: 40, height: 40, borderRadius: 20, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
+                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: Math.max(0, qty - 1) })} style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
+                  <span style={{ width: 22, textAlign: 'center', fontSize: 16, fontWeight: 700 }}>{qty}</span>
+                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: qty + 1 })} style={{ width: 38, height: 38, borderRadius: 19, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: '#FFFFFF', borderRadius: 14, border: '1px solid #F3C4D4' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: '#FFFFFF', borderRadius: 14, border: '1px solid #F3C4D4' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>มีถุงคืนรอบนี้ไหม?</span>
+            <span style={{ fontSize: 14, fontWeight: 600 }}>มีถุงคืนรอบนี้ไหม?</span>
             <span style={{ fontSize: 12, fontWeight: 600, color: '#C2255C', background: '#FCE8EF', padding: '3px 10px', borderRadius: 10 }}>ถุงค้างของคุณ {bags.balance} ใบ</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ display: 'flex', flex: 1, background: '#F3F7FA', borderRadius: 12, padding: 3 }}>
-              <button type="button" onClick={() => { setHasReturnBag(false); setReturnBagQty(0); }} style={{ flex: 1, minHeight: 40, border: 'none', borderRadius: 10, background: !hasReturnBag ? '#0F2236' : 'transparent', color: !hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>ไม่มี</button>
-              <button type="button" onClick={() => { if (bags.balance > 0) { setHasReturnBag(true); setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty))); } }} style={{ flex: 1, minHeight: 40, border: 'none', borderRadius: 10, background: hasReturnBag ? '#C2255C' : 'transparent', color: hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>มี</button>
+              <button type="button" onClick={() => { setHasReturnBag(false); setReturnBagQty(0); }} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: !hasReturnBag ? '#0F2236' : 'transparent', color: !hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>ไม่มี</button>
+              <button type="button" onClick={() => { if (bags.balance > 0) { setHasReturnBag(true); setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty))); } }} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: hasReturnBag ? '#C2255C' : 'transparent', color: hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>มี</button>
             </div>
             {hasReturnBag && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button type="button" onClick={() => setReturnBagQty(Math.max(1, returnBagQty - 1))} style={{ width: 40, height: 40, borderRadius: 20, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-                <span style={{ width: 44, textAlign: 'center', fontSize: 14, fontWeight: 700 }}>{returnBagQty} ใบ</span>
-                <button type="button" onClick={() => setReturnBagQty(Math.min(bags.balance, returnBagQty + 1))} style={{ width: 40, height: 40, borderRadius: 20, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
+                <button type="button" onClick={() => setReturnBagQty(Math.max(1, returnBagQty - 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
+                <span style={{ width: 42, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{returnBagQty} ใบ</span>
+                <button type="button" onClick={() => setReturnBagQty(Math.min(bags.balance, returnBagQty + 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
               </div>
             )}
           </div>
@@ -187,7 +168,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
 
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 14, color: '#4A5B6E' }}>วิธีชำระเงิน</span>
-          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY')} style={{ minHeight: 40, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
+          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
             <option value="CASH">เงินสดปลายทาง (CASH)</option>
             <option value="PROMPTPAY">สแกนโอน PromptPay QR</option>
           </select>
@@ -199,7 +180,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
           <span style={{ fontSize: 12, color: '#4A5B6E' }}>ยอดรวมทั้งหมด</span>
           <span style={{ fontSize: 20, fontWeight: 700 }}>{formatBaht(totalSatang)}</span>
         </div>
-        <button type="button" onClick={handlePlaceOrder} disabled={submitting} style={{ flex: 1, minHeight: 52, border: 'none', borderRadius: 14, background: '#1A56B0', color: '#FFFFFF', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
+        <button type="button" onClick={handlePlaceOrder} disabled={submitting} style={{ flex: 1, minHeight: 50, border: 'none', borderRadius: 14, background: '#1A56B0', color: '#FFFFFF', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
           {submitting ? 'กำลังสั่งซื้อ...' : 'ยืนยันสั่งซื้อ (ขั้นที่ 1)'}
         </button>
       </div>

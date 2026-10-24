@@ -23,6 +23,10 @@ const schema = z.object({
   PUBLIC_UPLOAD_BASE_URL: z.string().default('http://localhost:3000/uploads'),
   /** โดเมนที่อนุญาตให้เรียก API ผ่าน CORS (คั่นด้วยจุลภาค หรือ * สำหรับทุกโดเมน) */
   CORS_ORIGINS: z.string().default('*'),
+  /** URL หน้าเว็บหลักสำหรับส่งลิงก์ให้ลูกค้าในแชท LINE */
+  PUBLIC_WEB_URL: z.string().default('https://idrink.tamadee.online'),
+  /** LINE Official Account ID (@...) */
+  LINE_OA_BASIC_ID: z.string().default('@157iywjs'),
 });
 
 export type AppConfig = z.infer<typeof schema>;

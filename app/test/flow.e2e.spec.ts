@@ -295,6 +295,8 @@ describe('ความทนทาน', () => {
     await new Promise((r) => setTimeout(r, 300));
     const rows = await sql("select count(*)::int as n from line_webhook_events where webhook_event_id = 'evt-1'");
     expect(rows[0].n).toBe(1);
+    const me = await as('U1').get('/me').expect(200);
+    expect(me.body.role).toBe('customer');
   });
 });
 
