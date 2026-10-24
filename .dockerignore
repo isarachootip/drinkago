@@ -6,5 +6,7 @@
 **/*.log
 .git
 backups
-uploads
-test-uploads
+app/uploads
+app/test-uploads
+!app/src/uploads
+!app/src/uploads/**

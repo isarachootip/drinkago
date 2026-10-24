@@ -6,5 +6,9 @@ dist/
 *.log
 coverage/
 backups/
-uploads/
-test-uploads/
+/uploads/
+/app/uploads/
+/test-uploads/
+/app/test-uploads/
+!**/src/uploads/
+!**/src/uploads/**

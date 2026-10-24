@@ -5,5 +5,7 @@ dist/
 coverage/
 .env.production
 backups/
-uploads/
-test-uploads/
+/uploads/
+/test-uploads/
+!/src/uploads/
+!/src/uploads/**
