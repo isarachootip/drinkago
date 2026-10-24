@@ -2,10 +2,12 @@ import { Controller, ForbiddenException, Headers, HttpCode, Inject, Logger, Post
 import { desc, eq } from 'drizzle-orm';
 import { Request } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { BagLedgerService } from '../bags/bag-ledger.service';
 import { Public } from '../common/auth';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { addresses, lineWebhookEvents, orders, users } from '../db/schema';
+import { formatLineAutoReply } from './line-reply';
 
 export function verifyLineSignature(rawBody: Buffer, signature: string | undefined, secret: string): boolean {
   if (!signature) return false;
@@ -38,6 +40,7 @@ export class LineWebhookController {
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    private readonly bags: BagLedgerService,
   ) {}
 
   @Post('webhook')
@@ -130,14 +133,17 @@ export class LineWebhookController {
       ? [myLatest]
       : await this.db.select().from(orders).orderBy(desc(orders.createdAt)).limit(1);
 
-    const link = `${this.cfg.PUBLIC_WEB_URL.replace(/\/$/, '')}/?lineUserId=${encodeURIComponent(lineUserId)}`;
-    const lines = [`สวัสดีคุณ ${name} 💧 ยินดีต้อนรับสู่ Drink&Go (${this.cfg.LINE_OA_BASIC_ID})`];
-    if (anyLatest) {
-      lines.push(`📦 ออเดอร์ล่าสุด: #${anyLatest.code} (${anyLatest.status})`);
-      lines.push(`🔑 รหัส OTP 4 หลักสำหรับแจ้งไรเดอร์: ${anyLatest.deliveryOtp}`);
-    }
-    lines.push(`🛒 กดสั่งน้ำ/ติดตามสถานะ (ผูกบัญชี LINE ของคุณแล้ว):\n${link}`);
-    return lines.join('\n');
+    const bagBalance = await this.bags.balance(userId);
+    return formatLineAutoReply({
+      customerName: name,
+      lineUserId,
+      oaBasicId: this.cfg.LINE_OA_BASIC_ID,
+      publicWebUrl: this.cfg.PUBLIC_WEB_URL,
+      bagBalance,
+      latestOrder: anyLatest
+        ? { code: anyLatest.code, status: anyLatest.status, deliveryOtp: anyLatest.deliveryOtp }
+        : null,
+    });
   }
 
   private async replyLine(replyToken: string, text: string) {
