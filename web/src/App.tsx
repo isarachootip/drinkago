@@ -136,13 +136,13 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div style={{ maxWidth: 430, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)' }}>
+    <div style={{ maxWidth: roleTab === 'admin' ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr) auto', gap: 4, padding: 6, background: '#091522' }}>
         {([
           { id: 'customer', label: '1. ลูกค้า' },
           { id: 'warehouse', label: '2/8. คลัง' },
           { id: 'rider', label: '3–7. ไรเดอร์' },
-          { id: 'admin', label: 'แอดมิน' },
+          { id: 'admin', label: '⚙️ หลังบ้าน (Admin)' },
         ] as const).map((t) => (
           <button key={t.id} type="button" onClick={() => setRoleTab(t.id)} style={{ minHeight: 36, border: 'none', borderRadius: 8, background: roleTab === t.id ? '#1A56B0' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
             {t.label}

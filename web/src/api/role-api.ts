@@ -20,9 +20,9 @@ import {
   staffOrderSchema,
 } from './schemas';
 
-async function requestJson<T>(
+export async function requestJson<T>(
   path: string,
-  opts: { method?: 'GET' | 'POST'; body?: unknown; userOverride?: string; settings?: DevAuthSettings } = {},
+  opts: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; userOverride?: string; settings?: DevAuthSettings } = {},
 ): Promise<T> {
   const s = opts.settings ?? loadDevSettings();
   const headers: Record<string, string> = {
@@ -49,7 +49,7 @@ async function requestJson<T>(
 
 export const customerApi = {
   getMe: (user = 'dev-customer') =>
-    requestJson<{ id: string; name: string; phone: string; role: string }>('/me', { userOverride: user }),
+    requestJson<{ id: string; name: string; phone: string; role: string; creditLimitSatang: number }>('/me', { userOverride: user }),
 
   register: (input: { name: string; phone: string }, user = 'dev-customer') =>
     requestJson<{ id: string; name: string }>('/me/register', {
@@ -78,7 +78,7 @@ export const customerApi = {
       addressId: string;
       items: { productId: number; qty: number }[];
       expectBagReturn: number;
-      paymentMethod: 'CASH' | 'PROMPTPAY';
+      paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT';
     },
     user = 'dev-customer',
   ) => requestJson<StaffOrder>('/orders', { method: 'POST', body, userOverride: user }),
@@ -117,8 +117,8 @@ export const staffApi = {
   packOrder: (orderId: string, user = 'dev-warehouse') =>
     requestJson(`/orders/${orderId}/pack`, { method: 'POST', body: {}, userOverride: user }),
 
-  assignRider: (orderId: string, riderId: string, user = 'dev-warehouse') =>
-    requestJson(`/orders/${orderId}/assign`, { method: 'POST', body: { riderId }, userOverride: user }),
+  assignRider: (orderId: string, riderId: string, stationId?: number, user = 'dev-warehouse') =>
+    requestJson(`/orders/${orderId}/assign`, { method: 'POST', body: { riderId, stationId }, userOverride: user }),
 
   receiveBags: (orderId: string, payload: { evidence: EvidenceInput; counted: number }, user = 'dev-warehouse') =>
     requestJson(`/orders/${orderId}/receive-bags`, { method: 'POST', body: payload, userOverride: user }),

@@ -1,21 +1,14 @@
 import { z } from 'zod';
 
 export const orderStatusSchema = z.enum([
-  'PENDING',
-  'CONFIRMED',
-  'PACKED',
-  'PICKED_UP',
-  'OUT_FOR_DELIVERY',
-  'DELIVERED',
-  'FAILED_DELIVERY',
-  'BAG_COLLECTED',
-  'BAG_RETURNED',
-  'CLOSED',
-  'CLOSED_WITH_RETURN',
-  'CANCELLED',
+  'PENDING', 'CONFIRMED', 'PACKED', 'PICKED_UP', 'OUT_FOR_DELIVERY',
+  'DELIVERED', 'FAILED_DELIVERY', 'BAG_COLLECTED', 'BAG_RETURNED',
+  'CLOSED', 'CLOSED_WITH_RETURN', 'CANCELLED',
 ]);
 
 export type OrderStatus = z.infer<typeof orderStatusSchema>;
+export const paymentMethodSchema = z.enum(['CASH', 'PROMPTPAY', 'CREDIT']);
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 
 export const addressSchema = z.object({
   id: z.string().uuid().optional(),
@@ -28,17 +21,28 @@ export const addressSchema = z.object({
 
 export type CustomerAddress = z.infer<typeof addressSchema>;
 
+export const stationEmbeddedSchema = z.object({
+  id: z.number().int().nullable().optional(),
+  code: z.string().nullable().optional(),
+  name: z.string().nullable().optional(),
+  addressDetail: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+});
+
 export const riderJobSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   status: orderStatusSchema,
+  stationId: z.number().int().nullable().optional(),
   expectBagReturn: z.number().int().nonnegative(),
-  paymentMethod: z.enum(['CASH', 'PROMPTPAY']),
+  paymentMethod: paymentMethodSchema,
   paymentStatus: z.enum(['UNPAID', 'PENDING_VERIFY', 'PAID']),
   totalSatang: z.number().int().nonnegative(),
   customerName: z.string(),
   customerPhone: z.string().nullable().optional(),
   address: addressSchema,
+  station: stationEmbeddedSchema.nullable().optional(),
 });
 
 export type RiderJob = z.infer<typeof riderJobSchema>;
@@ -55,8 +59,9 @@ export const orderDetailSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   status: orderStatusSchema,
+  stationId: z.number().int().nullable().optional(),
   expectBagReturn: z.number().int().nonnegative(),
-  paymentMethod: z.enum(['CASH', 'PROMPTPAY']),
+  paymentMethod: paymentMethodSchema,
   paymentStatus: z.enum(['UNPAID', 'PENDING_VERIFY', 'PAID']),
   totalSatang: z.number().int().nonnegative(),
   deliveryOtp: z.string().optional(),
@@ -101,8 +106,9 @@ export const staffOrderSchema = z.object({
   status: orderStatusSchema,
   customerId: z.string().uuid(),
   riderId: z.string().uuid().nullable().optional(),
+  stationId: z.number().int().nullable().optional(),
   totalSatang: z.number().int().nonnegative(),
-  paymentMethod: z.enum(['CASH', 'PROMPTPAY']),
+  paymentMethod: paymentMethodSchema,
   paymentStatus: z.enum(['UNPAID', 'PENDING_VERIFY', 'PAID']),
   expectBagReturn: z.number().int().nonnegative(),
   bagMismatch: z.boolean(),
@@ -135,10 +141,7 @@ export const orderEventSchema = z.object({
 });
 
 export type OrderEvent = z.infer<typeof orderEventSchema>;
-
-export const uploadResponseSchema = z.object({
-  url: z.string().url(),
-});
+export const uploadResponseSchema = z.object({ url: z.string().url() });
 
 export interface EvidenceInput {
   photoUrl: string;
@@ -167,34 +170,14 @@ export function orderStatusBadge(status: OrderStatus): {
 } {
   switch (status) {
     case 'CONFIRMED':
-      return {
-        stepText: 'ขั้นที่ 3 · รอกดน้ำ/จัดเตรียม',
-        actionLabel: 'ขั้นที่ 3: กดน้ำเสร็จแล้ว (PACKED)',
-        buttonColor: '#0B6E8A',
-      };
+      return { stepText: 'ขั้นที่ 3 · รอกดน้ำที่ตู้เติมน้ำ', actionLabel: 'ขั้นที่ 3: กดน้ำเสร็จแล้ว (PACKED)', buttonColor: '#0B6E8A' };
     case 'PACKED':
-      return {
-        stepText: 'ขั้นที่ 4 · รอรับสินค้าขึ้นรถ',
-        actionLabel: 'ขั้นที่ 4: ยืนยันการรับสินค้า (ถ่ายรูป + GPS)',
-        buttonColor: '#1A56B0',
-      };
+      return { stepText: 'ขั้นที่ 4 · รอรับสินค้าขึ้นรถ', actionLabel: 'ขั้นที่ 4: ยืนยันการรับสินค้า (ถ่ายรูป + GPS)', buttonColor: '#1A56B0' };
     case 'PICKED_UP':
-      return {
-        stepText: 'ขั้นที่ 5 · รับสินค้าแล้ว พร้อมออกส่ง',
-        actionLabel: 'ขั้นที่ 5: เริ่มวิ่งส่งสินค้า',
-        buttonColor: '#1A56B0',
-      };
+      return { stepText: 'ขั้นที่ 5 · รับสินค้าแล้ว พร้อมออกส่ง', actionLabel: 'ขั้นที่ 5: เริ่มวิ่งส่งสินค้า', buttonColor: '#1A56B0' };
     case 'OUT_FOR_DELIVERY':
-      return {
-        stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า',
-        actionLabel: 'ถึงแล้ว · ยืนยันส่ง',
-        buttonColor: '#1E7B45',
-      };
+      return { stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า', actionLabel: 'ถึงแล้ว · ยืนยันส่ง', buttonColor: '#1E7B45' };
     default:
-      return {
-        stepText: status,
-        actionLabel: 'ดูรายละเอียด',
-        buttonColor: '#4A5B6E',
-      };
+      return { stepText: status, actionLabel: 'ดูรายละเอียด', buttonColor: '#4A5B6E' };
   }
 }

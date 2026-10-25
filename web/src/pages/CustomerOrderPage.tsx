@@ -22,7 +22,8 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const [bags, setBags] = useState<BagSummary>({ balance: 0, history: [] });
   const [hasReturnBag, setHasReturnBag] = useState(false);
   const [returnBagQty, setReturnBagQty] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'PROMPTPAY'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'PROMPTPAY' | 'CREDIT'>('CASH');
+  const [creditLimitSatang, setCreditLimitSatang] = useState<number>(100000);
   const [lastOrder, setLastOrder] = useState<StaffOrder | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -30,6 +31,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
     try {
       const me = await customerApi.getMe(customerUser);
       setRegisteredName(me.name);
+      setCreditLimitSatang(me.creditLimitSatang ?? 100000);
       setNeedsRegister(false);
       const [addrs, prods, bagSum, mine] = await Promise.all([
         customerApi.listAddresses(customerUser), customerApi.listProducts(customerUser),
@@ -167,10 +169,11 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         </div>
 
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, color: '#4A5B6E' }}>วิธีชำระเงิน</span>
-          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
+          <span style={{ fontSize: 13, color: '#4A5B6E' }}>วิธีชำระเงิน (วงเงิน {formatBaht(creditLimitSatang)})</span>
+          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY' | 'CREDIT')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
             <option value="CASH">เงินสดปลายทาง (CASH)</option>
             <option value="PROMPTPAY">สแกนโอน PromptPay QR</option>
+            <option value="CREDIT">วงเงินเครดิตสมาชิก (CREDIT)</option>
           </select>
         </div>
       </div>

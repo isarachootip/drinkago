@@ -94,6 +94,12 @@ test/                            unit + e2e
 | POST | `/orders/:id/verify-payment` | admin | ยืนยันสลิป |
 | POST | `/orders/:id/unlock-otp` | admin | ปลดล็อก OTP หลังกรอกผิดครบ 5 ครั้ง |
 | GET | `/admin/bag-mismatches` | admin | |
+| GET | `/stations` | ทุกบทบาท | รายการตู้กดน้ำ + ยอดสต็อกถุงประจำตู้ |
+| POST/PATCH | `/admin/stations`, `/admin/stations/:id` | warehouse, admin | เพิ่ม/แก้ไขตู้กดน้ำและพิกัดนำทาง |
+| POST | `/admin/stations/:id/bags` | warehouse, admin | เติมถุงเข้าตู้ (`RESTOCK_IN`) / ปรับยอด (`ADJUST`) |
+| GET | `/admin/stations/:id/ledger` | warehouse, admin | ประวัติรับเข้า-จ่ายออกถุงประจำตู้เชื่อมกับสมาชิก |
+| GET/POST/PATCH | `/admin/riders`, `/admin/riders/:id` | warehouse, admin | บริหารจัดการไรเดอร์ พาหนะ และโซน |
+| GET/POST/PATCH | `/admin/customers`, `/admin/customers/:id` | warehouse, admin | บริหารจัดการลูกค้า พิกัดบ้าน และวงเงินเครดิต |
 | GET | `/admin/customers/:id/bags` | admin | |
 | POST | `/admin/customers/:id/bags/write-off` | admin | ตัดยอดถุง |
 | POST | `/uploads` | rider, warehouse, admin | อัปโหลดรูปหลักฐาน (≤ 5MB) |

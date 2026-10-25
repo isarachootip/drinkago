@@ -1,13 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { randomInt, timingSafeEqual } from 'node:crypto';
 import { BagLedgerService } from '../bags/bag-ledger.service';
 import { User } from '../common/auth';
 import { DomainError } from '../common/errors';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB, DbOrTx } from '../db/db';
-import { addresses, orderEvents, orderItems, orders, payments, products, users } from '../db/schema';
+import { addresses, orderEvents, orderItems, orders, payments, products, users, waterStations } from '../db/schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StationsService } from '../stations/stations.service';
 import { ActorRole, assertTransition, Evidence, OrderStatus } from './order-state-machine';
 
 export type Order = typeof orders.$inferSelect;
@@ -23,7 +24,7 @@ export interface CreateOrderInput {
   addressId: string;
   items: { productId: number; qty: number }[];
   expectBagReturn: number;
-  paymentMethod: 'CASH' | 'PROMPTPAY';
+  paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT';
   slotStart?: Date;
   slotEnd?: Date;
 }
@@ -37,6 +38,7 @@ export class OrdersService {
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
     private readonly bags: BagLedgerService,
     private readonly notify: NotificationsService,
+    private readonly stations: StationsService,
   ) {}
 
   // ---------------------------------------------------------------- แกนกลาง
@@ -115,12 +117,38 @@ export class OrdersService {
         throw new DomainError(422, 'BAGS_EXCEED_BALANCE', `คุณมีถุงค้าง ${balance} ใบ แจ้งคืน ${input.expectBagReturn} ใบไม่ได้`);
       }
 
+      // ตรวจสอบวงเงินเครดิตของสมาชิกเมื่อเลือกชำระแบบ CREDIT
+      if (input.paymentMethod === 'CREDIT') {
+        const [{ used }] = await tx
+          .select({ used: sql<number>`coalesce(sum(${orders.totalSatang}), 0)::int` })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.customerId, customer.id),
+              eq(orders.paymentMethod, 'CREDIT'),
+              ne(orders.paymentStatus, 'PAID'),
+              ne(orders.status, 'CANCELLED'),
+            ),
+          );
+        if (used + total > customer.creditLimitSatang) {
+          throw new DomainError(
+            422,
+            'CREDIT_LIMIT_EXCEEDED',
+            `ยอดสั่งซื้อเกินวงเงินเครดิต (วงเงินคงเหลือ ${baht(Math.max(0, customer.creditLimitSatang - used))} บาท)`,
+          );
+        }
+      }
+
+      // คำนวณหาตู้กดน้ำที่ใกล้บ้านลูกค้าที่สุดอัตโนมัติ
+      const stationId = await this.stations.findNearestStation(addr.lat, addr.lng, tx);
+
       const [order] = await tx
         .insert(orders)
         .values({
           code: `DG-${Date.now().toString(36).toUpperCase()}${randomInt(36 ** 2).toString(36).toUpperCase().padStart(2, '0')}`,
           customerId: customer.id,
           addressId: addr.id,
+          stationId,
           paymentMethod: input.paymentMethod,
           totalSatang: total,
           expectBagReturn: input.expectBagReturn,
@@ -170,21 +198,43 @@ export class OrdersService {
   }
 
   pack(id: string, by: User) {
-    return this.withLockedOrder(id, (tx, o) => this.transition(tx, o, 'PACKED', actorOf(by)));
+    return this.withLockedOrder(id, async (tx, o) => {
+      const updated = await this.transition(tx, o, 'PACKED', actorOf(by));
+      if (o.stationId) {
+        const [{ returnable }] = await tx
+          .select({ returnable: sql<number>`coalesce(sum(${orderItems.qty}) filter (where ${orderItems.isReturnable}), 0)::int` })
+          .from(orderItems)
+          .where(eq(orderItems.orderId, o.id));
+        if (returnable > 0) {
+          await this.stations.recordMovement(tx, {
+            stationId: o.stationId,
+            orderId: o.id,
+            customerId: o.customerId,
+            movement: 'DISPENSED_OUT',
+            qty: -returnable,
+            actorId: by.id,
+            note: `กดน้ำเบิกถุงออกตามออเดอร์ #${o.code}`,
+          });
+        }
+      }
+      return updated;
+    });
   }
 
-  /** มอบหมายไรเดอร์ (ไม่เปลี่ยนสถานะ แต่บันทึกใน order_events) */
-  assign(id: string, riderId: string, by: User) {
+  /** มอบหมายไรเดอร์ (และเปลี่ยนตู้กดน้ำได้) */
+  assign(id: string, riderId: string, by: User, stationId?: number) {
     return this.withLockedOrder(id, async (tx, o) => {
       if (!['CONFIRMED', 'PACKED'].includes(o.status)) {
         throw new DomainError(409, 'INVALID_TRANSITION', 'มอบหมายไรเดอร์ได้เฉพาะออเดอร์ที่รับแล้วและยังไม่ออกจากคลัง');
       }
       const [rider] = await tx.select().from(users).where(and(eq(users.id, riderId), eq(users.role, 'rider'), eq(users.active, true)));
       if (!rider) throw new DomainError(404, 'RIDER_NOT_FOUND', 'ไม่พบไรเดอร์');
-      const [updated] = await tx.update(orders).set({ riderId, updatedAt: new Date() }).where(eq(orders.id, o.id)).returning();
+      const patch: Partial<typeof orders.$inferInsert> = { riderId, updatedAt: new Date() };
+      if (stationId !== undefined) patch.stationId = stationId;
+      const [updated] = await tx.update(orders).set(patch).where(eq(orders.id, o.id)).returning();
       await tx.insert(orderEvents).values({
         orderId: o.id, fromStatus: o.status, toStatus: o.status, actorId: by.id, actorRole: by.role,
-        note: 'assign_rider', data: { riderId, previousRiderId: o.riderId },
+        note: 'assign_rider', data: { riderId, previousRiderId: o.riderId, stationId: updated.stationId },
       });
       await this.notify.enqueue(tx, riderId, 'JOB_ASSIGNED', { code: o.code });
       return updated;
@@ -295,6 +345,17 @@ export class OrdersService {
     return this.withLockedOrder(id, async (tx, o) => {
       let cur = await this.transition(tx, o, 'BAG_RETURNED', actorOf(by), { evidence: input.evidence, data: { counted: input.counted } });
       const { match, collected } = await this.bags.receive(tx, { customerId: o.customerId, orderId: o.id, counted: input.counted, by: by.id });
+      if (o.stationId && input.counted > 0) {
+        await this.stations.recordMovement(tx, {
+          stationId: o.stationId,
+          orderId: o.id,
+          customerId: o.customerId,
+          movement: 'RETURNED_IN',
+          qty: input.counted,
+          actorId: by.id,
+          note: `รับถุงคืนจากสมาชิก ออเดอร์ #${o.code}`,
+        });
+      }
       if (match) {
         cur = await this.transition(tx, cur, 'CLOSED_WITH_RETURN', SYSTEM, { note: 'bag_count_matched' });
       } else {
@@ -378,7 +439,7 @@ export class OrdersService {
     if (filter.customerId) conds.push(eq(orders.customerId, filter.customerId));
     return this.db
       .select({ id: orders.id, code: orders.code, status: orders.status, customerId: orders.customerId, riderId: orders.riderId,
-        totalSatang: orders.totalSatang, paymentMethod: orders.paymentMethod, paymentStatus: orders.paymentStatus,
+        stationId: orders.stationId, totalSatang: orders.totalSatang, paymentMethod: orders.paymentMethod, paymentStatus: orders.paymentStatus,
         expectBagReturn: orders.expectBagReturn, bagMismatch: orders.bagMismatch, createdAt: orders.createdAt })
       .from(orders)
       .where(conds.length ? and(...conds) : undefined)
@@ -386,16 +447,34 @@ export class OrdersService {
       .limit(Math.min(filter.limit ?? 50, 200));
   }
 
-  /** งานของไรเดอร์ที่ยังไม่จบ (ตามหน้า "งานวันนี้") */
+  /** งานของไรเดอร์ที่ยังไม่จบ (ตามหน้า "งานวันนี้") พร้อมพิกัดตู้กดน้ำและบ้านลูกค้า */
   riderJobs(riderId: string) {
     return this.db
-      .select({ id: orders.id, code: orders.code, status: orders.status, expectBagReturn: orders.expectBagReturn,
-        paymentMethod: orders.paymentMethod, paymentStatus: orders.paymentStatus, totalSatang: orders.totalSatang,
-        customerName: users.name, customerPhone: users.phone,
-        address: { label: addresses.label, detail: addresses.detail, lat: addresses.lat, lng: addresses.lng, note: addresses.note } })
+      .select({
+        id: orders.id,
+        code: orders.code,
+        status: orders.status,
+        stationId: orders.stationId,
+        expectBagReturn: orders.expectBagReturn,
+        paymentMethod: orders.paymentMethod,
+        paymentStatus: orders.paymentStatus,
+        totalSatang: orders.totalSatang,
+        customerName: users.name,
+        customerPhone: users.phone,
+        address: { label: addresses.label, detail: addresses.detail, lat: addresses.lat, lng: addresses.lng, note: addresses.note },
+        station: {
+          id: waterStations.id,
+          code: waterStations.code,
+          name: waterStations.name,
+          addressDetail: waterStations.addressDetail,
+          lat: waterStations.lat,
+          lng: waterStations.lng,
+        },
+      })
       .from(orders)
       .innerJoin(users, eq(users.id, orders.customerId))
       .innerJoin(addresses, eq(addresses.id, orders.addressId))
+      .leftJoin(waterStations, eq(waterStations.id, orders.stationId))
       .where(and(eq(orders.riderId, riderId), inArray(orders.status, ['CONFIRMED', 'PACKED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'])))
       .orderBy(asc(orders.slotStart), asc(orders.createdAt));
   }

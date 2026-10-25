@@ -3,14 +3,15 @@ import 'dotenv/config';
  * ข้อมูลตั้งต้นสำหรับพัฒนาและทดสอบ (ราคาเป็นค่าตัวอย่าง แก้ได้ใน Back Office ภายหลัง)
  * ผู้ใช้ทดสอบเข้าระบบด้วย header x-dev-user: <lineUserId> ในโหมด AUTH_MODE=dev
  */
+import { eq, sql } from 'drizzle-orm';
 import { createDb } from './db';
-import { products, users } from './schema';
+import { products, stationBagLedger, users, waterStations } from './schema';
 
 export const DEV_USERS = [
   { lineUserId: 'dev-admin', role: 'admin' as const, name: 'แอดมินทดสอบ' },
   { lineUserId: 'dev-warehouse', role: 'warehouse' as const, name: 'คลังทดสอบ' },
-  { lineUserId: 'dev-rider', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์', zone: 'A' },
-  { lineUserId: 'dev-rider-2', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ 2', vehicle: 'มอเตอร์ไซค์', zone: 'B' },
+  { lineUserId: 'dev-rider', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์ กข-1234', zone: 'A' },
+  { lineUserId: 'dev-rider-2', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ 2', vehicle: 'มอเตอร์ไซค์ ขค-5678', zone: 'B' },
 ];
 
 export const SAMPLE_PRODUCTS = [
@@ -18,11 +19,49 @@ export const SAMPLE_PRODUCTS = [
   { sku: 'WATER-PACK-12', name: 'น้ำดื่มแบบแพ็ก', priceSatang: 5500, isReturnable: false },
 ];
 
+export const SAMPLE_STATIONS = [
+  {
+    code: 'ST-01',
+    name: 'ตู้กดน้ำสาขาสุขุมวิท 50 (จุดหลัก)',
+    addressDetail: 'ปากซอยสุขุมวิท 50 แขวงพระโขนง เขตคลองเตย',
+    lat: 13.7058,
+    lng: 100.6012,
+  },
+  {
+    code: 'ST-02',
+    name: 'ตู้กดน้ำสาขาอ่อนนุช 17',
+    addressDetail: 'ซอยอ่อนนุช 17 แขวงสวนหลวง เขตสวนหลวง',
+    lat: 13.7135,
+    lng: 100.6105,
+  },
+];
+
 export async function seed(url: string) {
   const { db, pool } = createDb(url);
   try {
     await db.insert(users).values(DEV_USERS).onConflictDoNothing();
     await db.insert(products).values(SAMPLE_PRODUCTS).onConflictDoNothing();
+    await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();
+
+    const [admin] = await db.select().from(users).where(eq(users.lineUserId, 'dev-admin')).limit(1);
+    const stations = await db.select().from(waterStations);
+    if (admin) {
+      for (const st of stations) {
+        const [{ n }] = await db
+          .select({ n: sql<number>`coalesce(sum(${stationBagLedger.qty}), 0)::int` })
+          .from(stationBagLedger)
+          .where(eq(stationBagLedger.stationId, st.id));
+        if (n === 0) {
+          await db.insert(stationBagLedger).values({
+            stationId: st.id,
+            movement: 'RESTOCK_IN',
+            qty: 50,
+            actorId: admin.id,
+            note: 'สต็อกถุงตั้งต้นประจำตู้กดน้ำ',
+          });
+        }
+      }
+    }
   } finally {
     await pool.end();
   }

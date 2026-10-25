@@ -9,7 +9,7 @@ const createSchema = z.object({
   addressId: z.string().uuid(),
   items: z.array(z.object({ productId: z.number().int().positive(), qty: z.number().int().min(1).max(100) })).min(1).max(20),
   expectBagReturn: z.number().int().min(0).max(200).default(0),
-  paymentMethod: z.enum(['CASH', 'PROMPTPAY']),
+  paymentMethod: z.enum(['CASH', 'PROMPTPAY', 'CREDIT']),
   slotStart: z.coerce.date().optional(),
   slotEnd: z.coerce.date().optional(),
 });
@@ -27,7 +27,7 @@ const failSchema = z.object({ evidence: evidenceSchema.default({}), reason: z.st
 const receiveSchema = z.object({ evidence: evidenceSchema.default({}), counted: z.number().int().min(0).max(1000) });
 const noteSchema = z.object({ note: z.string().min(1).max(500) });
 const optionalNote = z.object({ note: z.string().max(500).optional() });
-const assignSchema = z.object({ riderId: z.string().uuid() });
+const assignSchema = z.object({ riderId: z.string().uuid(), stationId: z.number().int().positive().optional() });
 const slipSchema = z.object({ slipUrl: z.string().url(), ref: z.string().max(100).optional() });
 
 const Id = () => Param('id', new ParseUUIDPipe());
@@ -107,7 +107,8 @@ export class OrdersController {
   @HttpCode(200)
   @Roles('warehouse', 'admin')
   assign(@Id() id: string, @CurrentUser() u: User, @Body() body: unknown) {
-    return this.orders.assign(id, parse(assignSchema, body).riderId, u);
+    const b = parse(assignSchema, body);
+    return this.orders.assign(id, b.riderId, u, b.stationId);
   }
 
   @Post(':id/receive-bags')

@@ -8,12 +8,15 @@ import { ErrorFilter } from './common/errors';
 import { IdempotencyInterceptor } from './common/idempotency.interceptor';
 import { IdempotencyService } from './common/idempotency.service';
 import { APP_CONFIG, AppConfig, loadConfig } from './config';
+import { AdminManagementController } from './customers/admin-management.controller';
 import { AdminCustomersController, MeController } from './customers/customers.controller';
 import { DbModule } from './db/db.module';
 import { LineWebhookController } from './line/line-webhook.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { OrdersController, RiderController } from './orders/orders.controller';
 import { OrdersService } from './orders/orders.service';
+import { StationsController } from './stations/stations.controller';
+import { StationsService } from './stations/stations.service';
 import { LocalStorageService } from './uploads/local-storage.service';
 import { FILE_STORAGE } from './uploads/storage.interface';
 import { UploadsController } from './uploads/uploads.controller';
@@ -37,9 +40,21 @@ export class AppModule {
         DbModule,
         ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }]),
       ],
-      controllers: [HealthController, MeController, AdminCustomersController, CatalogController, OrdersController, RiderController, LineWebhookController, UploadsController],
+      controllers: [
+        HealthController,
+        MeController,
+        AdminCustomersController,
+        AdminManagementController,
+        CatalogController,
+        OrdersController,
+        RiderController,
+        StationsController,
+        LineWebhookController,
+        UploadsController,
+      ],
       providers: [
         BagLedgerService,
+        StationsService,
         NotificationsService,
         OrdersService,
         IdempotencyService,

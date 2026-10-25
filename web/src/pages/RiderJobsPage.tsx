@@ -88,9 +88,14 @@ export const RiderJobsPage: React.FC<Props> = ({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span style={{ fontSize: 17, fontWeight: 700 }}>{active.customerName}</span>
               <span style={{ fontSize: 14, color: '#33475B' }}>
-                {active.address.label} · {active.address.detail}
+                🏠 บ้านลูกค้า: {active.address.label} · {active.address.detail}
                 {active.address.note ? ` · ${active.address.note}` : ''}
               </span>
+              {active.station?.name && (
+                <span style={{ fontSize: 13, color: '#0B6E8A', fontWeight: 700, marginTop: 4 }}>
+                  🚰 จุดกดน้ำ: {active.station.code} · {active.station.name} ({active.station.addressDetail})
+                </span>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -105,21 +110,33 @@ export const RiderJobsPage: React.FC<Props> = ({
                 </span>
               )}
               <span style={{ fontSize: 13, background: '#E3F3E9', color: '#17613A', padding: '4px 10px', borderRadius: 10 }}>
-                {active.paymentMethod === 'CASH' ? `เก็บเงินสด ${formatBaht(active.totalSatang)}` : `PromptPay (${active.paymentStatus})`}
+                {active.paymentMethod === 'CASH'
+                  ? `เก็บเงินสด ${formatBaht(active.totalSatang)}`
+                  : `${active.paymentMethod} (${active.paymentStatus})`}
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {active.station?.lat != null && active.station?.lng != null && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${active.station.lat},${active.station.lng}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ flex: 1, minHeight: 44, borderRadius: 12, background: '#0B6E8A', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px' }}
+                >
+                  🚰 นำทางไปตู้กดน้ำ
+                </a>
+              )}
               <a
                 href={`https://www.google.com/maps/dir/?api=1&destination=${active.address.lat},${active.address.lng}`}
                 target="_blank"
                 rel="noreferrer"
-                style={{ flex: 1, minHeight: 48, borderRadius: 12, background: '#1A56B0', color: '#FFFFFF', fontSize: 15, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                style={{ flex: 1, minHeight: 44, borderRadius: 12, background: '#1A56B0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px' }}
               >
-                🧭 นำทาง
+                🏠 นำทางไปบ้านลูกค้า
               </a>
               {active.customerPhone && (
-                <a href={`tel:${active.customerPhone}`} aria-label="โทรหาลูกค้า" style={{ width: 48, minHeight: 48, border: '1px solid #DCE4EC', borderRadius: 12, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 18 }}>
+                <a href={`tel:${active.customerPhone}`} aria-label="โทรหาลูกค้า" style={{ width: 44, minHeight: 44, border: '1px solid #DCE4EC', borderRadius: 12, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 18 }}>
                   📞
                 </a>
               )}
