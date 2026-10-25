@@ -13,7 +13,8 @@
 | Order state machine (Flow 8 ขั้น) | ✅ | รองรับทั้งคลังและไรเดอร์ (ที่ได้รับมอบหมาย) กดขั้น 3 (`PACKED` / พนักงานขนส่งกดน้ำ) |
 | บัญชีถุง + แจ้งยอดไม่ตรง | ✅ | |
 | API ลูกค้า / คลัง / ไรเดอร์ / แอดมิน | ✅ | ตาราง API ใน `README.md` |
-| Dev auth + LINE ID token | ✅ | ยังไม่ได้ทดสอบกับ LINE จริง (ยังไม่มีบัญชี) |
+| Dev auth + LINE ID token + Staff Password Auth | ✅ | รองรับ Login หลังบ้าน/คลังด้วย `username` + `password` (`POST /auth/login` → JWT) ค่าเริ่มต้น `admin` / `admin1234` และ `warehouse` / `warehouse1234` |
+| User Management CRUD (`/admin/users`) | ✅ | เพิ่ม/ดู/แก้ไข/ตั้งรหัสผ่าน/ลบผู้ใช้ครบทุกบทบาท (Hard Delete ถ้ายังไม่มีประวัติ, Soft Delete ถ้ามีประวัติผูกกับ Audit Trail) |
 | LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชี `?lineUserId=` |
 | Notification outbox + LINE push | ✅ | รองรับ `LINE_CHANNEL_ACCESS_TOKEN` ส่งเข้าแชทจริง |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |

@@ -10,6 +10,7 @@ import { IdempotencyService } from './common/idempotency.service';
 import { APP_CONFIG, AppConfig, loadConfig } from './config';
 import { AdminManagementController } from './customers/admin-management.controller';
 import { AdminCustomersController, MeController } from './customers/customers.controller';
+import { UsersAdminController } from './customers/users-admin.controller';
 import { DbModule } from './db/db.module';
 import { LineWebhookController } from './line/line-webhook.controller';
 import { NotificationsService } from './notifications/notifications.service';
@@ -45,6 +46,7 @@ export class AppModule {
         MeController,
         AdminCustomersController,
         AdminManagementController,
+        UsersAdminController,
         CatalogController,
         OrdersController,
         RiderController,

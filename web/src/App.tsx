@@ -8,9 +8,11 @@ import {
   syncOfflineQueue,
 } from './api/client';
 import { DevAuthSettings, EvidenceInput, OrderDetail, RiderJob } from './api/schemas';
+import { loadStaffSession, saveStaffSession, StaffSession } from './api/role-api';
 import { DevSettingsModal } from './components/DevSettingsModal';
 import { FailDeliveryModal } from './components/FailDeliveryModal';
 import { PickupModal } from './components/PickupModal';
+import { StaffLoginCard } from './components/StaffLoginCard';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
 import { CustomerTrackPage } from './pages/CustomerTrackPage';
@@ -33,6 +35,7 @@ function resolveInitialCustomerUser(): string {
 export const App: React.FC = () => {
   const [roleTab, setRoleTab] = useState<AppRoleTab>('customer');
   const [customerUser] = useState<string>(() => resolveInitialCustomerUser());
+  const [staffSession, setStaffSession] = useState<StaffSession | null>(() => loadStaffSession());
   const [custScreen, setCustScreen] = useState<'shop' | 'track'>('shop');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
@@ -169,7 +172,12 @@ export const App: React.FC = () => {
           <CustomerTrackPage customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
         ))}
 
-      {roleTab === 'warehouse' && <WarehousePage onNotify={showNotice} />}
+      {roleTab === 'warehouse' &&
+        (staffSession && ['warehouse', 'admin'].includes(staffSession.user.role) ? (
+          <WarehousePage onNotify={showNotice} />
+        ) : (
+          <StaffLoginCard targetRole="warehouse" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); }} onNotify={showNotice} />
+        ))}
 
       {roleTab === 'rider' &&
         (riderScreen === 'jobs' || !activeJob ? (
@@ -178,7 +186,12 @@ export const App: React.FC = () => {
           <RiderPodPage job={activeJob} detail={selectedDetail} settings={settings} onBack={() => setRiderScreen('jobs')} onDeliver={handleDeliverConfirm} onOpenFailModal={() => setFailJob(activeJob)} />
         ))}
 
-      {roleTab === 'admin' && <AdminPage onNotify={showNotice} />}
+      {roleTab === 'admin' &&
+        (staffSession && staffSession.user.role === 'admin' ? (
+          <AdminPage staffSession={staffSession} onLogout={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบหลังบ้านแล้ว'); }} onNotify={showNotice} />
+        ) : (
+          <StaffLoginCard targetRole="admin" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); }} onNotify={showNotice} />
+        ))}
       {showSettings && <DevSettingsModal settings={settings} onSave={(next) => { saveDevSettings(next); setSettings(next); }} onClose={() => setShowSettings(false)} />}
       {pickupJob && <PickupModal job={pickupJob} settings={settings} onConfirm={handlePickupConfirm} onClose={() => setPickupJob(null)} />}
       {failJob && <FailDeliveryModal job={failJob} settings={settings} onSubmitFail={handleFailConfirm} onClose={() => setFailJob(null)} />}

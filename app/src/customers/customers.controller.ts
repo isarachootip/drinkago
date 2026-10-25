@@ -46,7 +46,8 @@ export class MeController {
 
   @Get()
   me(@CurrentUser() u: User) {
-    return u;
+    const { passwordHash: _ph, ...safe } = u;
+    return safe;
   }
 
   @Get('addresses')

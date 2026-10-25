@@ -15,6 +15,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { users } from '../db/schema';
+import { verifyStaffToken } from './password';
 
 export type Role = 'customer' | 'warehouse' | 'rider' | 'admin';
 export type User = typeof users.$inferSelect;
@@ -73,6 +74,11 @@ export class AuthGuard implements CanActivate {
   }
 
   private async identify(headers: Record<string, string | undefined>) {
+    const auth = headers['authorization'];
+    if (auth?.startsWith('Bearer ')) {
+      const staff = await verifyStaffToken(auth.slice(7), this.cfg.DEV_AUTH_KEY ?? this.cfg.LINE_CHANNEL_SECRET);
+      if (staff) return { lineUserId: staff.lineUserId };
+    }
     if (this.cfg.AUTH_MODE === 'dev') {
       const key = this.cfg.DEV_AUTH_KEY;
       if (key && !safeEqual(headers['x-dev-key'] ?? '', key)) {
@@ -82,8 +88,7 @@ export class AuthGuard implements CanActivate {
       if (!id) throw new UnauthorizedException('ต้องส่ง header x-dev-user (โหมดพัฒนา)');
       return { lineUserId: id };
     }
-    const auth = headers['authorization'];
-    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException('ต้องส่ง LINE ID token');
+    if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException('ต้องส่ง LINE ID token หรือเข้าสู่ระบบ');
     try {
       const { payload } = await jwtVerify(auth.slice(7), LINE_JWKS, {
         issuer: 'https://access.line.me',

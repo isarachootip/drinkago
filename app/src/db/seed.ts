@@ -4,12 +4,13 @@ import 'dotenv/config';
  * ผู้ใช้ทดสอบเข้าระบบด้วย header x-dev-user: <lineUserId> ในโหมด AUTH_MODE=dev
  */
 import { eq, sql } from 'drizzle-orm';
+import { hashPassword } from '../common/password';
 import { createDb } from './db';
 import { products, stationBagLedger, users, waterStations } from './schema';
 
 export const DEV_USERS = [
-  { lineUserId: 'dev-admin', role: 'admin' as const, name: 'แอดมินทดสอบ' },
-  { lineUserId: 'dev-warehouse', role: 'warehouse' as const, name: 'คลังทดสอบ' },
+  { lineUserId: 'dev-admin', username: 'admin', passwordHash: hashPassword('admin1234'), role: 'admin' as const, name: 'แอดมินทดสอบ' },
+  { lineUserId: 'dev-warehouse', username: 'warehouse', passwordHash: hashPassword('warehouse1234'), role: 'warehouse' as const, name: 'คลังทดสอบ' },
   { lineUserId: 'dev-rider', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์ กข-1234', zone: 'A' },
   { lineUserId: 'dev-rider-2', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ 2', vehicle: 'มอเตอร์ไซค์ ขค-5678', zone: 'B' },
 ];
@@ -44,6 +45,13 @@ export async function seed(url: string) {
     await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();
 
     const [admin] = await db.select().from(users).where(eq(users.lineUserId, 'dev-admin')).limit(1);
+    if (admin && !admin.username) {
+      await db.update(users).set({ username: 'admin', passwordHash: hashPassword('admin1234') }).where(eq(users.id, admin.id));
+    }
+    const [wh] = await db.select().from(users).where(eq(users.lineUserId, 'dev-warehouse')).limit(1);
+    if (wh && !wh.username) {
+      await db.update(users).set({ username: 'warehouse', passwordHash: hashPassword('warehouse1234') }).where(eq(users.id, wh.id));
+    }
     const stations = await db.select().from(waterStations);
     if (admin) {
       for (const st of stations) {

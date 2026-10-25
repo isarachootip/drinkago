@@ -1,18 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { staffApi } from '../api/role-api';
+import { staffApi, StaffSession } from '../api/role-api';
 import { formatBaht, OrderEvent, StaffOrder } from '../api/schemas';
 import { AdminCustomersPanel } from '../components/AdminCustomersPanel';
 import { AdminRidersPanel } from '../components/AdminRidersPanel';
 import { AdminStationsPanel } from '../components/AdminStationsPanel';
+import { AdminUsersPanel } from '../components/AdminUsersPanel';
 
 interface Props {
+  staffSession: StaffSession;
+  onLogout: () => void;
   onNotify: (msg: string) => void;
 }
 
-type AdminSection = 'orders' | 'stations' | 'riders' | 'customers';
+type AdminSection = 'users' | 'stations' | 'riders' | 'customers' | 'orders';
 
-export const AdminPage: React.FC<Props> = ({ onNotify }) => {
-  const [section, setSection] = useState<AdminSection>('stations');
+export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify }) => {
+  const [section, setSection] = useState<AdminSection>('users');
   const [orders, setOrders] = useState<StaffOrder[]>([]);
   const [mismatches, setMismatches] = useState<StaffOrder[]>([]);
   const [auditOrderId, setAuditOrderId] = useState<string | null>(null);
@@ -70,22 +73,30 @@ export const AdminPage: React.FC<Props> = ({ onNotify }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <div style={{ background: '#0F2236', color: '#FFFFFF', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>ระบบบริหารจัดการหลังบ้าน (Backend Web)</div>
-            <div style={{ fontSize: 12, color: '#C5D2E0' }}>ตู้กดน้ำ &amp; สต็อกถุง · จัดการไรเดอร์ · สมาชิก &amp; วงเงินเครดิต · ออเดอร์</div>
+            <div style={{ fontSize: 12, color: '#A8E6C1' }}>
+              🔐 ผู้ใช้งาน: <b>{staffSession.user.name}</b> ({staffSession.user.username || staffSession.user.role})
+            </div>
           </div>
-          <button type="button" onClick={loadAdmin} style={{ padding: '6px 12px', borderRadius: 10, border: '1px solid #33475B', background: '#1C3550', color: '#FFFFFF', fontSize: 12, cursor: 'pointer' }}>
-            🔄 รีเฟรช
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={loadAdmin} style={{ padding: '6px 12px', borderRadius: 10, border: '1px solid #33475B', background: '#1C3550', color: '#FFFFFF', fontSize: 12, cursor: 'pointer' }}>
+              🔄 รีเฟรช
+            </button>
+            <button type="button" onClick={onLogout} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: '#C2255C', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              🚪 ออกจากระบบ
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6 }}>
           {([
+            { id: 'users', label: '👤 จัดการผู้ใช้ (CRUD)' },
             { id: 'stations', label: '🚰 ตู้กดน้ำ & สต็อกถุง' },
             { id: 'riders', label: '🛵 จัดการไรเดอร์' },
             { id: 'customers', label: '🏠 สมาชิก & วงเงิน' },
-            { id: 'orders', label: `🚨 ออเดอร์ & งานด่วน (${mismatches.length})` },
+            { id: 'orders', label: `🚨 ออเดอร์ (${mismatches.length})` },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -109,6 +120,7 @@ export const AdminPage: React.FC<Props> = ({ onNotify }) => {
       </div>
 
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {section === 'users' && <AdminUsersPanel onNotify={onNotify} />}
         {section === 'stations' && <AdminStationsPanel onNotify={onNotify} />}
         {section === 'riders' && <AdminRidersPanel onNotify={onNotify} />}
         {section === 'customers' && <AdminCustomersPanel onNotify={onNotify} />}

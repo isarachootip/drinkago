@@ -23,6 +23,8 @@ export const stationBagMovementEnum = pgEnum('station_bag_movement', ['RESTOCK_I
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
   lineUserId: text('line_user_id').notNull(),
+  username: text('username'),
+  passwordHash: text('password_hash'),
   role: roleEnum('role').notNull().default('customer'),
   name: text('name').notNull(),
   phone: text('phone'),
@@ -34,7 +36,7 @@ export const users = pgTable('users', {
   active: boolean('active').notNull().default(true),
   pdpaConsentAt: timestamp('pdpa_consent_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [uniqueIndex('users_line_user_id_uq').on(t.lineUserId)]);
+}, (t) => [uniqueIndex('users_line_user_id_uq').on(t.lineUserId), uniqueIndex('users_username_uq').on(t.username)]);
 
 export const addresses = pgTable('addresses', {
   id: uuid('id').primaryKey().defaultRandom(),

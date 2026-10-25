@@ -20,14 +20,51 @@ import {
   staffOrderSchema,
 } from './schemas';
 
+export const STAFF_SESSION_KEY = 'drinkgo_staff_session_v1';
+
+export interface StaffSession {
+  token: string;
+  user: {
+    id: string;
+    username?: string | null;
+    lineUserId: string;
+    name: string;
+    role: 'customer' | 'warehouse' | 'rider' | 'admin';
+  };
+}
+
+export function loadStaffSession(): StaffSession | null {
+  try {
+    const raw = localStorage.getItem(STAFF_SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StaffSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStaffSession(session: StaffSession | null): void {
+  if (!session) localStorage.removeItem(STAFF_SESSION_KEY);
+  else localStorage.setItem(STAFF_SESSION_KEY, JSON.stringify(session));
+}
+
 export async function requestJson<T>(
   path: string,
-  opts: { method?: 'GET' | 'POST' | 'PATCH'; body?: unknown; userOverride?: string; settings?: DevAuthSettings } = {},
+  opts: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+    body?: unknown;
+    userOverride?: string;
+    useStaffToken?: boolean;
+    settings?: DevAuthSettings;
+  } = {},
 ): Promise<T> {
   const s = opts.settings ?? loadDevSettings();
   const headers: Record<string, string> = {
     'x-dev-user': opts.userOverride ?? s.devUser,
   };
+  const staffSession = loadStaffSession();
+  if (staffSession?.token && (opts.useStaffToken || opts.userOverride === 'dev-admin' || opts.userOverride === 'dev-warehouse')) {
+    headers['authorization'] = `Bearer ${staffSession.token}`;
+  }
   if (s.devKey) headers['x-dev-key'] = s.devKey;
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
 
