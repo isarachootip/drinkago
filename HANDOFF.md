@@ -14,7 +14,9 @@
 | บัญชีถุง + แจ้งยอดไม่ตรง | ✅ | |
 | API ลูกค้า / คลัง / ไรเดอร์ / แอดมิน | ✅ | ตาราง API ใน `README.md` |
 | Dev auth + LINE ID token | ✅ | ยังไม่ได้ทดสอบกับ LINE จริง (ยังไม่มีบัญชี) |
-| LINE webhook (ลายเซ็น + กันซ้ำ) | ✅ | ยังไม่ตอบข้อความ |
+| LINE webhook (ลายเซ็น + กันซ้ำ) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนอัตโนมัติ + ตอบกลับด้วยรหัส OTP ล่าสุด |
+| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS ผูกตู้กดน้ำใกล้สุด → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → การ์ดใบสั่งซื้อพร้อม OTP 4 หลัก + PromptPay QR + ส่งรูปสลิปในแชท + Rich Menu 4 ปุ่ม + สั่งซ้ำ 1 คลิก) |
+| Catalog & Product Image CRUD (`/admin/products`) | ✅ | แอดมินเพิ่ม/แก้ไขสินค้า ราคา และอัปโหลดรูปภาพแสดงบน LINE Flex Menu ได้จากหน้าเว็บ |
 | Notification outbox + LINE push | ✅ | ไม่มี token = พิมพ์ลง log |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |

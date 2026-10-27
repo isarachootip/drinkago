@@ -16,6 +16,8 @@
 | Dev auth + LINE ID token + Staff Password Auth | ✅ | รองรับ Login หลังบ้าน/คลังด้วย `username` + `password` (`POST /auth/login` → JWT) ค่าเริ่มต้น `admin` / `admin1234` และ `warehouse` / `warehouse1234` |
 | User Management CRUD (`/admin/users`) | ✅ | เพิ่ม/ดู/แก้ไข/ตั้งรหัสผ่าน/ลบผู้ใช้ครบทุกบทบาท (Hard Delete ถ้ายังไม่มีประวัติ, Soft Delete ถ้ามีประวัติผูกกับ Audit Trail) |
 | LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชี `?lineUserId=` |
+| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS ผูกตู้กดน้ำใกล้สุด → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → การ์ดใบสั่งซื้อพร้อม OTP 4 หลัก + PromptPay QR + ส่งรูปสลิปในแชท + Rich Menu 4 ปุ่ม + สั่งซ้ำ 1 คลิก) |
+| Catalog & Product Image CRUD (`/admin/products`) | ✅ | แอดมินเพิ่ม/แก้ไขสินค้า ราคา และอัปโหลดรูปภาพแสดงบน LINE Flex Menu ได้จากหน้าเว็บ |
 | Notification outbox + LINE push | ✅ | รองรับ `LINE_CHANNEL_ACCESS_TOKEN` ส่งเข้าแชทจริง |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |

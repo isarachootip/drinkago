@@ -17,13 +17,12 @@ import { LineRichMenuService } from './line-rich-menu.service';
 export function verifyLineSignature(rawBody: Buffer, signature: string | undefined, secret: string): boolean {
   if (!signature) return false;
   const expected = createHmac('sha256', secret).update(rawBody).digest();
-  let given: Buffer;
   try {
-    given = Buffer.from(signature, 'base64');
+    const given = Buffer.from(signature, 'base64');
+    return given.length === expected.length && timingSafeEqual(given, expected);
   } catch {
     return false;
   }
-  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 interface LineEvent {
@@ -77,17 +76,10 @@ export class LineWebhookController {
   async process(events: LineEvent[]): Promise<LineMessage[][]> {
     const allReplies: LineMessage[][] = [];
     for (const ev of events) {
-      const fresh = await this.db
-        .insert(lineWebhookEvents)
-        .values({ webhookEventId: ev.webhookEventId, type: ev.type })
-        .onConflictDoNothing()
-        .returning();
-      if (fresh.length === 0) continue;
+      const fresh = await this.db.insert(lineWebhookEvents).values({ webhookEventId: ev.webhookEventId, type: ev.type }).onConflictDoNothing().returning();
+      if (fresh.length === 0 || !ev.source?.userId) continue;
 
-      const lineUserId = ev.source?.userId;
-      if (!lineUserId) continue;
-
-      const customer = await this.ensureCustomerFromLine(lineUserId);
+      const customer = await this.ensureCustomerFromLine(ev.source.userId);
       try {
         const messages = await this.dispatchEvent(customer, ev);
         allReplies.push(messages);
@@ -97,9 +89,7 @@ export class LineWebhookController {
       } catch (e) {
         const errMsg: LineMessage = { type: 'text', text: `⚠️ ${(e as Error).message}` };
         allReplies.push([errMsg]);
-        if (ev.replyToken && this.cfg.LINE_CHANNEL_ACCESS_TOKEN) {
-          await this.replyLine(ev.replyToken, [errMsg]);
-        }
+        if (ev.replyToken && this.cfg.LINE_CHANNEL_ACCESS_TOKEN) await this.replyLine(ev.replyToken, [errMsg]);
       }
     }
     return allReplies;
@@ -107,11 +97,8 @@ export class LineWebhookController {
 
   private async dispatchEvent(customer: User, ev: LineEvent): Promise<LineMessage[]> {
     if (ev.type === 'follow') {
-      const statusCard = await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId);
-      const menuMsgs = await this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
-      return [statusCard, ...menuMsgs];
+      return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId), ...(await this.cart.showMenu(this.cfg.PUBLIC_WEB_URL))];
     }
-
     if (ev.type === 'postback') {
       const params = new URLSearchParams(ev.postback?.data ?? '');
       const action = params.get('action');
@@ -130,8 +117,7 @@ export class LineWebhookController {
         return this.checkout.promptPaymentMethod(customer, s.tempData?.addressId ?? '', Number(params.get('qty') ?? 0));
       }
       if (action === 'pay_method') {
-        const m = (params.get('method') ?? 'CASH') as 'CASH' | 'PROMPTPAY' | 'CREDIT';
-        return this.checkout.completeCheckout(customer, m);
+        return this.checkout.completeCheckout(customer, (params.get('method') ?? 'CASH') as 'CASH' | 'PROMPTPAY' | 'CREDIT');
       }
       if (action === 'reorder') return this.paymentReorder.handleQuickReorder(customer);
       if (action === 'status') return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
@@ -139,29 +125,18 @@ export class LineWebhookController {
 
     if (ev.type === 'message' && ev.message) {
       if (ev.message.type === 'location') {
-        return this.checkout.saveAddressAndProceed(customer, {
-          lat: ev.message.latitude ?? 13.7563,
-          lng: ev.message.longitude ?? 100.5018,
-        });
+        return this.checkout.saveAddressAndProceed(customer, { lat: ev.message.latitude ?? 13.7563, lng: ev.message.longitude ?? 100.5018 });
       }
-      if (ev.message.type === 'image') {
-        return this.paymentReorder.handleSlipImage(customer, ev.message.id ?? 'img');
-      }
+      if (ev.message.type === 'image') return this.paymentReorder.handleSlipImage(customer, ev.message.id ?? 'img');
       if (ev.message.type === 'text') {
         const text = (ev.message.text ?? '').trim();
         if (/^(ยกเลิก|ล้างตะกร้า|cancel)$/i.test(text)) return this.cart.clearCart(customer.lineUserId);
-
         const session = await this.cart.getSession(customer.lineUserId);
-        if (session.state === 'AWAITING_ADDRESS_DETAIL') {
-          return this.checkout.handleAddressDetailText(customer, text);
-        }
+        if (session.state === 'AWAITING_ADDRESS_DETAIL') return this.checkout.handleAddressDetailText(customer, text);
         if (/เมนู|สั่งน้ำ|สั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
         if (/สั่งซ้ำ|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
-
-        const replyText = await this.buildReplyText(customer.id, customer.name, customer.lineUserId);
-        const statusCard = await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId);
-        return [{ type: 'text', text: replyText }, statusCard];
+        return [{ type: 'text', text: await this.buildReplyText(customer.id, customer.name, customer.lineUserId) }, await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
       }
     }
     return [];
@@ -170,16 +145,9 @@ export class LineWebhookController {
   private async ensureCustomerFromLine(lineUserId: string): Promise<User> {
     const [existing] = await this.db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
     if (existing) return existing;
-
-    const [created] = await this.db
-      .insert(users)
-      .values({ lineUserId, role: 'customer', name: 'ลูกค้า LINE', phone: '0800000000', customerType: 'individual', pdpaConsentAt: new Date() })
-      .onConflictDoNothing()
-      .returning();
+    const [created] = await this.db.insert(users).values({ lineUserId, role: 'customer', name: 'ลูกค้า LINE', phone: '0800000000', customerType: 'individual', pdpaConsentAt: new Date() }).onConflictDoNothing().returning();
     const user = created ?? (await this.db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1))[0];
-    if (created) {
-      await this.db.insert(addresses).values({ userId: created.id, label: 'บ้าน (LINE)', detail: 'กรุณาตรวจสอบที่อยู่จัดส่ง', lat: 13.7563, lng: 100.5018 });
-    }
+    if (created) await this.db.insert(addresses).values({ userId: created.id, label: 'บ้าน (LINE)', detail: 'กรุณาตรวจสอบที่อยู่จัดส่ง', lat: 13.7563, lng: 100.5018 });
     return user;
   }
 

@@ -73,7 +73,9 @@ test/                            unit + e2e
 | POST | `/me/register` | ผู้ใช้ LINE ใหม่ | ลงทะเบียน + PDPA |
 | GET/POST | `/me/addresses` | customer | |
 | GET | `/me/bags` | customer | ยอดถุงค้าง + ประวัติ |
-| GET | `/products` | ทุกบทบาท | |
+| GET | `/products` | ทุกบทบาท | รายการสินค้าที่เปิดขาย |
+| GET/POST/PATCH | `/admin/products`, `/admin/products/:id` | warehouse, admin | บริหารจัดการสินค้า ราคา และรูปภาพสำหรับ LINE Flex Menu |
+| GET/POST | `/admin/line/rich-menu`, `/admin/line/rich-menu/sync` | admin | ดูโครงสร้างและซิงก์ Rich Menu 4 ปุ่มขึ้น LINE Official Account |
 | POST | `/orders` | customer | 1 สั่งซื้อ |
 | POST | `/orders/reorder` | customer | 1 สั่งซ้ำ 1 คลิก |
 | GET | `/orders/mine` | customer | |

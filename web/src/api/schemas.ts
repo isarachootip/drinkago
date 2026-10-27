@@ -80,6 +80,8 @@ export const productSchema = z.object({
   name: z.string(),
   priceSatang: z.number().int().nonnegative(),
   isReturnable: z.boolean(),
+  imageUrl: z.string().nullable().optional(),
+  active: z.boolean().optional(),
 });
 
 export type Product = z.infer<typeof productSchema>;

@@ -178,22 +178,8 @@ export const lineWebhookEvents = pgTable('line_webhook_events', {
   type: text('type').notNull(),
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
 });
-
-export interface LineCartItem {
-  productId: number;
-  name: string;
-  priceSatang: number;
-  isReturnable: boolean;
-  qty: number;
-}
-
-export interface LineCartTempData {
-  addressId?: string;
-  newAddressDetail?: string;
-  expectBagReturn?: number;
-  pendingOrderId?: string;
-}
-
+export interface LineCartItem { productId: number; name: string; priceSatang: number; isReturnable: boolean; qty: number }
+export interface LineCartTempData { addressId?: string; newAddressDetail?: string; expectBagReturn?: number; pendingOrderId?: string }
 export const lineCartSessions = pgTable('line_cart_sessions', {
   lineUserId: text('line_user_id').primaryKey(),
   items: jsonb('items').$type<LineCartItem[]>().notNull().default([]),
@@ -201,7 +187,6 @@ export const lineCartSessions = pgTable('line_cart_sessions', {
   tempData: jsonb('temp_data').$type<LineCartTempData>().notNull().default({}),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
-
 export const idempotencyKeys = pgTable('idempotency_keys', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   key: text('key').notNull(),
@@ -211,7 +196,4 @@ export const idempotencyKeys = pgTable('idempotency_keys', {
   responseStatus: integer('response_status').notNull(),
   responseBody: jsonb('response_body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-}, (t) => [
-  uniqueIndex('idempotency_keys_user_key_uq').on(t.userId, t.key),
-  index('idempotency_keys_created_idx').on(t.createdAt),
-]);
+}, (t) => [uniqueIndex('idempotency_keys_user_key_uq').on(t.userId, t.key), index('idempotency_keys_created_idx').on(t.createdAt)]);

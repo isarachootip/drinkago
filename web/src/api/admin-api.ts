@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { requestJson, StaffSession } from './role-api';
-import { BagSummary, bagSummarySchema } from './schemas';
+import { BagSummary, bagSummarySchema, Product, productSchema } from './schemas';
 
 export const waterStationSchema = z.object({
   id: z.number().int(),
@@ -177,4 +177,21 @@ export const adminMgmtApi = {
 
   getCustomerBags: async (customerId: string, user = 'dev-admin'): Promise<BagSummary> =>
     bagSummarySchema.parse(await requestJson(`/admin/customers/${customerId}/bags`, { userOverride: user })),
+
+  listProducts: async (user = 'dev-admin'): Promise<Product[]> =>
+    z.array(productSchema).parse(await requestJson('/admin/products', { useStaffToken: true, userOverride: user })),
+
+  createProduct: async (
+    body: { sku: string; name: string; priceSatang: number; isReturnable: boolean; imageUrl?: string | null },
+    user = 'dev-admin',
+  ): Promise<Product> =>
+    productSchema.parse(await requestJson('/admin/products', { method: 'POST', body, useStaffToken: true, userOverride: user })),
+  updateProduct: async (
+    id: number,
+    body: Partial<{ name: string; priceSatang: number; isReturnable: boolean; imageUrl: string | null; active: boolean }>,
+    user = 'dev-admin',
+  ): Promise<Product> =>
+    productSchema.parse(await requestJson(`/admin/products/${id}`, { method: 'PATCH', body, useStaffToken: true, userOverride: user })),
+  syncLineRichMenu: (user = 'dev-admin') =>
+    requestJson<{ ok: boolean; mode: string; richMenuId: string; areas: number }>('/admin/line/rich-menu/sync', { method: 'POST', useStaffToken: true, userOverride: user }),
 };

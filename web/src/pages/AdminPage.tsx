@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { staffApi, StaffSession } from '../api/role-api';
 import { formatBaht, OrderEvent, StaffOrder } from '../api/schemas';
 import { AdminCustomersPanel } from '../components/AdminCustomersPanel';
+import { AdminProductsPanel } from '../components/AdminProductsPanel';
 import { AdminRidersPanel } from '../components/AdminRidersPanel';
 import { AdminStationsPanel } from '../components/AdminStationsPanel';
 import { AdminUsersPanel } from '../components/AdminUsersPanel';
@@ -12,7 +13,7 @@ interface Props {
   onNotify: (msg: string) => void;
 }
 
-type AdminSection = 'users' | 'stations' | 'riders' | 'customers' | 'orders';
+type AdminSection = 'users' | 'products' | 'stations' | 'riders' | 'customers' | 'orders';
 
 export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify }) => {
   const [section, setSection] = useState<AdminSection>('users');
@@ -93,6 +94,7 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 6 }}>
           {([
             { id: 'users', label: '👤 จัดการผู้ใช้ (CRUD)' },
+            { id: 'products', label: '🛒 สินค้า & LINE Menu' },
             { id: 'stations', label: '🚰 ตู้กดน้ำ & สต็อกถุง' },
             { id: 'riders', label: '🛵 จัดการไรเดอร์' },
             { id: 'customers', label: '🏠 สมาชิก & วงเงิน' },
@@ -121,6 +123,7 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
 
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {section === 'users' && <AdminUsersPanel onNotify={onNotify} />}
+        {section === 'products' && <AdminProductsPanel onNotify={onNotify} />}
         {section === 'stations' && <AdminStationsPanel onNotify={onNotify} />}
         {section === 'riders' && <AdminRidersPanel onNotify={onNotify} />}
         {section === 'customers' && <AdminCustomersPanel onNotify={onNotify} />}
