@@ -12,6 +12,10 @@ import { AdminManagementController } from './customers/admin-management.controll
 import { AdminCustomersController, MeController } from './customers/customers.controller';
 import { UsersAdminController } from './customers/users-admin.controller';
 import { DbModule } from './db/db.module';
+import { LineCartService } from './line/line-cart.service';
+import { LineCheckoutService } from './line/line-checkout.service';
+import { LinePaymentReorderService } from './line/line-payment-reorder.service';
+import { LineRichMenuService } from './line/line-rich-menu.service';
 import { LineWebhookController } from './line/line-webhook.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { OrdersController, RiderController } from './orders/orders.controller';
@@ -59,6 +63,10 @@ export class AppModule {
         StationsService,
         NotificationsService,
         OrdersService,
+        LineCartService,
+        LineCheckoutService,
+        LinePaymentReorderService,
+        LineRichMenuService,
         IdempotencyService,
         IdempotencyInterceptor,
         { provide: FILE_STORAGE, useClass: LocalStorageService },

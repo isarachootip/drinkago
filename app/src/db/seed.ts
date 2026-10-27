@@ -16,8 +16,20 @@ export const DEV_USERS = [
 ];
 
 export const SAMPLE_PRODUCTS = [
-  { sku: 'WATER-TANK-18L', name: 'น้ำดื่มแบบถัง', priceSatang: 6000, isReturnable: true },
-  { sku: 'WATER-PACK-12', name: 'น้ำดื่มแบบแพ็ก', priceSatang: 5500, isReturnable: false },
+  {
+    sku: 'WATER-TANK-18L',
+    name: 'น้ำดื่มแบบถัง',
+    priceSatang: 6000,
+    isReturnable: true,
+    imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=80',
+  },
+  {
+    sku: 'WATER-PACK-12',
+    name: 'น้ำดื่มแบบแพ็ก',
+    priceSatang: 5500,
+    isReturnable: false,
+    imageUrl: 'https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=600&q=80',
+  },
 ];
 
 export const SAMPLE_STATIONS = [

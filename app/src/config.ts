@@ -27,6 +27,10 @@ const schema = z.object({
   PUBLIC_WEB_URL: z.string().default('https://idrink.tamadee.online'),
   /** LINE Official Account ID (@...) */
   LINE_OA_BASIC_ID: z.string().default('@157iywjs'),
+  /** เบอร์โทรศัพท์หรือเลขบัตรประชาชนสำหรับสร้าง PromptPay QR Code */
+  PROMPTPAY_ID: z.string().default('0812345678'),
+  /** ชื่อบัญชี PromptPay สำหรับแสดงในใบสรุปคำสั่งซื้อ */
+  PROMPTPAY_ACCOUNT_NAME: z.string().default('บจก. ดริ้งค์ แอนด์ โก'),
 });
 
 export type AppConfig = z.infer<typeof schema>;

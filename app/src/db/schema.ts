@@ -67,6 +67,7 @@ export const products = pgTable('products', {
   name: text('name').notNull(),
   priceSatang: integer('price_satang').notNull(),
   isReturnable: boolean('is_returnable').notNull().default(false),
+  imageUrl: text('image_url'),
   active: boolean('active').notNull().default(true),
 }, (t) => [uniqueIndex('products_sku_uq').on(t.sku)]);
 
@@ -176,6 +177,29 @@ export const lineWebhookEvents = pgTable('line_webhook_events', {
   webhookEventId: text('webhook_event_id').primaryKey(),
   type: text('type').notNull(),
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export interface LineCartItem {
+  productId: number;
+  name: string;
+  priceSatang: number;
+  isReturnable: boolean;
+  qty: number;
+}
+
+export interface LineCartTempData {
+  addressId?: string;
+  newAddressDetail?: string;
+  expectBagReturn?: number;
+  pendingOrderId?: string;
+}
+
+export const lineCartSessions = pgTable('line_cart_sessions', {
+  lineUserId: text('line_user_id').primaryKey(),
+  items: jsonb('items').$type<LineCartItem[]>().notNull().default([]),
+  state: text('state'),
+  tempData: jsonb('temp_data').$type<LineCartTempData>().notNull().default({}),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const idempotencyKeys = pgTable('idempotency_keys', {

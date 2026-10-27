@@ -43,6 +43,13 @@
       "when": 1792894886631,
       "tag": "0005_known_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793072499673,
+      "tag": "0006_massive_franklin_storm",
+      "breakpoints": true
     }
   ]
 }
