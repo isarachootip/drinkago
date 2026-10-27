@@ -54,6 +54,12 @@ export async function seed(url: string) {
   try {
     await db.insert(users).values(DEV_USERS).onConflictDoNothing();
     await db.insert(products).values(SAMPLE_PRODUCTS).onConflictDoNothing();
+    for (const sp of SAMPLE_PRODUCTS) {
+      const [existing] = await db.select().from(products).where(eq(products.sku, sp.sku)).limit(1);
+      if (existing && !existing.imageUrl) {
+        await db.update(products).set({ imageUrl: sp.imageUrl }).where(eq(products.id, existing.id));
+      }
+    }
     await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();
 
     const [admin] = await db.select().from(users).where(eq(users.lineUserId, 'dev-admin')).limit(1);
