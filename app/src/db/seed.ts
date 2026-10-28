@@ -11,7 +11,7 @@ import { products, stationBagLedger, users, waterStations } from './schema';
 export const DEV_USERS = [
   { lineUserId: 'dev-admin', username: 'admin', passwordHash: hashPassword('admin1234'), role: 'admin' as const, name: 'แอดมินทดสอบ' },
   { lineUserId: 'dev-warehouse', username: 'warehouse', passwordHash: hashPassword('warehouse1234'), role: 'warehouse' as const, name: 'คลังทดสอบ' },
-  { lineUserId: 'dev-rider', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์ กข-1234', zone: 'A' },
+  { lineUserId: 'dev-rider', username: 'rider', passwordHash: hashPassword('rider1234'), role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์ กข-1234', zone: 'A' },
   { lineUserId: 'dev-rider-2', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ 2', vehicle: 'มอเตอร์ไซค์ ขค-5678', zone: 'B' },
 ];
 
@@ -69,6 +69,10 @@ export async function seed(url: string) {
     const [wh] = await db.select().from(users).where(eq(users.lineUserId, 'dev-warehouse')).limit(1);
     if (wh && !wh.username) {
       await db.update(users).set({ username: 'warehouse', passwordHash: hashPassword('warehouse1234') }).where(eq(users.id, wh.id));
+    }
+    const [rd] = await db.select().from(users).where(eq(users.lineUserId, 'dev-rider')).limit(1);
+    if (rd && !rd.username) {
+      await db.update(users).set({ username: 'rider', passwordHash: hashPassword('rider1234') }).where(eq(users.id, rd.id));
     }
     const stations = await db.select().from(waterStations);
     if (admin) {

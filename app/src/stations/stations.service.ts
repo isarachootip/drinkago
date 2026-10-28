@@ -36,24 +36,23 @@ export class StationsService {
     return result;
   }
 
+  /** คืนรายการตู้กดน้ำที่เปิดใช้งาน เรียงจากใกล้บ้านลูกค้าที่สุดไปไกลสุด พร้อมระยะทาง (กม.) */
+  async suggestStations(lat: number, lng: number, tx: DbOrTx = this.db) {
+    const activeStations = await tx.select().from(waterStations).where(eq(waterStations.active, true));
+    const enriched = [];
+    for (const st of activeStations) {
+      const distanceKm = Number(haversineKm(lat, lng, st.lat, st.lng).toFixed(2));
+      const bagBalance = await this.bagBalance(st.id, tx);
+      enriched.push({ ...st, distanceKm, bagBalance });
+    }
+    enriched.sort((a, b) => a.distanceKm - b.distanceKm);
+    return enriched;
+  }
+
   /** คำนวณหาตู้กดน้ำที่เปิดใช้งานและอยู่ใกล้พิกัดบ้านลูกค้าที่สุด */
   async findNearestStation(lat: number, lng: number, tx: DbOrTx = this.db): Promise<number | null> {
-    const activeStations = await tx
-      .select()
-      .from(waterStations)
-      .where(eq(waterStations.active, true));
-    if (activeStations.length === 0) return null;
-
-    let best = activeStations[0];
-    let bestDist = haversineKm(lat, lng, best.lat, best.lng);
-    for (const st of activeStations.slice(1)) {
-      const dist = haversineKm(lat, lng, st.lat, st.lng);
-      if (dist < bestDist) {
-        best = st;
-        bestDist = dist;
-      }
-    }
-    return best.id;
+    const sorted = await this.suggestStations(lat, lng, tx);
+    return sorted[0]?.id ?? null;
   }
 
   async createStation(input: {

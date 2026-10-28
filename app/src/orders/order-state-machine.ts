@@ -36,12 +36,12 @@ interface TransitionRule {
 /** ตารางการเปลี่ยนสถานะที่อนุญาต: from -> to -> กฎ */
 export const TRANSITIONS: Partial<Record<OrderStatus, Partial<Record<OrderStatus, TransitionRule>>>> = {
   PENDING: {
-    CONFIRMED: { roles: ['warehouse', 'admin'] }, // ขั้น 2
+    CONFIRMED: { roles: ['warehouse', 'admin', 'system'] }, // ขั้น 2 (ระบบยืนยันอัตโนมัติเมื่อเลือกตู้กดน้ำ หรือคลัง/แอดมินกด)
     CANCELLED: { roles: ['customer', 'admin'] },
   },
   CONFIRMED: {
     PACKED: { roles: ['warehouse', 'admin', 'rider'], assignedRiderOnly: true }, // ขั้น 3 (พนักงานขนส่งกดน้ำ หรือคลังจัดของ)
-    CANCELLED: { roles: ['admin'] },
+    CANCELLED: { roles: ['customer', 'admin'] },
   },
   PACKED: {
     PICKED_UP: { roles: ['rider'], requiresEvidence: 'photo+gps', assignedRiderOnly: true }, // ขั้น 4
@@ -63,7 +63,7 @@ export const TRANSITIONS: Partial<Record<OrderStatus, Partial<Record<OrderStatus
     BAG_COLLECTED: { roles: ['rider'], requiresEvidence: 'photo+gps', assignedRiderOnly: true }, // ขั้น 7
   },
   BAG_COLLECTED: {
-    BAG_RETURNED: { roles: ['warehouse', 'admin'], requiresEvidence: 'photo' }, // ขั้น 8
+    BAG_RETURNED: { roles: ['warehouse', 'admin', 'system'], requiresEvidence: 'photo' }, // ขั้น 8 (ปิดอัตโนมัติเมื่อไรเดอร์รับถุงคืน หรือคลังตรวจนับ)
   },
   BAG_RETURNED: {
     CLOSED_WITH_RETURN: { roles: ['system', 'admin'] }, // system เมื่อยอดตรง, admin เมื่อเคลียร์ยอดไม่ตรง

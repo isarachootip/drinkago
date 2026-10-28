@@ -179,7 +179,7 @@ export const lineWebhookEvents = pgTable('line_webhook_events', {
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
 });
 export interface LineCartItem { productId: number; name: string; priceSatang: number; isReturnable: boolean; qty: number }
-export interface LineCartTempData { addressId?: string; newAddressDetail?: string; expectBagReturn?: number; pendingOrderId?: string }
+export interface LineCartTempData { addressId?: string; newAddressDetail?: string; stationId?: number; expectBagReturn?: number; pendingOrderId?: string }
 export const lineCartSessions = pgTable('line_cart_sessions', {
   lineUserId: text('line_user_id').primaryKey(),
   items: jsonb('items').$type<LineCartItem[]>().notNull().default([]),

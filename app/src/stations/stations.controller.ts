@@ -1,8 +1,13 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { CurrentUser, Roles, User } from '../common/auth';
 import { parse } from '../common/validate';
 import { StationsService } from './stations.service';
+
+const suggestQuerySchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+});
 
 const createStationSchema = z.object({
   code: z.string().min(1).max(30),
@@ -33,6 +38,12 @@ export class StationsController {
   @Get('stations')
   listStations() {
     return this.stations.listStations();
+  }
+
+  @Get('stations/suggest')
+  suggestStations(@Query() q: unknown) {
+    const { lat, lng } = parse(suggestQuerySchema, q);
+    return this.stations.suggestStations(lat, lng);
   }
 
   @Post('admin/stations')
