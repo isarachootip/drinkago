@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder, SuggestedStation } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
+import { resolveProductImageUrl } from '../domain/photo-picker';
 
 interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onNotify: (msg: string) => void }
 
@@ -27,9 +28,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const loadData = useCallback(async () => {
     try {
       const me = await customerApi.getMe(customerUser);
-      setRegisteredName(me.name);
-      setCreditLimitSatang(me.creditLimitSatang ?? 100000);
-      setNeedsRegister(false);
+      setRegisteredName(me.name); setCreditLimitSatang(me.creditLimitSatang ?? 100000); setNeedsRegister(false);
       const [addrs, prods, bagSum, mine] = await Promise.all([
         customerApi.listAddresses(customerUser), customerApi.listProducts(customerUser),
         customerApi.getBags(customerUser), customerApi.myOrders(customerUser),
@@ -40,18 +39,14 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       setSelectedAddrId((cur) => cur || (targetAddr?.id ?? ''));
       if (targetAddr) {
         const stList = await customerApi.suggestStations(targetAddr.lat, targetAddr.lng, customerUser).catch(() => []);
-        setSuggestedStations(stList);
-        setSelectedStationId((cur) => cur ?? stList[0]?.id);
+        setSuggestedStations(stList); setSelectedStationId((cur) => cur ?? stList[0]?.id);
       }
       setProducts(prods);
       if (prods.length > 0) setCart((prev) => (Object.keys(prev).length ? prev : { [prods[0].id]: 3 }));
-      setBags(bagSum);
-      setReturnBagQty(Math.min(bagSum.balance, 2));
-      setHasReturnBag(bagSum.balance > 0);
+      setBags(bagSum); setReturnBagQty(Math.min(bagSum.balance, 2)); setHasReturnBag(bagSum.balance > 0);
       setLastOrder(mine[0] ?? null);
     } catch { setNeedsRegister(true); }
   }, [customerUser]);
-
   useEffect(() => { void loadData(); }, [loadData]);
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -62,7 +57,6 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
     } catch (err) { onNotify(err instanceof Error ? err.message : 'ลงทะเบียนไม่สำเร็จ'); }
     finally { setSubmitting(false); }
   };
-
   const totalSatang = products.reduce((sum, p) => sum + (cart[p.id] ?? 0) * p.priceSatang, 0);
 
   const handlePlaceOrder = async () => {
@@ -92,13 +86,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         <div style={{ fontSize: 18, fontWeight: 700, color: '#1A56B0' }}>ลงทะเบียนลูกค้าใหม่ (PDPA)</div>
         <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="ชื่อ-นามสกุล" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
         <input value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="เบอร์โทรศัพท์ (เช่น 0812345678)" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
-        <button type="submit" disabled={submitting} style={{ minHeight: 48, borderRadius: 12, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}>
-          ยอมรับ PDPA และเริ่มสั่งน้ำดื่ม
-        </button>
+        <button type="submit" disabled={submitting} style={{ minHeight: 48, borderRadius: 12, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}>ยอมรับ PDPA และเริ่มสั่งน้ำดื่ม</button>
       </form>
     );
   }
-
   const activeAddr = addresses.find((a) => a.id === selectedAddrId) ?? addresses[0];
 
   return (
@@ -142,9 +133,14 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', overflow: 'hidden' }}>
           {products.map((p, idx) => {
             const qty = cart[p.id] ?? 0;
+            const imgUrl = resolveProductImageUrl(p.imageUrl);
             return (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderBottom: idx < products.length - 1 ? '1px solid #DCE4EC' : 'none' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
+                {imgUrl ? (
+                  <img src={imgUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }} />
+                ) : (
+                  <div style={{ width: 48, height: 48, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
+                )}
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</div>
                   <div style={{ fontSize: 13, color: '#4A5B6E' }}>{formatBaht(p.priceSatang)} {p.isReturnable ? '(มีถุงหมุนเวียน)' : ''}</div>

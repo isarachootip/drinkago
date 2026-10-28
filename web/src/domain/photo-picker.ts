@@ -1,4 +1,29 @@
-import { uploadEvidenceFile } from '../api/client';
+import { loadDevSettings, uploadEvidenceFile } from '../api/client';
+
+export const MAX_PRODUCT_IMAGE_BYTES = 2 * 1024 * 1024; // 2 MB (ตามมาตรฐาน ODM)
+const ALLOWED_PRODUCT_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+export function validateProductImageFile(file: { size: number; type: string }): { valid: true } | { valid: false; error: string } {
+  if (!ALLOWED_PRODUCT_IMAGE_TYPES.includes(file.type)) {
+    return { valid: false, error: '❌ รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WebP เท่านั้น' };
+  }
+  if (file.size > MAX_PRODUCT_IMAGE_BYTES) {
+    return { valid: false, error: '❌ ขนาดไฟล์เกิน 2 MB กรุณาเลือกรูปภาพที่มีขนาดเล็กลง' };
+  }
+  return { valid: true };
+}
+
+export function resolveProductImageUrl(
+  imageUrl: string | null | undefined,
+  apiBaseUrl = loadDevSettings().apiBaseUrl,
+): string | null {
+  if (!imageUrl || !imageUrl.trim()) return null;
+  const trimmed = imageUrl.trim();
+  if (trimmed.startsWith('/')) {
+    return `${apiBaseUrl.replace(/\/+$/, '')}${trimmed}`;
+  }
+  return trimmed;
+}
 
 /**
  * สร้างไฟล์ PNG ขนาดเล็กสำหรับทดสอบถ่ายรูปในโหมดเครื่องพัฒนา (Dev Mode)

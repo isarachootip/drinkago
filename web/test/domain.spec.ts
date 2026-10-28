@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bagSummarySchema, formatBaht, orderStatusBadge, productSchema, riderJobSchema, staffOrderSchema } from '../src/api/schemas';
 import { distanceMeters, formatDistance } from '../src/domain/geo';
+import { MAX_PRODUCT_IMAGE_BYTES, resolveProductImageUrl, validateProductImageFile } from '../src/domain/photo-picker';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
 describe('Geo domain helpers', () => {
@@ -87,5 +88,17 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
       createdAt: new Date().toISOString(),
     });
     expect(ord.status).toBe('BAG_COLLECTED');
+  });
+
+  it('ตรวจสอบไฟล์รูปสินค้าสไตล์ ODM (จำกัด 2 MB + MIME) และแปลง URL รูปสินค้าได้ถูกต้อง', () => {
+    expect(MAX_PRODUCT_IMAGE_BYTES).toBe(2 * 1024 * 1024);
+    expect(validateProductImageFile({ size: 500_000, type: 'image/png' })).toEqual({ valid: true });
+    expect(validateProductImageFile({ size: 2 * 1024 * 1024 + 1, type: 'image/jpeg' }).valid).toBe(false);
+    expect(validateProductImageFile({ size: 100_000, type: 'application/pdf' }).valid).toBe(false);
+
+    expect(resolveProductImageUrl(null, 'http://localhost:3000')).toBeNull();
+    expect(resolveProductImageUrl('   ', 'http://localhost:3000')).toBeNull();
+    expect(resolveProductImageUrl('/uploads/water.png', 'http://localhost:3000/')).toBe('http://localhost:3000/uploads/water.png');
+    expect(resolveProductImageUrl('https://cdn.example.com/a.jpg', 'http://localhost:3000')).toBe('https://cdn.example.com/a.jpg');
   });
 });
