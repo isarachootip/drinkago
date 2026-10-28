@@ -27,7 +27,7 @@ const as = (lineUserId: string) => ({
 
 const rider = as('dev-rider');
 const wh = as('dev-warehouse');
-const customer = as('cust-upload-test');
+const customer = as(`cust-upload-test-${Date.now()}`);
 const userId = async (lineUserId: string) => (await as(lineUserId).get('/me').expect(200)).body.id as string;
 
 beforeAll(async () => {
@@ -70,6 +70,11 @@ describe('Uploads & Evidence Verification (B1)', () => {
     const filename = res.body.url.split('/').pop()!;
     const getRes = await request(server).get(`/uploads/${filename}`).expect(200);
     expect(getRes.headers['content-type']).toMatch(/image\/png/);
+
+    // จำลองกรณี Container Redeploy (ลบไฟล์ออกจากโฟลเดอร์บนดิสก์) -> ระบบต้องดึงจากฐานข้อมูล PostgreSQL บน Server กลับมาเสิร์ฟได้ปกติ
+    await fs.rm(resolve(TEST_UPLOAD_DIR, filename), { force: true });
+    const afterRedeploy = await request(server).get(`/uploads/${filename}`).expect(200);
+    expect(afterRedeploy.headers['content-type']).toMatch(/image\/png/);
   });
 
   it('ปฏิเสธไฟล์ที่ไม่ใช่รูปภาพด้วย 400 INVALID_FILE_TYPE', async () => {

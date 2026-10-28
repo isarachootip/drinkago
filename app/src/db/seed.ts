@@ -43,6 +43,15 @@ const LEGACY_UNSPLASH_URLS = [
 export async function seed(url: string) {
   const { db, pool } = createDb(url);
   try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS uploaded_files (
+        filename TEXT PRIMARY KEY,
+        mimetype TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        content_base64 TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
     await db.insert(users).values(DEV_USERS).onConflictDoNothing();
     await db.insert(products).values(SAMPLE_PRODUCTS).onConflictDoNothing();
     const allProds = await db.select().from(products);
@@ -50,10 +59,19 @@ export async function seed(url: string) {
       if (!p.imageUrl) continue;
       if (LEGACY_UNSPLASH_URLS.includes(p.imageUrl)) {
         await db.update(products).set({ imageUrl: null }).where(eq(products.id, p.id));
-      } else {
-        const idx = p.imageUrl.indexOf('/uploads/');
-        if (idx > 0) {
-          await db.update(products).set({ imageUrl: p.imageUrl.slice(idx) }).where(eq(products.id, p.id));
+        continue;
+      }
+      const idx = p.imageUrl.indexOf('/uploads/');
+      if (idx >= 0) {
+        const rel = p.imageUrl.slice(idx);
+        const filename = rel.replace(/^\/uploads\//, '');
+        const found = await db.execute<{ filename: string }>(
+          sql`SELECT filename FROM uploaded_files WHERE filename = ${filename} LIMIT 1`,
+        );
+        if (found.rows.length === 0) {
+          await db.update(products).set({ imageUrl: null }).where(eq(products.id, p.id));
+        } else if (idx > 0) {
+          await db.update(products).set({ imageUrl: rel }).where(eq(products.id, p.id));
         }
       }
     }

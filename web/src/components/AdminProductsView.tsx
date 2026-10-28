@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { formatBaht, Product } from '../api/schemas';
 import { resolveProductImageUrl } from '../domain/photo-picker';
 import { AdminViewMode } from './ViewModeToggle';
@@ -22,6 +22,8 @@ export const AdminProductsView: React.FC<Props> = ({
   onToggleActive,
   onDelete,
 }) => {
+  const [brokenUrls, setBrokenUrls] = useState<Record<string, boolean>>({});
+
   if (viewMode === 'grid') {
     return (
       <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', overflowX: 'auto' }}>
@@ -39,7 +41,8 @@ export const AdminProductsView: React.FC<Props> = ({
           </thead>
           <tbody>
             {products.map((p) => {
-              const thumbUrl = resolveProductImageUrl(p.imageUrl);
+              const rawThumb = resolveProductImageUrl(p.imageUrl);
+              const thumbUrl = rawThumb && !brokenUrls[rawThumb] ? rawThumb : null;
               const isActive = p.active ?? true;
               return (
                 <tr
@@ -51,7 +54,12 @@ export const AdminProductsView: React.FC<Props> = ({
                 >
                   <td style={{ padding: '8px 12px' }}>
                     {thumbUrl ? (
-                      <img src={thumbUrl} alt={p.name} style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }} />
+                      <img
+                        src={thumbUrl}
+                        alt={p.name}
+                        onError={() => setBrokenUrls((prev) => ({ ...prev, [thumbUrl]: true }))}
+                        style={{ width: 46, height: 46, borderRadius: 10, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }}
+                      />
                     ) : (
                       <div style={{ width: 46, height: 46, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
                         {p.isReturnable ? '🛢️' : '📦'}
@@ -99,7 +107,8 @@ export const AdminProductsView: React.FC<Props> = ({
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 12 }}>
       {products.map((p) => {
-        const thumbUrl = resolveProductImageUrl(p.imageUrl);
+        const rawThumb = resolveProductImageUrl(p.imageUrl);
+        const thumbUrl = rawThumb && !brokenUrls[rawThumb] ? rawThumb : null;
         const isActive = p.active ?? true;
         return (
           <div
@@ -118,7 +127,12 @@ export const AdminProductsView: React.FC<Props> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               {thumbUrl ? (
-                <img src={thumbUrl} alt={p.name} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC', flexShrink: 0 }} />
+                <img
+                  src={thumbUrl}
+                  alt={p.name}
+                  onError={() => setBrokenUrls((prev) => ({ ...prev, [thumbUrl]: true }))}
+                  style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC', flexShrink: 0 }}
+                />
               ) : (
                 <div style={{ width: 64, height: 64, borderRadius: 12, background: '#E6EEF9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#64748B', flexShrink: 0 }}>
                   <span>{p.isReturnable ? '🛢️' : '📦'}</span>

@@ -19,8 +19,10 @@ export const ProductImageUploader: React.FC<Props> = ({
 }) => {
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   useEffect(() => {
+    setPreviewFailed(false);
     if (!value) {
       setLocalPreview(null);
     }
@@ -42,6 +44,7 @@ export const ProductImageUploader: React.FC<Props> = ({
       return;
     }
 
+    setPreviewFailed(false);
     const reader = new FileReader();
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
@@ -54,7 +57,7 @@ export const ProductImageUploader: React.FC<Props> = ({
     try {
       const uploadedUrl = await adminMgmtApi.uploadProductImage(file);
       onChange(uploadedUrl);
-      onNotify('✅ อัปโหลดรูปภาพสินค้าสำเร็จ');
+      onNotify('✅ อัปโหลดรูปภาพสินค้าและบันทึกลงฐานข้อมูล Server สำเร็จ');
     } catch (err) {
       setLocalPreview(null);
       onNotify(err instanceof Error ? err.message : '❌ อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองอีกครั้ง');
@@ -64,12 +67,13 @@ export const ProductImageUploader: React.FC<Props> = ({
     }
   };
 
-  const displayPreview = localPreview || resolveProductImageUrl(value);
+  const resolvedUrl = resolveProductImageUrl(value);
+  const displayPreview = localPreview || (!previewFailed ? resolvedUrl : null);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       <label style={{ fontSize: 12, fontWeight: 700, color: '#33475B' }}>
-        🖼️ รูปภาพสินค้า Product Master (จำกัดไม่เกิน 2 MB · สไตล์ ODM)
+        🖼️ รูปภาพสินค้า Product Master (จำกัดไม่เกิน 2 MB · เก็บบนฐานข้อมูล Server ถาวร)
       </label>
 
       <div
@@ -91,13 +95,17 @@ export const ProductImageUploader: React.FC<Props> = ({
         {uploading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 22 }}>⏳</span>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>กำลังอัปโหลดรูปภาพ...</span>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>กำลังอัปโหลดรูปภาพขึ้น Server...</span>
           </div>
         ) : displayPreview ? (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <img
               src={displayPreview}
               alt="Product Preview"
+              onError={() => {
+                if (localPreview) setLocalPreview(null);
+                else setPreviewFailed(true);
+              }}
               style={{ maxHeight: compact ? 68 : 88, maxWidth: '100%', objectFit: 'contain', borderRadius: 6 }}
             />
             <span style={{ fontSize: 11, color: '#1A56B0', fontWeight: 600 }}>📷 คลิกที่กรอบนี้เพื่อเปลี่ยนรูปใหม่</span>

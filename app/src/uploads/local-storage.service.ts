@@ -1,13 +1,34 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { basename, extname, resolve } from 'node:path';
 import { APP_CONFIG, AppConfig } from '../config';
+import { Db, DB } from '../db/db';
 import { FileStorage, StoredFile, UploadInput } from './storage.interface';
 
 @Injectable()
 export class LocalStorageService implements FileStorage {
-  constructor(@Inject(APP_CONFIG) private readonly config: AppConfig) {}
+  private tableReady = false;
+
+  constructor(
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    @Inject(DB) private readonly db: Db,
+  ) {}
+
+  private async ensureTable() {
+    if (this.tableReady) return;
+    await this.db.execute(sql`
+      CREATE TABLE IF NOT EXISTS uploaded_files (
+        filename TEXT PRIMARY KEY,
+        mimetype TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        content_base64 TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    this.tableReady = true;
+  }
 
   async save(input: UploadInput): Promise<StoredFile> {
     const rawExt = extname(input.originalname).toLowerCase();
@@ -19,6 +40,15 @@ export class LocalStorageService implements FileStorage {
 
     const filePath = resolve(dir, filename);
     await fs.writeFile(filePath, input.buffer);
+
+    await this.ensureTable();
+    const base64 = input.buffer.toString('base64');
+    await this.db.execute(sql`
+      INSERT INTO uploaded_files (filename, mimetype, size, content_base64, created_at)
+      VALUES (${filename}, ${input.mimetype}, ${input.size}, ${base64}, now())
+      ON CONFLICT (filename) DO UPDATE
+      SET mimetype = EXCLUDED.mimetype, size = EXCLUDED.size, content_base64 = EXCLUDED.content_base64
+    `);
 
     const baseUrl = this.config.PUBLIC_UPLOAD_BASE_URL.replace(/\/+$/, '');
     const url = `${baseUrl}/${filename}`;
@@ -33,12 +63,25 @@ export class LocalStorageService implements FileStorage {
 
   async getFilePath(filename: string): Promise<string | null> {
     const safeName = basename(filename);
-    const filePath = resolve(this.config.UPLOAD_DIR, safeName);
+    const dir = resolve(this.config.UPLOAD_DIR);
+    const filePath = resolve(dir, safeName);
     try {
       await fs.access(filePath);
       return filePath;
     } catch {
-      return null;
+      try {
+        await this.ensureTable();
+        const res = await this.db.execute<{ content_base64: string }>(
+          sql`SELECT content_base64 FROM uploaded_files WHERE filename = ${safeName} LIMIT 1`,
+        );
+        const row = res.rows[0];
+        if (!row?.content_base64) return null;
+        await fs.mkdir(dir, { recursive: true });
+        await fs.writeFile(filePath, Buffer.from(row.content_base64, 'base64'));
+        return filePath;
+      } catch {
+        return null;
+      }
     }
   }
 
