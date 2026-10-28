@@ -186,4 +186,18 @@ describe('การจัดการหลังบ้าน: Rider, ตู้�
       .expect(201);
     expect(within.body.paymentMethod).toBe('CREDIT');
   });
+
+  it('4. ตั้งค่าโหมดการแสดงผลหลังบ้าน (Grid / Card): บันทึกลงฐานข้อมูล Server และดึงค่ากลับมาได้ตรงกัน', async () => {
+    const initial = await admin.get('/admin/preferences').expect(200);
+    expect(['card', 'grid']).toContain(initial.body.viewMode);
+
+    const savedGrid = await admin.patch('/admin/preferences', { viewMode: 'grid' }).expect(200);
+    expect(savedGrid.body.viewMode).toBe('grid');
+
+    const afterGrid = await admin.get('/admin/preferences').expect(200);
+    expect(afterGrid.body.viewMode).toBe('grid');
+
+    const savedCard = await admin.patch('/admin/preferences', { viewMode: 'card' }).expect(200);
+    expect(savedCard.body.viewMode).toBe('card');
+  });
 });

@@ -104,6 +104,7 @@ test/                            unit + e2e
 | POST/PATCH | `/admin/stations`, `/admin/stations/:id` | warehouse, admin | เพิ่ม/แก้ไขตู้กดน้ำและพิกัดนำทาง |
 | POST | `/admin/stations/:id/bags` | warehouse, admin | เติมถุงเข้าตู้ (`RESTOCK_IN`) / ปรับยอด (`ADJUST`) |
 | GET | `/admin/stations/:id/ledger` | warehouse, admin | ประวัติรับเข้า-จ่ายออกถุงประจำตู้เชื่อมกับสมาชิก |
+| GET/PATCH | `/admin/preferences` | warehouse, admin | ดึงและบันทึกโหมดการแสดงผลหลังบ้าน (`card` / `grid`) ลงฐานข้อมูล Server |
 | GET/POST/PATCH | `/admin/riders`, `/admin/riders/:id` | warehouse, admin | บริหารจัดการไรเดอร์ พาหนะ และโซน |
 | GET/POST/PATCH | `/admin/customers`, `/admin/customers/:id` | warehouse, admin | บริหารจัดการลูกค้า พิกัดบ้าน และวงเงินเครดิต |
 | GET | `/admin/customers/:id/bags` | admin | |

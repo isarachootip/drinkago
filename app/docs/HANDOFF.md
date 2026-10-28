@@ -25,7 +25,7 @@
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |
 | B3 พร้อมเปิดสู่อินเทอร์เน็ต (CORS, Helmet, Rate Limit, OTP Lockout, CI) | ✅ | ล็อก OTP เมื่อผิด 5 ครั้ง + `POST /orders/:id/unlock-otp` + `test/security.e2e.spec.ts` |
 | F1 หน้า LIFF ไรเดอร์ (`../web/`) | ✅ | Vite + React + TS + Zod + Offline Queue + นำทางไปจุดตู้กดน้ำและบ้านลูกค้าครบขั้น 3–7 |
-| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin |
+| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin พร้อมบันทึกค่าลงฐานข้อมูล Server (`GET/PATCH /admin/preferences`) |
 | Docker Compose production + Coolify Dockerfile | ✅ | Multi-stage `Dockerfile` ที่ root build ทั้ง `web` และ `app` |
 
 **ผลทดสอบ:** 53/53 (11 ชุดทดสอบ) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และ Linux ผ่าน typecheck 100%

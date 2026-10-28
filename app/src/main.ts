@@ -14,7 +14,7 @@ async function bootstrap() {
   await seed(cfg.DATABASE_URL);
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(cfg), { rawBody: true });
 
-  app.use(helmet({ contentSecurityPolicy: false }));
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
   const publicDir = join(__dirname, '..', 'public');
   if (existsSync(publicDir)) {

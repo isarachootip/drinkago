@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { adminMgmtApi } from '../api/admin-api';
 import { staffApi, StaffSession } from '../api/role-api';
 import { StaffOrder } from '../api/schemas';
 import { AdminCustomersPanel } from '../components/AdminCustomersPanel';
@@ -8,7 +9,7 @@ import { AdminRidersPanel } from '../components/AdminRidersPanel';
 import { AdminStationsPanel } from '../components/AdminStationsPanel';
 import { AdminTrainingPanel } from '../components/AdminTrainingPanel';
 import { AdminUsersPanel } from '../components/AdminUsersPanel';
-import { AdminViewMode, getSavedViewMode, saveViewMode } from '../components/ViewModeToggle';
+import { AdminViewMode, getSavedViewMode, parseViewMode, saveViewMode } from '../components/ViewModeToggle';
 
 interface Props {
   staffSession: StaffSession;
@@ -27,16 +28,25 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
   const handleViewModeChange = (next: AdminViewMode) => {
     saveViewMode(next);
     setViewMode(next);
+    void adminMgmtApi.savePreferences(next).catch(() => {
+      // Fallback to localStorage if offline
+    });
   };
 
   const loadAdmin = useCallback(async () => {
     try {
-      const [all, mis] = await Promise.all([
+      const [all, mis, prefs] = await Promise.all([
         staffApi.listOrders(undefined, 'dev-admin'),
         staffApi.bagMismatches(),
+        adminMgmtApi.getPreferences().catch(() => null),
       ]);
       setOrders(all);
       setMismatches(mis);
+      if (prefs?.viewMode) {
+        const mode = parseViewMode(prefs.viewMode);
+        saveViewMode(mode);
+        setViewMode(mode);
+      }
     } catch (e) {
       onNotify(e instanceof Error ? e.message : 'โหลดข้อมูลแอดมินไม่สำเร็จ');
     }

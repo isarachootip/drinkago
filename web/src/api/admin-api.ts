@@ -170,4 +170,10 @@ export const adminMgmtApi = {
 
   syncLineRichMenu: (user = 'dev-admin') =>
     requestJson<{ ok: boolean; mode: string; richMenuId: string; areas: number }>('/admin/line/rich-menu/sync', { method: 'POST', useStaffToken: true, userOverride: user }),
+
+  getPreferences: (user = 'dev-admin') =>
+    requestJson<{ viewMode: 'card' | 'grid' }>('/admin/preferences', { useStaffToken: true, userOverride: user }),
+
+  savePreferences: (viewMode: 'card' | 'grid', user = 'dev-admin') =>
+    requestJson<{ viewMode: 'card' | 'grid' }>('/admin/preferences', { method: 'PATCH', body: { viewMode }, useStaffToken: true, userOverride: user }),
 };

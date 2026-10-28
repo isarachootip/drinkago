@@ -7,5 +7,6 @@ coverage/
 backups/
 /uploads/
 /test-uploads/
+/public/
 !/src/uploads/
 !/src/uploads/**
