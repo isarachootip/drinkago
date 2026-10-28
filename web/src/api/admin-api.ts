@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiClientError, loadDevSettings } from './client';
+import { toRelativeUploadPath } from '../domain/photo-picker';
 import { loadStaffSession, requestJson, StaffSession } from './role-api';
 import { BagSummary, bagSummarySchema, Product, productSchema, uploadResponseSchema } from './schemas';
 
@@ -164,7 +165,7 @@ export const adminMgmtApi = {
     if (!res.ok) {
       throw new ApiClientError(res.status, String(data.code ?? 'UPLOAD_ERROR'), String(data.message ?? 'อัปโหลดรูปสินค้าไม่สำเร็จ'));
     }
-    return uploadResponseSchema.parse(data).url;
+    return toRelativeUploadPath(uploadResponseSchema.parse(data).url);
   },
 
   syncLineRichMenu: (user = 'dev-admin') =>

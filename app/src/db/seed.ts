@@ -24,15 +24,20 @@ export const SAMPLE_PRODUCTS = [
     name: 'น้ำดื่มแบบถัง',
     priceSatang: 6000,
     isReturnable: true,
-    imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=80',
+    imageUrl: null,
   },
   {
     sku: 'WATER-PACK-12',
     name: 'น้ำดื่มแบบแพ็ก',
     priceSatang: 5500,
     isReturnable: false,
-    imageUrl: 'https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=600&q=80',
+    imageUrl: null,
   },
+];
+
+const LEGACY_UNSPLASH_URLS = [
+  'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=80',
+  'https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=600&q=80',
 ];
 
 export async function seed(url: string) {
@@ -40,10 +45,16 @@ export async function seed(url: string) {
   try {
     await db.insert(users).values(DEV_USERS).onConflictDoNothing();
     await db.insert(products).values(SAMPLE_PRODUCTS).onConflictDoNothing();
-    for (const sp of SAMPLE_PRODUCTS) {
-      const [existing] = await db.select().from(products).where(eq(products.sku, sp.sku)).limit(1);
-      if (existing && !existing.imageUrl) {
-        await db.update(products).set({ imageUrl: sp.imageUrl }).where(eq(products.id, existing.id));
+    const allProds = await db.select().from(products);
+    for (const p of allProds) {
+      if (!p.imageUrl) continue;
+      if (LEGACY_UNSPLASH_URLS.includes(p.imageUrl)) {
+        await db.update(products).set({ imageUrl: null }).where(eq(products.id, p.id));
+      } else {
+        const idx = p.imageUrl.indexOf('/uploads/');
+        if (idx > 0) {
+          await db.update(products).set({ imageUrl: p.imageUrl.slice(idx) }).where(eq(products.id, p.id));
+        }
       }
     }
     await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();

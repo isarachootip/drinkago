@@ -54,7 +54,7 @@ export const ProductImageUploader: React.FC<Props> = ({
     try {
       const uploadedUrl = await adminMgmtApi.uploadProductImage(file);
       onChange(uploadedUrl);
-      setLocalPreview(uploadedUrl);
+      setLocalPreview(null);
       onNotify('✅ อัปโหลดรูปภาพสินค้าสำเร็จ');
     } catch (err) {
       setLocalPreview(null);

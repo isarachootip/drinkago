@@ -99,6 +99,7 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(resolveProductImageUrl(null, 'http://localhost:3000')).toBeNull();
     expect(resolveProductImageUrl('   ', 'http://localhost:3000')).toBeNull();
     expect(resolveProductImageUrl('/uploads/water.png', 'http://localhost:3000/')).toBe('http://localhost:3000/uploads/water.png');
+    expect(resolveProductImageUrl('http://localhost:3000/uploads/water.png', 'https://idrink.tamadee.online')).toBe('https://idrink.tamadee.online/uploads/water.png');
     expect(resolveProductImageUrl('https://cdn.example.com/a.jpg', 'http://localhost:3000')).toBe('https://cdn.example.com/a.jpg');
   });
 });

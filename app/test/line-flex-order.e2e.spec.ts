@@ -55,19 +55,23 @@ afterAll(async () => {
 });
 
 describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => {
-  it('1. แอดมินจัดการรูปภาพสินค้า (Catalog CRUD) และซิงก์ Rich Menu 4 ปุ่มได้', async () => {
+  it('1. แอดมินจัดการรูปภาพสินค้า (Catalog CRUD) แบบ Relative Path (/uploads/...) และซิงก์ Rich Menu 4 ปุ่มได้', async () => {
+    const initialList = await admin.get('/admin/products').expect(200);
+    expect(initialList.body[0].imageUrl).toBeNull();
+
     const created = await admin.post('/admin/products', {
       sku: 'WATER-CUP-24', name: 'น้ำดื่มแบบถ้วย 24 ถ้วย', priceSatang: 4500,
-      isReturnable: false, imageUrl: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=500',
+      isReturnable: false, imageUrl: 'http://localhost:3000/uploads/cup-initial.png',
     }).expect(201);
     expect(created.body.sku).toBe('WATER-CUP-24');
+    expect(created.body.imageUrl).toBe('/uploads/cup-initial.png');
 
     const patched = await admin.patch(`/admin/products/${created.body.id}`, {
       sku: 'WATER-CUP-24-PRO',
       name: 'น้ำดื่มแบบถ้วยพรีเมียม 24 ถ้วย',
       priceSatang: 4800,
       isReturnable: true,
-      imageUrl: '/uploads/cup-pack.png',
+      imageUrl: 'http://localhost:3000/uploads/cup-pack.png',
       active: true,
     }).expect(200);
     expect(patched.body.sku).toBe('WATER-CUP-24-PRO');
@@ -175,7 +179,6 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(JSON.stringify(stPrompt.body.replies)).toContain('action=select_station&stationId=2');
     const bagPrompt = await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=select_station&stationId=2' } }).expect(200);
     expect(JSON.stringify(bagPrompt.body.replies)).toContain('action=set_bag_return&qty=2');
-
     await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=set_bag_return&qty=2' } }).expect(200);
     await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=pay_method&method=CASH' } }).expect(200);
     const latestOrders = await as(lineUser).get('/orders/mine').expect(200);
@@ -183,7 +186,6 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(newOrd.expectBagReturn).toBe(2);
     expect(newOrd.status).toBe('CONFIRMED');
     const newDetail = await as(lineUser).get(`/orders/${newOrd.id}`).expect(200);
-
     await as('dev-rider').post(`/orders/${newOrd.id}/claim`).expect(200);
     await as('dev-rider').post(`/orders/${newOrd.id}/pack`).expect(200);
     await as('dev-rider').post(`/orders/${newOrd.id}/pickup`, { evidence: ev }).expect(200);
@@ -192,7 +194,6 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
       evidence: ev, otp: newDetail.body.deliveryOtp, bagsCollected: 2, bagPhotoUrl: ev.photoUrl, autoCloseBags: true,
     }).expect(200);
     expect(delivered.body.status).toBe('CLOSED_WITH_RETURN');
-
     const softDel = await admin.del('/admin/products/1').expect(200);
     expect(softDel.body).toEqual({ id: 1, deleted: true, mode: 'SOFT_DELETE', active: false });
   });

@@ -7,9 +7,12 @@ import {
 } from '../src/line/line-flex.templates';
 
 describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
-  it('getSafeProductImageUrl: คืนค่า URL ที่ปลอดภัย หรือ fallback เมื่อเป็น null/ไม่ถูกต้อง', () => {
+  it('getSafeProductImageUrl: คืนค่า URL ที่ปลอดภัย และแปลง localhost /uploads เป็น PUBLIC_WEB_URL เสมอ', () => {
     expect(getSafeProductImageUrl(null, 'https://idrink.tamadee.online')).toMatch(/^https:\/\//);
     expect(getSafeProductImageUrl('/uploads/water.png', 'https://idrink.tamadee.online/')).toBe(
+      'https://idrink.tamadee.online/uploads/water.png',
+    );
+    expect(getSafeProductImageUrl('http://localhost:3000/uploads/water.png', 'https://idrink.tamadee.online')).toBe(
       'https://idrink.tamadee.online/uploads/water.png',
     );
     expect(getSafeProductImageUrl('https://example.com/item.jpg', 'https://idrink.tamadee.online')).toBe(

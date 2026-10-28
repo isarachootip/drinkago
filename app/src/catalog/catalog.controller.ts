@@ -24,6 +24,14 @@ const updateProductSchema = z.object({
   active: z.boolean().optional(),
 });
 
+function normalizeProductImageUrl(raw?: string | null): string | null {
+  if (!raw || !raw.trim()) return null;
+  const trimmed = raw.trim();
+  const idx = trimmed.indexOf('/uploads/');
+  if (idx >= 0) return trimmed.slice(idx);
+  return trimmed;
+}
+
 @Controller()
 export class CatalogController {
   constructor(@Inject(DB) private readonly db: Db) {}
@@ -50,7 +58,7 @@ export class CatalogController {
         name: b.name.trim(),
         priceSatang: b.priceSatang,
         isReturnable: b.isReturnable,
-        imageUrl: b.imageUrl?.trim() || null,
+        imageUrl: normalizeProductImageUrl(b.imageUrl),
         active: true,
       })
       .onConflictDoNothing()
@@ -68,7 +76,7 @@ export class CatalogController {
     if (b.name !== undefined) patch.name = b.name.trim();
     if (b.priceSatang !== undefined) patch.priceSatang = b.priceSatang;
     if (b.isReturnable !== undefined) patch.isReturnable = b.isReturnable;
-    if (b.imageUrl !== undefined) patch.imageUrl = b.imageUrl ? b.imageUrl.trim() : null;
+    if (b.imageUrl !== undefined) patch.imageUrl = normalizeProductImageUrl(b.imageUrl);
     if (b.active !== undefined) patch.active = b.active;
 
     try {

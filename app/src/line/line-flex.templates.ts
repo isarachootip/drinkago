@@ -35,7 +35,12 @@ const formatBahtNum = (satang: number): string => {
 export function getSafeProductImageUrl(url: string | null | undefined, baseUrl: string): string {
   if (!url || !url.trim()) return FALLBACK_WATER_IMAGE;
   let target = url.trim();
-  if (target.startsWith('/')) target = `${baseUrl.replace(/\/+$/, '')}${target}`;
+  const uploadIdx = target.indexOf('/uploads/');
+  if (uploadIdx >= 0) {
+    target = `${baseUrl.replace(/\/+$/, '')}${target.slice(uploadIdx)}`;
+  } else if (target.startsWith('/')) {
+    target = `${baseUrl.replace(/\/+$/, '')}${target}`;
+  }
   try {
     const parsed = new URL(target);
     if ((parsed.protocol === 'https:' || parsed.hostname === 'localhost') && parsed.href.length < 1000) return parsed.href;

@@ -13,16 +13,22 @@ export function validateProductImageFile(file: { size: number; type: string }): 
   return { valid: true };
 }
 
+export function toRelativeUploadPath(url: string): string {
+  const trimmed = url.trim();
+  const idx = trimmed.indexOf('/uploads/');
+  return idx >= 0 ? trimmed.slice(idx) : trimmed;
+}
+
 export function resolveProductImageUrl(
   imageUrl: string | null | undefined,
   apiBaseUrl = loadDevSettings().apiBaseUrl,
 ): string | null {
   if (!imageUrl || !imageUrl.trim()) return null;
-  const trimmed = imageUrl.trim();
-  if (trimmed.startsWith('/')) {
-    return `${apiBaseUrl.replace(/\/+$/, '')}${trimmed}`;
+  const normalized = toRelativeUploadPath(imageUrl);
+  if (normalized.startsWith('/')) {
+    return `${apiBaseUrl.replace(/\/+$/, '')}${normalized}`;
   }
-  return trimmed;
+  return normalized;
 }
 
 /**
