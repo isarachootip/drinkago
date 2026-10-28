@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { bagSummarySchema, formatBaht, orderStatusBadge, productSchema, riderJobSchema, staffOrderSchema } from '../src/api/schemas';
 import { distanceMeters, formatDistance } from '../src/domain/geo';
-import { MAX_PRODUCT_IMAGE_BYTES, resolveProductImageUrl, validateProductImageFile } from '../src/domain/photo-picker';
+import {
+  calculateResizedDimensions,
+  MAX_PRODUCT_IMAGE_BYTES,
+  MAX_PRODUCT_IMAGE_DIMENSION,
+  resolveProductImageUrl,
+  validateProductImageFile,
+} from '../src/domain/photo-picker';
+import { canCustomerCancelOrder, shouldRequireEntryGate } from '../src/domain/session-gate';
 import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
@@ -114,5 +121,44 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(getSavedViewMode()).toBe('grid');
     saveViewMode('card');
     expect(getSavedViewMode()).toBe('card');
+  });
+
+  it('ย่อขนาดรูปภาพสินค้าอัตโนมัติไม่ให้เกิน 800px (แก้ไขปัญหารูป 2,400px โหลดช้า)', () => {
+    expect(MAX_PRODUCT_IMAGE_DIMENSION).toBe(800);
+    expect(calculateResizedDimensions(2400, 1800)).toEqual({ width: 800, height: 600 });
+    expect(calculateResizedDimensions(1600, 2400)).toEqual({ width: 533, height: 800 });
+    expect(calculateResizedDimensions(640, 480)).toEqual({ width: 640, height: 480 });
+  });
+
+  it('อนุญาตให้ลูกค้ายกเลิกออเดอร์ได้ทั้งสถานะ PENDING และ CONFIRMED (ก่อนไรเดอร์กดน้ำ) และตรวจ Entry Gate บน Production', () => {
+    expect(canCustomerCancelOrder('PENDING')).toBe(true);
+    expect(canCustomerCancelOrder('CONFIRMED')).toBe(true);
+    expect(canCustomerCancelOrder('PACKED')).toBe(false);
+    expect(canCustomerCancelOrder('OUT_FOR_DELIVERY')).toBe(false);
+
+    expect(
+      shouldRequireEntryGate({
+        hostname: 'idrink.tamadee.online',
+        hasLineToken: false,
+        hasStaffSession: false,
+        demoUnlocked: false,
+      }),
+    ).toBe(true);
+    expect(
+      shouldRequireEntryGate({
+        hostname: 'idrink.tamadee.online',
+        hasLineToken: true,
+        hasStaffSession: false,
+        demoUnlocked: false,
+      }),
+    ).toBe(false);
+    expect(
+      shouldRequireEntryGate({
+        hostname: 'localhost',
+        hasLineToken: false,
+        hasStaffSession: false,
+        demoUnlocked: false,
+      }),
+    ).toBe(false);
   });
 });

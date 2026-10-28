@@ -1,3 +1,5 @@
+import { signCustomerLinkToken, verifyCustomerLinkToken } from '../src/common/password';
+import { PAYMENT_QUICK_REPLY_ITEMS, safeQuickReplyLabel } from '../src/line/line-checkout.service';
 import {
   buildCartFlex,
   buildOrderTicketFlex,
@@ -95,7 +97,7 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     expect(json).toContain('ส่งรูปสลิป');
   });
 
-  it('buildStatusAndBagFlex: แสดงสถานะออเดอร์ล่าสุด รหัส OTP และยอดถุงค้างสะสม', () => {
+  it('buildStatusAndBagFlex: แสดงสถานะออเดอร์ล่าสุด รหัส OTP และยอดถุงค้างสะสม พร้อมแนบ lineToken ที่ลงลายเซ็น', () => {
     const msg = buildStatusAndBagFlex({
       customerName: 'คุณสมชาย',
       lineUserId: 'U12345',
@@ -114,5 +116,41 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     expect(json).toContain('DG-TEST999');
     expect(json).toContain('8421');
     expect(json).toContain('4 ใบ');
+    expect(json).toContain('lineToken=');
+  });
+
+  it('PAYMENT_QUICK_REPLY_ITEMS & safeQuickReplyLabel: ป้ายกำกับ Quick Reply ทุกปุ่มต้องยาวไม่เกิน 20 ตัวอักษรตามข้อกำหนด LINE API', () => {
+    for (const item of PAYMENT_QUICK_REPLY_ITEMS) {
+      expect(item.action.label.length).toBeLessThanOrEqual(20);
+    }
+    expect(safeQuickReplyLabel('💵 เงินสดปลายทาง (CASH) ยาวเกินยี่สิบตัวอักษร').length).toBeLessThanOrEqual(20);
+  });
+
+  it('buildOrderTicketFlex: รองรับปุ่มยกเลิกคำสั่งซื้อ (action=cancel_order) เมื่อส่ง orderId และแนบ lineToken', () => {
+    const msg = buildOrderTicketFlex({
+      orderId: 'ord-uuid-123',
+      orderCode: 'DG-CANCEL01',
+      deliveryOtp: '1122',
+      customerName: 'คุณสมศรี',
+      addressDetail: 'อ่อนนุช 17',
+      items: [{ productId: 1, name: 'น้ำดื่มแบบถัง', priceSatang: 6000, isReturnable: true, qty: 1 }],
+      totalSatang: 6000,
+      expectBagReturn: 0,
+      paymentMethod: 'CASH',
+      promptpayId: '0812345678',
+      promptpayAccountName: 'บจก. ดริ้งค์ แอนด์ โก',
+      publicWebUrl: 'https://idrink.tamadee.online',
+      lineUserId: 'U_cust_cancel',
+    });
+    const json = JSON.stringify(msg);
+    expect(json).toContain('action=cancel_order&orderId=ord-uuid-123');
+    expect(json).toContain('lineToken=');
+  });
+
+  it('signCustomerLinkToken & verifyCustomerLinkToken: ลงลายเซ็น HMAC-SHA256 และป้องกันการปลอมแปลง lineUserId บน URL', () => {
+    const token = signCustomerLinkToken('U_real_customer_99', 'test-secret-key-123456');
+    expect(verifyCustomerLinkToken(token, 'test-secret-key-123456')).toBe('U_real_customer_99');
+    expect(verifyCustomerLinkToken(`${token}tampered`, 'test-secret-key-123456')).toBeNull();
+    expect(verifyCustomerLinkToken('invalid-token', 'test-secret-key-123456')).toBeNull();
   });
 });

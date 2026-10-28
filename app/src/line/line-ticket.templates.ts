@@ -1,3 +1,4 @@
+import { buildSignedCustomerUrl } from '../common/password';
 import { LineAutoReplyInput } from './line-reply';
 import { LineFlexMessage, OrderTicketFlexInput } from './line-flex.templates';
 
@@ -8,8 +9,7 @@ const formatBahtNum = (satang: number): string => {
 
 export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessage {
   const totalBaht = formatBahtNum(input.totalSatang);
-  const cleanWeb = input.publicWebUrl.replace(/\/+$/, '');
-  const trackUrl = `${cleanWeb}/?lineUserId=${encodeURIComponent(input.lineUserId)}`;
+  const trackUrl = buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId);
   const qrUrl = `https://promptpay.io/${encodeURIComponent(input.promptpayId)}/${encodeURIComponent(totalBaht)}.png`;
 
   const itemLines = input.items.map((item) => ({
@@ -100,6 +100,7 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
       footer: {
         type: 'box',
         layout: 'vertical',
+        spacing: 'xs',
         contents: [
           {
             type: 'button',
@@ -107,6 +108,14 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
             height: 'sm',
             action: { type: 'uri', label: '📦 ติดตามสถานะการจัดส่ง', uri: trackUrl },
           },
+          ...(input.orderId
+            ? [{
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                action: { type: 'postback', label: '❌ ยกเลิกคำสั่งซื้อ', data: `action=cancel_order&orderId=${input.orderId}`, displayText: 'ยกเลิกคำสั่งซื้อ' },
+              }]
+            : []),
         ],
       },
     },
@@ -114,8 +123,7 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
 }
 
 export function buildStatusAndBagFlex(input: LineAutoReplyInput): LineFlexMessage {
-  const cleanWeb = input.publicWebUrl.replace(/\/+$/, '');
-  const trackUrl = `${cleanWeb}/?lineUserId=${encodeURIComponent(input.lineUserId)}`;
+  const trackUrl = buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId);
   const orderSection = input.latestOrder
     ? [
         { type: 'text', text: `📦 ออเดอร์ล่าสุด: #${input.latestOrder.code}`, size: 'sm', weight: 'bold', color: '#0F2236' },

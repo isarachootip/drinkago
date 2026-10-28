@@ -1,3 +1,5 @@
+import { buildSignedCustomerUrl } from '../common/password';
+
 export interface LineAutoReplyInput {
   customerName: string;
   lineUserId: string;
@@ -16,8 +18,7 @@ export interface LineAutoReplyInput {
  * แสดงรหัสออเดอร์ล่าสุด, รหัส OTP 4 หลัก, ยอดถุงค้างสะสม และลิงก์สั่งน้ำที่ผูกบัญชี LINE แล้ว
  */
 export function formatLineAutoReply(input: LineAutoReplyInput): string {
-  const cleanBaseUrl = input.publicWebUrl.replace(/\/+$/, '');
-  const link = `${cleanBaseUrl}/?lineUserId=${encodeURIComponent(input.lineUserId)}`;
+  const link = buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId);
 
   const lines: string[] = [
     `สวัสดีคุณ ${input.customerName} 💧 ยินดีต้อนรับสู่ Drink&Go (${input.oaBasicId})`,

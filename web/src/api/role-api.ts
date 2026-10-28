@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { loadLineToken } from '../domain/session-gate';
 import { ApiClientError, loadDevSettings } from './client';
 import {
   addressSchema,
@@ -64,8 +65,11 @@ export async function requestJson<T>(
     'x-dev-user': opts.userOverride ?? s.devUser,
   };
   const staffSession = loadStaffSession();
+  const lineToken = loadLineToken();
   if (staffSession?.token && (opts.useStaffToken || opts.userOverride === 'dev-admin' || opts.userOverride === 'dev-warehouse')) {
     headers['authorization'] = `Bearer ${staffSession.token}`;
+  } else if (lineToken) {
+    headers['x-line-token'] = lineToken;
   }
   if (s.devKey) headers['x-dev-key'] = s.devKey;
   if (opts.body !== undefined) headers['content-type'] = 'application/json';

@@ -3,6 +3,7 @@ import { customerApi } from '../api/role-api';
 import { BagSummary, formatBaht, OrderDetail, OrderEvent, StaffOrder } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
+import { canCustomerCancelOrder } from '../domain/session-gate';
 
 interface Props {
   customerUser: string;
@@ -153,7 +154,7 @@ export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderI
               </div>
             </div>
 
-            {detail.status === 'PENDING' && (
+            {canCustomerCancelOrder(detail.status) && (
               <button type="button" onClick={handleCancel} disabled={busy} style={{ minHeight: 44, borderRadius: 12, border: '1px solid #C2255C', background: '#FFFFFF', color: '#C2255C', fontWeight: 600, cursor: 'pointer' }}>
                 ยกเลิกคำสั่งซื้อนี้
               </button>

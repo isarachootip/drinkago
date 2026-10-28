@@ -12,6 +12,16 @@ import { buildOrderTicketFlex, LineMessage, LineQuickReplyItem } from './line-fl
 
 const PLACEHOLDER_ADDR = 'กรุณาตรวจสอบที่อยู่จัดส่ง';
 
+export function safeQuickReplyLabel(label: string): string {
+  return label.trim().slice(0, 20);
+}
+
+export const PAYMENT_QUICK_REPLY_ITEMS: LineQuickReplyItem[] = [
+  { type: 'action', action: { type: 'postback', label: safeQuickReplyLabel('💵 เงินสด (CASH)'), data: 'action=pay_method&method=CASH', displayText: 'ชำระเงินสดปลายทาง' } },
+  { type: 'action', action: { type: 'postback', label: safeQuickReplyLabel('📲 โอน PromptPay'), data: 'action=pay_method&method=PROMPTPAY', displayText: 'ชำระผ่าน PromptPay QR' } },
+  { type: 'action', action: { type: 'postback', label: safeQuickReplyLabel('💳 วงเงินเครดิต'), data: 'action=pay_method&method=CREDIT', displayText: 'ชำระด้วยวงเงินเครดิต' } },
+];
+
 @Injectable()
 export class LineCheckoutService {
   constructor(
@@ -121,7 +131,7 @@ export class LineCheckoutService {
       type: 'action',
       action: {
         type: 'postback',
-        label: qty === 0 ? 'ไม่คืนรอบนี้ (0 ใบ)' : qty === bagBalance ? `คืนทั้งหมด (${qty} ใบ)` : `คืน ${qty} ใบ`,
+        label: safeQuickReplyLabel(qty === 0 ? 'ไม่คืนรอบนี้ (0 ใบ)' : qty === bagBalance ? `คืนทั้งหมด (${qty} ใบ)` : `คืน ${qty} ใบ`),
         data: `action=set_bag_return&qty=${qty}`,
         displayText: qty === 0 ? 'ไม่คืนถุงรอบนี้' : `คืนถุง ${qty} ใบ`,
       },
@@ -138,13 +148,7 @@ export class LineCheckoutService {
     return [{
       type: 'text',
       text: '💳 กรุณาเลือกวิธีชำระเงินสำหรับออเดอร์นี้ครับ 👇',
-      quickReply: {
-        items: [
-          { type: 'action', action: { type: 'postback', label: '💵 เงินสดปลายทาง (CASH)', data: 'action=pay_method&method=CASH', displayText: 'ชำระเงินสดปลายทาง' } },
-          { type: 'action', action: { type: 'postback', label: '📲 โอน PromptPay QR', data: 'action=pay_method&method=PROMPTPAY', displayText: 'ชำระผ่าน PromptPay QR' } },
-          { type: 'action', action: { type: 'postback', label: '💳 วงเงินเครดิตสมาชิก', data: 'action=pay_method&method=CREDIT', displayText: 'ชำระด้วยวงเงินเครดิต' } },
-        ],
-      },
+      quickReply: { items: PAYMENT_QUICK_REPLY_ITEMS },
     }];
   }
 
@@ -169,6 +173,7 @@ export class LineCheckoutService {
     await this.cart.updateState(customer.lineUserId, paymentMethod === 'PROMPTPAY' ? 'AWAITING_SLIP' : null, { pendingOrderId: order.id }, true);
 
     return [buildOrderTicketFlex({
+      orderId: order.id,
       orderCode: order.code,
       deliveryOtp: order.deliveryOtp,
       customerName: customer.name,
@@ -183,5 +188,10 @@ export class LineCheckoutService {
       publicWebUrl: this.cfg.PUBLIC_WEB_URL,
       lineUserId: customer.lineUserId,
     })];
+  }
+
+  async cancelOrderFromLine(customer: User, orderId: string): Promise<LineMessage[]> {
+    const cancelled = await this.orders.cancel(orderId, customer, 'ลูกค้ากดยกเลิกผ่าน LINE');
+    return [{ type: 'text', text: `❌ ยกเลิกคำสั่งซื้อ #${cancelled.code} เรียบร้อยแล้วครับ` }];
   }
 }

@@ -56,6 +56,9 @@ export async function seed(url: string) {
     await db.insert(products).values(SAMPLE_PRODUCTS).onConflictDoNothing();
     const allProds = await db.select().from(products);
     for (const p of allProds) {
+      if (p.sku === 'WATER-PACK-12' && p.priceSatang === 220000) {
+        await db.update(products).set({ priceSatang: 5500 }).where(eq(products.id, p.id));
+      }
       if (!p.imageUrl) continue;
       if (LEGACY_UNSPLASH_URLS.includes(p.imageUrl)) {
         await db.update(products).set({ imageUrl: null }).where(eq(products.id, p.id));

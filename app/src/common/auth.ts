@@ -15,7 +15,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { users } from '../db/schema';
-import { verifyStaffToken } from './password';
+import { verifyCustomerLinkToken, verifyStaffToken } from './password';
 
 export type Role = 'customer' | 'warehouse' | 'rider' | 'admin';
 export type User = typeof users.$inferSelect;
@@ -75,9 +75,18 @@ export class AuthGuard implements CanActivate {
 
   private async identify(headers: Record<string, string | undefined>) {
     const auth = headers['authorization'];
+    const secret = this.cfg.DEV_AUTH_KEY ?? this.cfg.LINE_CHANNEL_SECRET;
     if (auth?.startsWith('Bearer ')) {
-      const staff = await verifyStaffToken(auth.slice(7), this.cfg.DEV_AUTH_KEY ?? this.cfg.LINE_CHANNEL_SECRET);
+      const token = auth.slice(7);
+      const staff = await verifyStaffToken(token, secret);
       if (staff) return { lineUserId: staff.lineUserId };
+      const linked = verifyCustomerLinkToken(token, secret) ?? verifyCustomerLinkToken(token);
+      if (linked) return { lineUserId: linked };
+    }
+    const lineTokenHeader = headers['x-line-token'];
+    if (lineTokenHeader) {
+      const linked = verifyCustomerLinkToken(lineTokenHeader, secret) ?? verifyCustomerLinkToken(lineTokenHeader);
+      if (linked) return { lineUserId: linked };
     }
     if (this.cfg.AUTH_MODE === 'dev') {
       const key = this.cfg.DEV_AUTH_KEY;

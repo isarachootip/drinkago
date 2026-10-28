@@ -15,11 +15,11 @@
 | API ลูกค้า / คลัง / ไรเดอร์ / แอดมิน | ✅ | ตาราง API ใน `README.md` |
 | Dev auth + LINE ID token + Staff Password Auth | ✅ | รองรับ Login หลังบ้าน/คลังด้วย `username` + `password` (`POST /auth/login` → JWT) ค่าเริ่มต้น `admin` / `admin1234` และ `warehouse` / `warehouse1234` |
 | User Management CRUD (`/admin/users`) | ✅ | เพิ่ม/ดู/แก้ไข/ตั้งรหัสผ่าน/ลบผู้ใช้ครบทุกบทบาท (Hard Delete ถ้ายังไม่มีประวัติ, Soft Delete ถ้ามีประวัติผูกกับ Audit Trail) |
-| LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชี `?lineUserId=` |
-| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุดให้ยืนยัน/เปลี่ยนตู้ได้ → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → สร้างออเดอร์เป็น `CONFIRMED` อัตโนมัติ → ไรเดอร์กด `claim` รับงานเอง และเมื่อรับถุงคืนจบงาน `CLOSED_WITH_RETURN` อัตโนมัติโดยไม่ต้องมี Warehouse) |
-| Role-Based Web UI (`Customer` / `Rider` / `Admin`) | ✅ | แยกหน้าเว็บตามบทบาทจริง: ลูกค้าเห็นเฉพาะหน้าสั่งซื้อ/ติดตาม, ไรเดอร์เห็นเฉพาะหน้ารับงาน/ส่งน้ำ, เฉพาะ Admin เห็นแถบสลับดูทุกมุมมอง (ตัดแท็บ Warehouse ออก) |
+| LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชีพร้อม HMAC-SHA256 Signed Token (`?lineUserId=...&lineToken=...`) |
+| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุด → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงินโดยคุมความยาว Quick Reply Label `<= 20` ตัวอักษรตามมาตรฐาน LINE API + รองรับพิมพ์ข้อความ Fallback → สร้างออเดอร์เป็น `CONFIRMED` พร้อมปุ่มยกเลิกออเดอร์ในบิล Flex `action=cancel_order` และหน้าเว็บลูกค้า) |
+| Role-Based Web UI (`Customer` / `Rider` / `Admin`) | ✅ | แยกหน้าเว็บตามบทบาทจริง + Production Entry Gate ป้องกันการเข้าหน้าเว็บ Production โดยไม่มี `lineToken` หรือ `staffSession` (ป้องกันการสวมรอยแก้ไข `?lineUserId=` บน URL) |
 | Training Agent & Knowledge Management (KM) | ✅ | แท็บ `📚 คู่มือ & Training (KM)` ใน Admin + ปุ่ม `🎓 คู่มือ` แยกตามบทบาท (`Customer` / `Rider` / `Admin`) พร้อมระบบถาม-ตอบ Interactive Training Agent Q&A และไฟล์ `TRAINING_GUIDE.md` |
-| Catalog & Product Image CRUD (`/admin/products`) | ✅ | จัดการข้อมูลและรูปภาพ Product Master สไตล์ ODM (กรอบประ Click-to-Upload จำกัด 2 MB + Preview ทันที + ช่องวาง URL + ปุ่ม Clear ลบรูป + แก้ไขครบทุกฟิลด์ + Hard/Soft Delete + แสดงรูปจริงทั้งหน้าเว็บลูกค้าและ LINE Flex Menu) |
+| Catalog & Product Image CRUD (`/admin/products`) | ✅ | จัดการข้อมูลและรูปภาพ Product Master สไตล์ ODM (กรอบประ Click-to-Upload + Auto-Resize & Compress `<= 800x800 px` ฝั่ง Client ก่อนอัปโหลด + เก็บลงตาราง PostgreSQL `uploaded_files` ถาวร + Broken Image Fallback + แก้ไขครบทุกฟิลด์ + Hard/Soft Delete) |
 | Notification outbox + LINE push | ✅ | รองรับ `LINE_CHANNEL_ACCESS_TOKEN` ส่งเข้าแชทจริง |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |
@@ -28,7 +28,7 @@
 | F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin พร้อมบันทึกค่าลงฐานข้อมูล Server (`GET/PATCH /admin/preferences`) |
 | Docker Compose production + Coolify Dockerfile | ✅ | Multi-stage `Dockerfile` ที่ root build ทั้ง `web` และ `app` |
 
-**ผลทดสอบ:** 53/53 (11 ชุดทดสอบ) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และ Linux ผ่าน typecheck 100%
+**ผลทดสอบ:** 57/57 (11 ชุดทดสอบ Backend) + 10/10 (Frontend Unit Tests) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และผ่าน typecheck 100%
 
 ## 2. การตัดสินใจที่ทำไปแล้ว
 

@@ -123,6 +123,7 @@ export class LineWebhookController {
       if (action === 'pay_method') {
         return this.checkout.completeCheckout(customer, (params.get('method') ?? 'CASH') as 'CASH' | 'PROMPTPAY' | 'CREDIT');
       }
+      if (action === 'cancel_order') return this.checkout.cancelOrderFromLine(customer, params.get('orderId') ?? '');
       if (action === 'reorder') return this.paymentReorder.handleQuickReorder(customer);
       if (action === 'status') return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
     }
@@ -137,6 +138,13 @@ export class LineWebhookController {
         if (/^(ยกเลิก|ล้างตะกร้า|cancel)$/i.test(text)) return this.cart.clearCart(customer.lineUserId);
         const session = await this.cart.getSession(customer.lineUserId);
         if (session.state === 'AWAITING_ADDRESS_DETAIL') return this.checkout.handleAddressDetailText(customer, text);
+        if (session.state === 'AWAITING_BAG_RETURN' && /^\d+$/.test(text)) {
+          return this.checkout.promptPaymentMethod(customer, session.tempData?.addressId ?? '', Number(text), session.tempData?.stationId);
+        }
+        if (session.state === 'AWAITING_PAYMENT_METHOD' && /(เงินสด|cash|โอน|promptpay|เครดิต|credit)/i.test(text)) {
+          const m = /โอน|promptpay/i.test(text) ? 'PROMPTPAY' : /เครดิต|credit/i.test(text) ? 'CREDIT' : 'CASH';
+          return this.checkout.completeCheckout(customer, m);
+        }
         if (/เมนู|สั่งน้ำ|สั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
         if (/สั่งซ้ำ|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
@@ -178,11 +186,12 @@ export class LineWebhookController {
 
   private async replyLine(replyToken: string, messages: LineMessage[]) {
     try {
-      await fetch('https://api.line.me/v2/bot/message/reply', {
+      const res = await fetch('https://api.line.me/v2/bot/message/reply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.cfg.LINE_CHANNEL_ACCESS_TOKEN}` },
         body: JSON.stringify({ replyToken, messages: messages.slice(0, 5) }),
       });
+      if (!res.ok) this.log.warn(`LINE reply HTTP ${res.status}: ${await res.text()}`);
     } catch (e) {
       this.log.warn(`LINE reply failed: ${(e as Error).message}`);
     }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
-import { resolveProductImageUrl, validateProductImageFile } from '../domain/photo-picker';
+import { compressAndResizeProductImage, resolveProductImageUrl, validateProductImageFile } from '../domain/photo-picker';
 
 interface Props {
   value: string;
@@ -34,9 +34,10 @@ export const ProductImageUploader: React.FC<Props> = ({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
+    const file = await compressAndResizeProductImage(rawFile);
     const check = validateProductImageFile(file);
     if (!check.valid) {
       onNotify(check.error);

@@ -6,7 +6,9 @@ import { AdminTrainingPanel } from './components/AdminTrainingPanel';
 import { DevSettingsModal } from './components/DevSettingsModal';
 import { FailDeliveryModal } from './components/FailDeliveryModal';
 import { PickupModal } from './components/PickupModal';
+import { ProductionEntryGate } from './components/ProductionEntryGate';
 import { StaffLoginCard } from './components/StaffLoginCard';
+import { isDemoUnlocked, resolveInitialCustomerSession, shouldOpenStaffLoginInitially, shouldRequireEntryGate, unlockDemoMode } from './domain/session-gate';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
 import { CustomerTrackPage } from './pages/CustomerTrackPage';
@@ -16,23 +18,10 @@ import { listOfflineMutations } from './storage/offline-queue';
 
 type AppRoleTab = 'customer' | 'rider' | 'admin';
 
-function resolveInitialCustomerUser(): string {
-  const fromQuery = new URLSearchParams(window.location.search).get('lineUserId')?.trim();
-  if (fromQuery) {
-    localStorage.setItem('drinkgo_customer_user_v1', fromQuery);
-    return fromQuery;
-  }
-  return localStorage.getItem('drinkgo_customer_user_v1') || 'dev-customer';
-}
-
-function shouldOpenStaffLoginInitially(): boolean {
-  const path = window.location.pathname.toLowerCase();
-  const mode = new URLSearchParams(window.location.search).get('mode');
-  return path.includes('/admin') || path.includes('/login') || mode === 'staff' || window.location.hash === '#admin';
-}
-
 export const App: React.FC = () => {
-  const [customerUser] = useState<string>(() => resolveInitialCustomerUser());
+  const [initialCust] = useState(() => resolveInitialCustomerSession());
+  const customerUser = initialCust.customerUser;
+  const [demoUnlocked, setDemoUnlocked] = useState<boolean>(() => isDemoUnlocked());
   const [staffSession, setStaffSession] = useState<StaffSession | null>(() => loadStaffSession());
   const [detectedLineRole, setDetectedLineRole] = useState<AppRoleTab>('customer');
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
@@ -162,6 +151,8 @@ export const App: React.FC = () => {
         </div>
       ) : showStaffLogin && !staffSession ? (
         <StaffLoginCard targetRole="staff" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); setShowStaffLogin(false); if (s.user.role === 'admin') setAdminViewTab('admin'); }} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
+      ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: initialCust.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
+        <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} />
       ) : (
         <>
           {activeTab === 'customer' && (
