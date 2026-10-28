@@ -7,9 +7,11 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AppModule } from './app.module';
 import { loadConfig } from './config';
+import { seed } from './db/seed';
 
 async function bootstrap() {
   const cfg = loadConfig();
+  await seed(cfg.DATABASE_URL);
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(cfg), { rawBody: true });
 
   app.use(helmet({ contentSecurityPolicy: false }));

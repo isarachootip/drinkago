@@ -92,21 +92,15 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(JSON.stringify(chkRes.body.replies)).toContain('รายละเอียดที่อยู่สำหรับจัดส่ง');
 
     // 4) พิมพ์รายละเอียดบ้านเลขที่/ซอย -> ระบบให้แชร์โลเคชัน GPS
-    const addrRes = await sendLineEvent(lineUser, {
-      type: 'message', message: { type: 'text', text: 'คุณสมศรี 089-888-7777 บ้านเลขที่ 99/1 ซอยอ่อนนุช 17' },
-    }).expect(200);
+    const addrRes = await sendLineEvent(lineUser, { message: { type: 'text', text: 'คุณสมศรี 089-888-7777 บ้านเลขที่ 99/1 ซอยอ่อนนุช 17' }, type: 'message' }).expect(200);
     expect(JSON.stringify(addrRes.body.replies)).toContain('แชร์โลเคชัน (GPS)');
 
     // 5) ส่งพิกัด GPS ใกล้สาขาอ่อนนุช 17 (ST-02: 13.7135, 100.6105) -> ระบบ Suggest ตู้กดน้ำ ST-02 ที่ใกล้ที่สุด
-    const locRes = await sendLineEvent(lineUser, {
-      type: 'message', message: { type: 'location', latitude: 13.7136, longitude: 100.6106 },
-    }).expect(200);
+    const locRes = await sendLineEvent(lineUser, { type: 'message', message: { type: 'location', latitude: 13.7136, longitude: 100.6106 } }).expect(200);
     expect(JSON.stringify(locRes.body.replies)).toContain('action=select_station&stationId=2');
 
     // ยืนยันเลือกตู้กดน้ำที่แนะนำ (stationId=2) -> ถุงค้าง = 0 จึงข้ามไปเลือกวิธีชำระเงินทันที
-    const stRes = await sendLineEvent(lineUser, {
-      type: 'postback', postback: { data: 'action=select_station&stationId=2' },
-    }).expect(200);
+    const stRes = await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=select_station&stationId=2' } }).expect(200);
     expect(JSON.stringify(stRes.body.replies)).toContain('action=pay_method&method=PROMPTPAY');
 
     // 6) กดเลือกชำระเงินแบบ PROMPTPAY -> สร้างออเดอร์จริง (CONFIRMED อัตโนมัติ) + ส่งการ์ด OTP 4 หลัก + QR Code
@@ -144,7 +138,14 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
   it('3. ไรเดอร์กดรับงานเอง (claim) โดยไม่ต้องมี Warehouse + ลูกค้าเลือกถุงคืน + ส่งน้ำพร้อมปิดงานถุงคืนอัตโนมัติ (CLOSED_WITH_RETURN)', async () => {
     const lineUser = 'U_odm_cust_001';
     const sug = await as(lineUser).get('/stations/suggest?lat=13.7136&lng=100.6106').expect(200);
+    expect(sug.body).toHaveLength(15);
     expect(sug.body[0].code).toBe('ST-02');
+    const sugRam = await as(lineUser).get('/stations/suggest?lat=13.8510&lng=100.6410').expect(200);
+    expect(sugRam.body[0].code).toBe('ST-03');
+    const sugPhut = await as(lineUser).get('/stations/suggest?lat=13.6460&lng=100.4930').expect(200);
+    expect(sugPhut.body[0].code).toBe('ST-04');
+    const sugCnx = await as(lineUser).get('/stations/suggest?lat=18.7960&lng=98.9682').expect(200);
+    expect(sugCnx.body[0].code).toBe('ST-11');
 
     const myOrders = await as(lineUser).get('/orders/mine').expect(200);
     const firstOrder = myOrders.body[1]; // ออเดอร์แรก (2 ถัง, สถานะ CONFIRMED รอไรเดอร์รับงาน)

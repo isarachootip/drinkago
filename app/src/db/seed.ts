@@ -7,6 +7,9 @@ import { eq, sql } from 'drizzle-orm';
 import { hashPassword } from '../common/password';
 import { createDb } from './db';
 import { products, stationBagLedger, users, waterStations } from './schema';
+import { SAMPLE_STATIONS } from './seed-stations';
+
+export { SAMPLE_STATIONS };
 
 export const DEV_USERS = [
   { lineUserId: 'dev-admin', username: 'admin', passwordHash: hashPassword('admin1234'), role: 'admin' as const, name: 'แอดมินทดสอบ' },
@@ -29,23 +32,6 @@ export const SAMPLE_PRODUCTS = [
     priceSatang: 5500,
     isReturnable: false,
     imageUrl: 'https://images.unsplash.com/photo-1564419320461-6870880221ad?auto=format&fit=crop&w=600&q=80',
-  },
-];
-
-export const SAMPLE_STATIONS = [
-  {
-    code: 'ST-01',
-    name: 'ตู้กดน้ำสาขาสุขุมวิท 50 (จุดหลัก)',
-    addressDetail: 'ปากซอยสุขุมวิท 50 แขวงพระโขนง เขตคลองเตย',
-    lat: 13.7058,
-    lng: 100.6012,
-  },
-  {
-    code: 'ST-02',
-    name: 'ตู้กดน้ำสาขาอ่อนนุช 17',
-    addressDetail: 'ซอยอ่อนนุช 17 แขวงสวนหลวง เขตสวนหลวง',
-    lat: 13.7135,
-    lng: 100.6105,
   },
 ];
 
