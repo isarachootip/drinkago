@@ -18,6 +18,7 @@
 | LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชี `?lineUserId=` |
 | LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุดให้ยืนยัน/เปลี่ยนตู้ได้ → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → สร้างออเดอร์เป็น `CONFIRMED` อัตโนมัติ → ไรเดอร์กด `claim` รับงานเอง และเมื่อรับถุงคืนจบงาน `CLOSED_WITH_RETURN` อัตโนมัติโดยไม่ต้องมี Warehouse) |
 | Role-Based Web UI (`Customer` / `Rider` / `Admin`) | ✅ | แยกหน้าเว็บตามบทบาทจริง: ลูกค้าเห็นเฉพาะหน้าสั่งซื้อ/ติดตาม, ไรเดอร์เห็นเฉพาะหน้ารับงาน/ส่งน้ำ, เฉพาะ Admin เห็นแถบสลับดูทุกมุมมอง (ตัดแท็บ Warehouse ออก) |
+| Training Agent & Knowledge Management (KM) | ✅ | แท็บ `📚 คู่มือ & Training (KM)` ใน Admin + ปุ่ม `🎓 คู่มือ` แยกตามบทบาท (`Customer` / `Rider` / `Admin`) พร้อมระบบถาม-ตอบ Interactive Training Agent Q&A และไฟล์ `TRAINING_GUIDE.md` |
 | Catalog & Product Image CRUD (`/admin/products`) | ✅ | แอดมินเพิ่ม/แก้ไขสินค้า ราคา และอัปโหลดรูปภาพแสดงบน LINE Flex Menu ได้จากหน้าเว็บ |
 | Notification outbox + LINE push | ✅ | รองรับ `LINE_CHANNEL_ACCESS_TOKEN` ส่งเข้าแชทจริง |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |

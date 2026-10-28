@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { fetchOrderDetail, fetchRiderJobs, loadDevSettings, riderActions, saveDevSettings, syncOfflineQueue } from './api/client';
-import { DevAuthSettings, EvidenceInput, OrderDetail, RiderJob } from './api/schemas';
+import { DevAuthSettings, OrderDetail, RiderJob } from './api/schemas';
 import { customerApi, loadStaffSession, saveStaffSession, StaffSession } from './api/role-api';
+import { AdminTrainingPanel } from './components/AdminTrainingPanel';
 import { DevSettingsModal } from './components/DevSettingsModal';
 import { FailDeliveryModal } from './components/FailDeliveryModal';
 import { PickupModal } from './components/PickupModal';
@@ -33,8 +34,9 @@ function shouldOpenStaffLoginInitially(): boolean {
 export const App: React.FC = () => {
   const [customerUser] = useState<string>(() => resolveInitialCustomerUser());
   const [staffSession, setStaffSession] = useState<StaffSession | null>(() => loadStaffSession());
-  const [detectedLineRole, setDetectedLineRole] = useState<'customer' | 'rider' | 'admin'>('customer');
+  const [detectedLineRole, setDetectedLineRole] = useState<AppRoleTab>('customer');
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
+  const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
   const [custScreen, setCustScreen] = useState<'shop' | 'track'>('shop');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
@@ -61,7 +63,7 @@ export const App: React.FC = () => {
       .catch(() => setDetectedLineRole('customer'));
   }, [customerUser]);
 
-  const effectiveRole: 'customer' | 'rider' | 'admin' =
+  const effectiveRole: AppRoleTab =
     staffSession?.user.role === 'admin' || detectedLineRole === 'admin' ? 'admin'
       : staffSession?.user.role === 'rider' || detectedLineRole === 'rider' ? 'rider' : 'customer';
 
@@ -121,67 +123,44 @@ export const App: React.FC = () => {
     }
   };
 
-  const handlePickupConfirm = async (evidence: EvidenceInput) => {
-    if (!pickupJob) return;
-    const res = await riderActions.pickup(pickupJob.id, evidence);
-    showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (รับสินค้า)' : `รับสินค้า #${pickupJob.code} เรียบร้อย (ขั้นที่ 4)`);
-    await loadJobs();
-  };
-
-  const handleDeliverConfirm = async (payload: { evidence: EvidenceInput; otp?: string; bagsCollected: number; bagPhotoUrl?: string }) => {
-    if (!activeJob) return;
-    const res = await riderActions.deliver(activeJob.id, payload);
-    showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (ส่งสำเร็จ)' : `ส่งออเดอร์ #${activeJob.code} สำเร็จ!`);
-    setRiderScreen('jobs');
-    await loadJobs();
-  };
-
-  const handleFailConfirm = async (payload: { evidence: EvidenceInput; reason: string }) => {
-    if (!failJob) return;
-    const res = await riderActions.fail(failJob.id, payload);
-    showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (ส่งไม่สำเร็จ)' : `บันทึกส่งไม่สำเร็จ #${failJob.code} แล้ว`);
-    setRiderScreen('jobs');
-    await loadJobs();
-  };
-
-  const handleSyncOffline = async () => {
-    try {
-      const { synced, remaining } = await syncOfflineQueue(settings);
-      showNotice(`ซิงก์สำเร็จ ${synced} รายการ (ค้าง ${remaining} รายการ)`);
-      await loadJobs();
-    } catch (e) {
-      showNotice(e instanceof Error ? e.message : 'ซิงก์ออฟไลน์ไม่สำเร็จ');
-    }
-  };
-
   return (
-    <div style={{ maxWidth: activeTab === 'admin' ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
+    <div style={{ maxWidth: activeTab === 'admin' || showTraining ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
       {effectiveRole === 'admin' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr) auto', gap: 4, padding: 6, background: '#091522' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr) auto auto', gap: 4, padding: 6, background: '#091522' }}>
           {([{ id: 'customer', label: '1. มุมมองลูกค้า' }, { id: 'rider', label: '2. มุมมองไรเดอร์' }, { id: 'admin', label: '⚙️ หลังบ้าน (Admin)' }] as const).map((t) => (
-            <button key={t.id} type="button" onClick={() => setAdminViewTab(t.id)} style={{ minHeight: 36, border: 'none', borderRadius: 8, background: activeTab === t.id ? '#1A56B0' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t.label}</button>
+            <button key={t.id} type="button" onClick={() => { setShowTraining(false); setAdminViewTab(t.id); }} style={{ minHeight: 36, border: 'none', borderRadius: 8, background: activeTab === t.id && !showTraining ? '#1A56B0' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t.label}</button>
           ))}
+          <button type="button" onClick={() => setShowTraining((v) => !v)} style={{ minHeight: 36, padding: '0 10px', border: 'none', borderRadius: 8, background: showTraining ? '#1E7B45' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🎓 คู่มือ</button>
           <button type="button" onClick={() => setShowSettings(true)} aria-label="ตั้งค่า" style={{ minHeight: 36, padding: '0 10px', border: 'none', borderRadius: 8, background: '#1C3550', color: '#FFFFFF', fontSize: 13, cursor: 'pointer' }}>⚙️</button>
         </div>
       )}
 
-      {effectiveRole === 'rider' && staffSession && (
-        <div style={{ background: '#091522', color: '#FFFFFF', padding: '6px 14px', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>🛵 โหมดไรเดอร์: <b>{staffSession.user.name}</b></span>
-          <button type="button" onClick={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบไรเดอร์แล้ว'); }} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#C2255C', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>ออกจากระบบ</button>
+      {effectiveRole === 'rider' && (
+        <div style={{ background: '#091522', color: '#FFFFFF', padding: '6px 14px', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <span>🛵 โหมดไรเดอร์: <b>{staffSession?.user.name || customerUser}</b></span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" onClick={() => setShowTraining((v) => !v)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>🎓 คู่มือไรเดอร์</button>
+            {staffSession && (
+              <button type="button" onClick={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบไรเดอร์แล้ว'); }} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#C2255C', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>ออกจากระบบ</button>
+            )}
+          </div>
         </div>
       )}
 
       {offlineCount > 0 && (
         <div style={{ background: '#FFB3CB', color: '#0F2236', padding: '8px 14px', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>📡 รอซิงก์ {offlineCount} รายการ</span>
-          <button type="button" onClick={handleSyncOffline} style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: '#0F2236', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>ซิงก์ทันที</button>
+          <button type="button" onClick={async () => { const { synced, remaining } = await syncOfflineQueue(settings); showNotice(`ซิงก์สำเร็จ ${synced} รายการ (ค้าง ${remaining} รายการ)`); await loadJobs(); }} style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: '#0F2236', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>ซิงก์ทันที</button>
         </div>
       )}
 
       {toast && <div style={{ background: '#17613A', color: '#FFFFFF', padding: '10px 16px', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{toast}</div>}
 
-      {showStaffLogin && !staffSession ? (
+      {showTraining ? (
+        <div style={{ padding: 16 }}>
+          <AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} />
+        </div>
+      ) : showStaffLogin && !staffSession ? (
         <StaffLoginCard targetRole="staff" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); setShowStaffLogin(false); if (s.user.role === 'admin') setAdminViewTab('admin'); }} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
       ) : (
         <>
@@ -193,7 +172,8 @@ export const App: React.FC = () => {
                 <CustomerTrackPage customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
               )}
               {effectiveRole === 'customer' && (
-                <div style={{ padding: '8px 16px 14px', textAlign: 'center', background: '#F3F7FA' }}>
+                <div style={{ padding: '8px 16px 14px', textAlign: 'center', background: '#F3F7FA', display: 'flex', justifyContent: 'center', gap: 14 }}>
+                  <button type="button" onClick={() => setShowTraining(true)} style={{ border: 'none', background: 'transparent', color: '#0B6E8A', fontSize: 11, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>🎓 คู่มือการสั่งน้ำดื่ม (Training Agent)</button>
                   <button type="button" onClick={() => setShowStaffLogin(true)} style={{ border: 'none', background: 'transparent', color: '#64748B', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>🔐 สำหรับไรเดอร์ / ผู้ดูแลระบบ (Staff Login)</button>
                 </div>
               )}
@@ -202,7 +182,7 @@ export const App: React.FC = () => {
           {activeTab === 'rider' && (riderScreen === 'jobs' || !activeJob ? (
             <RiderJobsPage jobs={jobs} selectedJob={activeJob} selectedDetail={selectedDetail} settings={settings} loading={loading} onSelectJob={(j) => setSelectedJobId(j.id)} onPrimaryAction={handlePrimaryAction} onOpenSettings={() => setShowSettings(true)} onRefresh={() => loadJobs(settings)} />
           ) : (
-            <RiderPodPage job={activeJob} detail={selectedDetail} settings={settings} onBack={() => setRiderScreen('jobs')} onDeliver={handleDeliverConfirm} onOpenFailModal={() => setFailJob(activeJob)} />
+            <RiderPodPage job={activeJob} detail={selectedDetail} settings={settings} onBack={() => setRiderScreen('jobs')} onDeliver={async (p) => { if (!activeJob) return; const r = await riderActions.deliver(activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${activeJob.code} สำเร็จ!`); setRiderScreen('jobs'); await loadJobs(); }} onOpenFailModal={() => setFailJob(activeJob)} />
           ))}
           {activeTab === 'admin' && (staffSession ? (
             <AdminPage staffSession={staffSession} onLogout={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบหลังบ้านแล้ว'); }} onNotify={showNotice} />
@@ -212,8 +192,8 @@ export const App: React.FC = () => {
         </>
       )}
       {showSettings && <DevSettingsModal settings={settings} onSave={(next) => { saveDevSettings(next); setSettings(next); }} onClose={() => setShowSettings(false)} />}
-      {pickupJob && <PickupModal job={pickupJob} settings={settings} onConfirm={handlePickupConfirm} onClose={() => setPickupJob(null)} />}
-      {failJob && <FailDeliveryModal job={failJob} settings={settings} onSubmitFail={handleFailConfirm} onClose={() => setFailJob(null)} />}
+      {pickupJob && <PickupModal job={pickupJob} settings={settings} onConfirm={async (ev) => { if (!pickupJob) return; const r = await riderActions.pickup(pickupJob.id, ev); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `รับสินค้า #${pickupJob.code} เรียบร้อย`); await loadJobs(); }} onClose={() => setPickupJob(null)} />}
+      {failJob && <FailDeliveryModal job={failJob} settings={settings} onSubmitFail={async (p) => { if (!failJob) return; const r = await riderActions.fail(failJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `บันทึกส่งไม่สำเร็จ #${failJob.code} แล้ว`); setRiderScreen('jobs'); await loadJobs(); }} onClose={() => setFailJob(null)} />}
     </div>
   );
 };
