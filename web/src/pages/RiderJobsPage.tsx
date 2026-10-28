@@ -1,5 +1,6 @@
 import React from 'react';
 import { DevAuthSettings, formatBaht, OrderDetail, orderStatusBadge, RiderJob } from '../api/schemas';
+import { RiderStepTracker } from '../components/RiderStepTracker';
 import { distanceMeters, formatDistance } from '../domain/geo';
 
 interface Props {
@@ -116,35 +117,7 @@ export const RiderJobsPage: React.FC<Props> = ({
               </span>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {active.station?.lat != null && active.station?.lng != null && (
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${active.station.lat},${active.station.lng}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ flex: 1, minHeight: 44, borderRadius: 12, background: '#0B6E8A', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px' }}
-                >
-                  🚰 นำทางไปตู้กดน้ำ
-                </a>
-              )}
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${active.address.lat},${active.address.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ flex: 1, minHeight: 44, borderRadius: 12, background: '#1A56B0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px' }}
-              >
-                🏠 นำทางไปบ้านลูกค้า
-              </a>
-              {active.customerPhone && (
-                <a href={`tel:${active.customerPhone}`} aria-label="โทรหาลูกค้า" style={{ width: 44, minHeight: 44, border: '1px solid #DCE4EC', borderRadius: 12, background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', fontSize: 18 }}>
-                  📞
-                </a>
-              )}
-            </div>
-
-            <button type="button" onClick={() => onPrimaryAction(active)} style={{ minHeight: 48, border: 'none', borderRadius: 12, background: badge?.buttonColor ?? '#1E7B45', color: '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
-              {badge?.actionLabel}
-            </button>
+            <RiderStepTracker job={active} onPrimaryAction={onPrimaryAction} />
           </div>
         )}
 

@@ -9,6 +9,7 @@ import {
   validateProductImageFile,
 } from '../src/domain/photo-picker';
 import { canCustomerCancelOrder, shouldRequireEntryGate } from '../src/domain/session-gate';
+import { getRiderTargetLocation, getRiderWorkflowSteps } from '../src/domain/rider-steps';
 import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
@@ -160,5 +161,15 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
         demoUnlocked: false,
       }),
     ).toBe(false);
+  });
+
+  it('คำนวณลำดับ Stepper 5 ขั้นของไรเดอร์ (done / current / locked) และสลับความเด่นปุ่มนำทางตามบริบทได้ถูกต้อง', () => {
+    const packedSteps = getRiderWorkflowSteps('PACKED', true);
+    expect(packedSteps).toHaveLength(5);
+    expect(packedSteps.map((s) => s.state)).toEqual(['done', 'done', 'current', 'locked', 'locked']);
+    expect(getRiderTargetLocation('CONFIRMED', false)).toBe('station');
+    expect(getRiderTargetLocation('PACKED', true)).toBe('station');
+    expect(getRiderTargetLocation('PICKED_UP', true)).toBe('customer');
+    expect(getRiderTargetLocation('OUT_FOR_DELIVERY', true)).toBe('customer');
   });
 });
