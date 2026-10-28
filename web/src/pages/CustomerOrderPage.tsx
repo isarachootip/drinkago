@@ -1,14 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
-import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder } from '../api/schemas';
+import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder, SuggestedStation } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
 
-interface Props {
-  customerUser: string;
-  onOrderCreated: (orderId: string) => void;
-  onGoTrack: () => void;
-  onNotify: (msg: string) => void;
-}
+interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onNotify: (msg: string) => void }
 
 export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onNotify }) => {
   const [registeredName, setRegisteredName] = useState<string | null>(null);
@@ -17,6 +12,8 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const [regPhone, setRegPhone] = useState('0812345678');
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [selectedAddrId, setSelectedAddrId] = useState<string>('');
+  const [suggestedStations, setSuggestedStations] = useState<SuggestedStation[]>([]);
+  const [selectedStationId, setSelectedStationId] = useState<number | undefined>(undefined);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<Record<number, number>>({});
   const [bags, setBags] = useState<BagSummary>({ balance: 0, history: [] });
@@ -37,9 +34,15 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         customerApi.listAddresses(customerUser), customerApi.listProducts(customerUser),
         customerApi.getBags(customerUser), customerApi.myOrders(customerUser),
       ]);
-      const finalAddrs = addrs.length ? addrs : [await customerApi.addAddress({ label: 'บ้าน', detail: 'สุขุมวิท 50 แขวงพระโขนง', lat: 13.7563, lng: 100.5018, note: 'ทางเข้าประตูหลัง' }, customerUser)];
+      const finalAddrs = addrs.length ? addrs : [await customerApi.addAddress({ label: 'บ้าน', detail: 'สุขุมวิท 50 แขวงพระโขนง', lat: 13.7058, lng: 100.6012, note: 'ทางเข้าประตูหลัง' }, customerUser)];
       setAddresses(finalAddrs);
-      setSelectedAddrId((cur) => cur || (finalAddrs[0]?.id ?? ''));
+      const targetAddr = finalAddrs[0];
+      setSelectedAddrId((cur) => cur || (targetAddr?.id ?? ''));
+      if (targetAddr) {
+        const stList = await customerApi.suggestStations(targetAddr.lat, targetAddr.lng, customerUser).catch(() => []);
+        setSuggestedStations(stList);
+        setSelectedStationId((cur) => cur ?? stList[0]?.id);
+      }
       setProducts(prods);
       if (prods.length > 0) setCart((prev) => (Object.keys(prev).length ? prev : { [prods[0].id]: 3 }));
       setBags(bagSum);
@@ -52,12 +55,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   useEffect(() => { void loadData(); }, [loadData]);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
+    e.preventDefault(); setSubmitting(true);
     try {
       await customerApi.register({ name: regName.trim(), phone: regPhone.trim() }, customerUser);
-      onNotify('ลงทะเบียนและยอมรับ PDPA เรียบร้อย');
-      await loadData();
+      onNotify('ลงทะเบียนและยอมรับ PDPA เรียบร้อย'); await loadData();
     } catch (err) { onNotify(err instanceof Error ? err.message : 'ลงทะเบียนไม่สำเร็จ'); }
     finally { setSubmitting(false); }
   };
@@ -69,9 +70,8 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
     if (items.length === 0) return onNotify('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
     setSubmitting(true);
     try {
-      const order = await customerApi.createOrder({ addressId: selectedAddrId, items, expectBagReturn: hasReturnBag ? returnBagQty : 0, paymentMethod }, customerUser);
-      onNotify(`สั่งซื้อสำเร็จ #${order.code} (ขั้นที่ 1 PENDING)`);
-      onOrderCreated(order.id);
+      const order = await customerApi.createOrder({ addressId: selectedAddrId, stationId: selectedStationId, items, expectBagReturn: hasReturnBag ? returnBagQty : 0, paymentMethod, autoConfirm: true }, customerUser);
+      onNotify(`สั่งซื้อสำเร็จ #${order.code} (ส่งงานเข้าคิวไรเดอร์ทันที)`); onOrderCreated(order.id);
     } catch (err) { onNotify(err instanceof Error ? err.message : 'สั่งซื้อไม่สำเร็จ'); }
     finally { setSubmitting(false); }
   };
@@ -79,9 +79,8 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const handleReorder = async () => {
     setSubmitting(true);
     try {
-      const order = await customerApi.reorder({ expectBagReturn: hasReturnBag ? returnBagQty : 0, addressId: selectedAddrId }, customerUser);
-      onNotify(`สั่งซ้ำสำเร็จ #${order.code}`);
-      onOrderCreated(order.id);
+      const order = await customerApi.reorder({ expectBagReturn: hasReturnBag ? returnBagQty : 0, addressId: selectedAddrId, stationId: selectedStationId }, customerUser);
+      onNotify(`สั่งซ้ำสำเร็จ #${order.code}`); onOrderCreated(order.id);
     } catch (err) { onNotify(err instanceof Error ? err.message : 'สั่งซ้ำไม่สำเร็จ'); }
     finally { setSubmitting(false); }
   };
@@ -116,6 +115,18 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid #DCE4EC', borderRadius: 12, background: '#F3F7FA' }}>
             <span>📍</span>
             <div style={{ flex: 1, fontSize: 13 }}><b>{activeAddr.label}:</b> {activeAddr.detail}</div>
+          </div>
+        )}
+        {suggestedStations.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid #0B6E8A', borderRadius: 12, background: '#F0F9FF' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0B6E8A' }}>
+              🚰 ตู้กดน้ำที่ใกล้คุณที่สุด (แนะนำอัตโนมัติ): {suggestedStations[0].code} · ห่าง {suggestedStations[0].distanceKm} กม.
+            </div>
+            <select value={selectedStationId ?? suggestedStations[0].id} onChange={(e) => setSelectedStationId(Number(e.target.value))} style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #0B6E8A', fontSize: 13, fontWeight: 600, background: '#FFFFFF' }}>
+              {suggestedStations.map((st, i) => (
+                <option key={st.id} value={st.id}>{i === 0 ? '⭐ แนะนำใกล้สุด: ' : '🚰 '}{st.code} · {st.name} (ห่าง {st.distanceKm} กม.)</option>
+              ))}
+            </select>
           </div>
         )}
       </div>
@@ -184,7 +195,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
           <span style={{ fontSize: 20, fontWeight: 700 }}>{formatBaht(totalSatang)}</span>
         </div>
         <button type="button" onClick={handlePlaceOrder} disabled={submitting} style={{ flex: 1, minHeight: 50, border: 'none', borderRadius: 14, background: '#1A56B0', color: '#FFFFFF', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-          {submitting ? 'กำลังสั่งซื้อ...' : 'ยืนยันสั่งซื้อ (ขั้นที่ 1)'}
+          {submitting ? 'กำลังสั่งซื้อ...' : '🚀 ยืนยันสั่งซื้อ (ส่งตรงถึงบ้าน)'}
         </button>
       </div>
     </div>

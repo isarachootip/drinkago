@@ -18,6 +18,8 @@ import {
   riderUserSchema,
   StaffOrder,
   staffOrderSchema,
+  SuggestedStation,
+  suggestedStationSchema,
 } from './schemas';
 
 export const STAFF_SESSION_KEY = 'drinkgo_staff_session_v1';
@@ -107,21 +109,26 @@ export const customerApi = {
   listProducts: async (user = 'dev-customer'): Promise<Product[]> =>
     z.array(productSchema).parse(await requestJson('/products', { userOverride: user })),
 
+  suggestStations: async (lat: number, lng: number, user = 'dev-customer'): Promise<SuggestedStation[]> =>
+    z.array(suggestedStationSchema).parse(await requestJson(`/stations/suggest?lat=${lat}&lng=${lng}`, { userOverride: user })),
+
   getBags: async (user = 'dev-customer'): Promise<BagSummary> =>
     bagSummarySchema.parse(await requestJson('/me/bags', { userOverride: user })),
 
   createOrder: (
     body: {
       addressId: string;
+      stationId?: number;
       items: { productId: number; qty: number }[];
       expectBagReturn: number;
       paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT';
+      autoConfirm?: boolean;
     },
     user = 'dev-customer',
-  ) => requestJson<StaffOrder>('/orders', { method: 'POST', body, userOverride: user }),
+  ) => requestJson<StaffOrder>('/orders', { method: 'POST', body: { autoConfirm: true, ...body }, userOverride: user }),
 
-  reorder: (body: { expectBagReturn?: number; addressId?: string }, user = 'dev-customer') =>
-    requestJson<StaffOrder>('/orders/reorder', { method: 'POST', body, userOverride: user }),
+  reorder: (body: { expectBagReturn?: number; addressId?: string; stationId?: number }, user = 'dev-customer') =>
+    requestJson<StaffOrder>('/orders/reorder', { method: 'POST', body: { autoConfirm: true, ...body }, userOverride: user }),
 
   myOrders: async (user = 'dev-customer'): Promise<StaffOrder[]> =>
     z.array(staffOrderSchema).parse(await requestJson('/orders/mine', { userOverride: user })),

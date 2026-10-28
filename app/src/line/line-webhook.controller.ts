@@ -112,9 +112,13 @@ export class LineWebhookController {
       if (action === 'use_address') return this.checkout.proceedAfterAddress(customer, params.get('addressId') ?? '');
       if (action === 'new_address') return this.checkout.promptNewAddress(customer.lineUserId);
       if (action === 'skip_location') return this.checkout.saveAddressAndProceed(customer);
+      if (action === 'select_station') {
+        const s = await this.cart.getSession(customer.lineUserId);
+        return this.checkout.proceedAfterStation(customer, s.tempData?.addressId ?? '', Number(params.get('stationId') ?? 1));
+      }
       if (action === 'set_bag_return') {
         const s = await this.cart.getSession(customer.lineUserId);
-        return this.checkout.promptPaymentMethod(customer, s.tempData?.addressId ?? '', Number(params.get('qty') ?? 0));
+        return this.checkout.promptPaymentMethod(customer, s.tempData?.addressId ?? '', Number(params.get('qty') ?? 0), s.tempData?.stationId);
       }
       if (action === 'pay_method') {
         return this.checkout.completeCheckout(customer, (params.get('method') ?? 'CASH') as 'CASH' | 'PROMPTPAY' | 'CREDIT');

@@ -22,18 +22,21 @@ export const addressSchema = z.object({
 export type CustomerAddress = z.infer<typeof addressSchema>;
 
 export const stationEmbeddedSchema = z.object({
-  id: z.number().int().nullable().optional(),
-  code: z.string().nullable().optional(),
-  name: z.string().nullable().optional(),
-  addressDetail: z.string().nullable().optional(),
-  lat: z.number().nullable().optional(),
-  lng: z.number().nullable().optional(),
+  id: z.number().int().nullable().optional(), code: z.string().nullable().optional(),
+  name: z.string().nullable().optional(), addressDetail: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(), lng: z.number().nullable().optional(),
 });
+export const suggestedStationSchema = z.object({
+  id: z.number().int(), code: z.string(), name: z.string(), addressDetail: z.string(),
+  lat: z.number(), lng: z.number(), distanceKm: z.number(), bagBalance: z.number().int().optional(),
+});
+export type SuggestedStation = z.infer<typeof suggestedStationSchema>;
 
 export const riderJobSchema = z.object({
   id: z.string().uuid(),
   code: z.string(),
   status: orderStatusSchema,
+  riderId: z.string().uuid().nullable().optional(),
   stationId: z.number().int().nullable().optional(),
   expectBagReturn: z.number().int().nonnegative(),
   paymentMethod: paymentMethodSchema,
@@ -165,20 +168,23 @@ export function formatBaht(satang: number): string {
   return Number.isInteger(baht) ? `฿${baht.toLocaleString('th-TH')}` : `฿${baht.toFixed(2)}`;
 }
 
-export function orderStatusBadge(status: OrderStatus): {
+export function orderStatusBadge(status: OrderStatus, isClaimed = true): {
   stepText: string;
   actionLabel: string;
   buttonColor: string;
 } {
   switch (status) {
     case 'CONFIRMED':
-      return { stepText: 'ขั้นที่ 3 · รอกดน้ำที่ตู้เติมน้ำ', actionLabel: 'ขั้นที่ 3: กดน้ำเสร็จแล้ว (PACKED)', buttonColor: '#0B6E8A' };
+      if (!isClaimed) {
+        return { stepText: '🆕 งานใหม่รอไรเดอร์ · กดรับงานเพื่อไปกดน้ำที่ตู้', actionLabel: '🙋‍♂️ รับงานนี้ (ไปกดน้ำที่ตู้)', buttonColor: '#C2255C' };
+      }
+      return { stepText: 'ขั้นที่ 3 · รอกดน้ำที่ตู้เติมน้ำ', actionLabel: 'ขั้นที่ 3: กดน้ำที่ตู้เสร็จแล้ว (PACKED)', buttonColor: '#0B6E8A' };
     case 'PACKED':
       return { stepText: 'ขั้นที่ 4 · รอรับสินค้าขึ้นรถ', actionLabel: 'ขั้นที่ 4: ยืนยันการรับสินค้า (ถ่ายรูป + GPS)', buttonColor: '#1A56B0' };
     case 'PICKED_UP':
       return { stepText: 'ขั้นที่ 5 · รับสินค้าแล้ว พร้อมออกส่ง', actionLabel: 'ขั้นที่ 5: เริ่มวิ่งส่งสินค้า', buttonColor: '#1A56B0' };
     case 'OUT_FOR_DELIVERY':
-      return { stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า', actionLabel: 'ถึงแล้ว · ยืนยันส่ง', buttonColor: '#1E7B45' };
+      return { stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า', actionLabel: 'ถึงแล้ว · ยืนยันส่งน้ำ & รับถุงคืน', buttonColor: '#1E7B45' };
     default:
       return { stepText: status, actionLabel: 'ดูรายละเอียด', buttonColor: '#4A5B6E' };
   }

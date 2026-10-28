@@ -25,7 +25,7 @@ export class LinePaymentReorderService {
   ) {}
 
   async handleQuickReorder(customer: User): Promise<LineMessage[]> {
-    const order = await this.orders.reorderLast(customer, {});
+    const order = await this.orders.reorderLast(customer, { autoConfirm: true });
     const [addr] = await this.db.select().from(addresses).where(eq(addresses.id, order.addressId)).limit(1);
     const rows = await this.db
       .select({

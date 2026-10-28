@@ -13,6 +13,7 @@ export type NotificationType =
   | 'BAGS_COLLECTED'
   | 'ORDER_CANCELLED'
   | 'NEW_ORDER_FOR_WAREHOUSE'
+  | 'NEW_ORDER_FOR_RIDERS'
   | 'JOB_ASSIGNED'
   | 'BAG_MISMATCH';
 
@@ -35,6 +36,8 @@ export function renderText(type: NotificationType, p: Record<string, unknown>): 
       return `ออเดอร์ ${p.code} ถูกยกเลิก`;
     case 'NEW_ORDER_FOR_WAREHOUSE':
       return `ออเดอร์ใหม่ ${p.code}`;
+    case 'NEW_ORDER_FOR_RIDERS':
+      return `มีงานสั่งน้ำดื่มใหม่รอรับงาน #${p.code}`;
     case 'JOB_ASSIGNED':
       return `มีงานส่งใหม่ ${p.code}`;
     case 'BAG_MISMATCH':
@@ -87,7 +90,7 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     await tx.insert(notificationOutbox).values({ userId, type, payload });
   }
 
-  async enqueueForRole(tx: DbOrTx, role: 'warehouse' | 'admin', type: NotificationType, payload: Record<string, unknown>) {
+  async enqueueForRole(tx: DbOrTx, role: 'warehouse' | 'admin' | 'rider', type: NotificationType, payload: Record<string, unknown>) {
     const staff = await tx.select({ id: users.id }).from(users).where(and(eq(users.role, role), eq(users.active, true)));
     for (const s of staff) await this.enqueue(tx, s.id, type, payload);
   }

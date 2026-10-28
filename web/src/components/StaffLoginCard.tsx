@@ -3,13 +3,14 @@ import { adminMgmtApi } from '../api/admin-api';
 import { StaffSession } from '../api/role-api';
 
 interface Props {
-  targetRole: 'warehouse' | 'admin';
+  targetRole?: 'rider' | 'admin' | 'warehouse' | 'staff';
   onLoginSuccess: (session: StaffSession) => void;
+  onCancel?: () => void;
   onNotify: (msg: string) => void;
 }
 
-export const StaffLoginCard: React.FC<Props> = ({ targetRole, onLoginSuccess, onNotify }) => {
-  const [username, setUsername] = useState(targetRole === 'admin' ? 'admin' : 'warehouse');
+export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'staff', onLoginSuccess, onCancel, onNotify }) => {
+  const [username, setUsername] = useState(targetRole === 'admin' ? 'admin' : '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -23,8 +24,8 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole, onLoginSuccess, on
         onNotify('บัญชีนี้ไม่ใช่สิทธิ์แอดมิน (Admin)');
         return;
       }
-      if (targetRole === 'warehouse' && !['warehouse', 'admin'].includes(session.user.role)) {
-        onNotify('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานส่วนคลังสินค้า');
+      if (!['admin', 'rider', 'warehouse'].includes(session.user.role)) {
+        onNotify('บัญชีนี้ไม่มีสิทธิ์เข้าใช้งานส่วนพนักงาน');
         return;
       }
       onLoginSuccess(session);
@@ -56,10 +57,10 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole, onLoginSuccess, on
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 4 }}>🔐</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#0F2236' }}>
-            เข้าสู่ระบบ{targetRole === 'admin' ? 'ผู้ดูแลหลังบ้าน (Admin)' : 'คลังสินค้า (Warehouse)'}
+            เข้าสู่ระบบไรเดอร์ / ผู้ดูแลหลังบ้าน (Admin)
           </div>
           <div style={{ fontSize: 12, color: '#4A5B6E', marginTop: 4 }}>
-            กรุณายืนยันตัวตนด้วย Username และ Password
+            ระบบจะแสดงหน้าจอตามประเภทผู้ใช้งานของคุณโดยอัตโนมัติ
           </div>
         </div>
 
@@ -68,7 +69,7 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole, onLoginSuccess, on
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="เช่น admin หรือ warehouse"
+            placeholder="เช่น rider หรือ admin"
             autoComplete="username"
             style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD', fontSize: 14 }}
           />
@@ -101,8 +102,27 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole, onLoginSuccess, on
             marginTop: 4,
           }}
         >
-          {busy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบหลังบ้าน'}
+          {busy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}
         </button>
+
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              minHeight: 40,
+              borderRadius: 10,
+              border: '1px solid #DCE4EC',
+              background: '#F8FAFC',
+              color: '#4A5B6E',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            ← กลับหน้าสั่งน้ำดื่มสำหรับลูกค้า
+          </button>
+        )}
       </form>
     </div>
   );

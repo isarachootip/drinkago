@@ -15,7 +15,8 @@
 | API ลูกค้า / คลัง / ไรเดอร์ / แอดมิน | ✅ | ตาราง API ใน `README.md` |
 | Dev auth + LINE ID token | ✅ | ยังไม่ได้ทดสอบกับ LINE จริง (ยังไม่มีบัญชี) |
 | LINE webhook (ลายเซ็น + กันซ้ำ) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนอัตโนมัติ + ตอบกลับด้วยรหัส OTP ล่าสุด |
-| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS ผูกตู้กดน้ำใกล้สุด → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → การ์ดใบสั่งซื้อพร้อม OTP 4 หลัก + PromptPay QR + ส่งรูปสลิปในแชท + Rich Menu 4 ปุ่ม + สั่งซ้ำ 1 คลิก) |
+| LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุดให้ยืนยัน/เปลี่ยนตู้ได้ → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → สร้างออเดอร์เป็น `CONFIRMED` อัตโนมัติ → ไรเดอร์กด `claim` รับงานเอง และเมื่อรับถุงคืนจบงาน `CLOSED_WITH_RETURN` อัตโนมัติโดยไม่ต้องมี Warehouse) |
+| Role-Based Web UI (`Customer` / `Rider` / `Admin`) | ✅ | แยกหน้าเว็บตามบทบาทจริง: ลูกค้าเห็นเฉพาะหน้าสั่งซื้อ/ติดตาม, ไรเดอร์เห็นเฉพาะหน้ารับงาน/ส่งน้ำ, เฉพาะ Admin เห็นแถบสลับดูทุกมุมมอง (ตัดแท็บ Warehouse ออก) |
 | Catalog & Product Image CRUD (`/admin/products`) | ✅ | แอดมินเพิ่ม/แก้ไขสินค้า ราคา และอัปโหลดรูปภาพแสดงบน LINE Flex Menu ได้จากหน้าเว็บ |
 | Notification outbox + LINE push | ✅ | ไม่มี token = พิมพ์ลง log |
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |

@@ -4,8 +4,9 @@ import { BagLedgerService } from '../bags/bag-ledger.service';
 import { User } from '../common/auth';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
-import { addresses } from '../db/schema';
+import { addresses, waterStations } from '../db/schema';
 import { OrdersService } from '../orders/orders.service';
+import { StationsService } from '../stations/stations.service';
 import { LineCartService } from './line-cart.service';
 import { buildOrderTicketFlex, LineMessage, LineQuickReplyItem } from './line-flex.templates';
 
@@ -19,6 +20,7 @@ export class LineCheckoutService {
     private readonly cart: LineCartService,
     private readonly bags: BagLedgerService,
     private readonly orders: OrdersService,
+    private readonly stations: StationsService,
   ) {}
 
   async startCheckout(customer: User): Promise<LineMessage[]> {
@@ -88,10 +90,32 @@ export class LineCheckoutService {
   }
 
   async proceedAfterAddress(customer: User, addressId: string): Promise<LineMessage[]> {
-    const bagBalance = await this.bags.balance(customer.id);
-    if (bagBalance <= 0) return this.promptPaymentMethod(customer, addressId, 0);
+    const [addr] = await this.db.select().from(addresses).where(eq(addresses.id, addressId)).limit(1);
+    const suggested = await this.stations.suggestStations(addr?.lat ?? 13.7563, addr?.lng ?? 100.5018);
+    if (suggested.length === 0) return this.proceedAfterStation(customer, addressId);
 
-    await this.cart.updateState(customer.lineUserId, 'AWAITING_BAG_RETURN', { addressId });
+    const nearest = suggested[0];
+    await this.cart.updateState(customer.lineUserId, 'AWAITING_STATION', { addressId, stationId: nearest.id });
+    const items: LineQuickReplyItem[] = [
+      { type: 'action', action: { type: 'postback', label: `✅ ใช้ตู้แนะนำ (${nearest.code})`.slice(0, 20), data: `action=select_station&stationId=${nearest.id}`, displayText: `ใช้ตู้กดน้ำที่แนะนำ: ${nearest.code} (${nearest.name})` } },
+      ...suggested.slice(1, 5).map((st) => ({
+        type: 'action' as const,
+        action: { type: 'postback' as const, label: `🚰 ${st.code} (${st.distanceKm}กม.)`.slice(0, 20), data: `action=select_station&stationId=${st.id}`, displayText: `เลือกตู้กดน้ำ: ${st.code} (${st.name})` },
+      })),
+    ];
+
+    return [{
+      type: 'text',
+      text: `🚰 ระบบแนะนำตู้กดน้ำที่ใกล้บ้านคุณที่สุด:\n⭐ ${nearest.code} · ${nearest.name} (ห่าง ${nearest.distanceKm} กม.)\n📍 ${nearest.addressDetail}\n\nกดยืนยันตู้ที่แนะนำ หรือเลือกตู้สาขาอื่นด้านล่างได้เลยครับ 👇`,
+      quickReply: { items },
+    }];
+  }
+
+  async proceedAfterStation(customer: User, addressId: string, stationId?: number): Promise<LineMessage[]> {
+    const bagBalance = await this.bags.balance(customer.id);
+    if (bagBalance <= 0) return this.promptPaymentMethod(customer, addressId, 0, stationId);
+
+    await this.cart.updateState(customer.lineUserId, 'AWAITING_BAG_RETURN', { addressId, stationId });
     const choices = [...new Set([0, 1, 2, bagBalance])].filter((n) => n >= 0 && n <= bagBalance);
     const items: LineQuickReplyItem[] = choices.map((qty) => ({
       type: 'action',
@@ -102,18 +126,15 @@ export class LineCheckoutService {
         displayText: qty === 0 ? 'ไม่คืนถุงรอบนี้' : `คืนถุง ${qty} ใบ`,
       },
     }));
-
-    return [{
-      type: 'text',
-      text: `🛍️ คุณมียอดถุงหมุนเวียนค้างสะสม ${bagBalance} ใบ\nรอบนี้ต้องการฝากคืนถุงให้ไรเดอร์กี่ใบครับ? 👇`,
-      quickReply: { items },
-    }];
+    return [{ type: 'text', text: `🛍️ คุณมียอดถุงหมุนเวียนค้างสะสม ${bagBalance} ใบ\nรอบนี้ต้องการฝากคืนถุงให้ไรเดอร์กี่ใบครับ? 👇`, quickReply: { items } }];
   }
 
-  async promptPaymentMethod(customer: User, addressId: string, expectBagReturn: number): Promise<LineMessage[]> {
+  async promptPaymentMethod(customer: User, addressId: string, expectBagReturn: number, stationId?: number): Promise<LineMessage[]> {
+    const session = await this.cart.getSession(customer.lineUserId);
+    const resolvedStationId = stationId ?? session.tempData?.stationId;
     const bagBalance = await this.bags.balance(customer.id);
     const safeBagReturn = Math.max(0, Math.min(expectBagReturn, bagBalance));
-    await this.cart.updateState(customer.lineUserId, 'AWAITING_PAYMENT_METHOD', { addressId, expectBagReturn: safeBagReturn });
+    await this.cart.updateState(customer.lineUserId, 'AWAITING_PAYMENT_METHOD', { addressId, stationId: resolvedStationId, expectBagReturn: safeBagReturn });
     return [{
       type: 'text',
       text: '💳 กรุณาเลือกวิธีชำระเงินสำหรับออเดอร์นี้ครับ 👇',
@@ -137,11 +158,14 @@ export class LineCheckoutService {
 
     const order = await this.orders.create(customer, {
       addressId,
+      stationId: session.tempData?.stationId,
       items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
       expectBagReturn: session.tempData?.expectBagReturn ?? 0,
       paymentMethod,
+      autoConfirm: true,
     });
     const [addr] = await this.db.select().from(addresses).where(eq(addresses.id, order.addressId)).limit(1);
+    const [st] = order.stationId ? await this.db.select().from(waterStations).where(eq(waterStations.id, order.stationId)).limit(1) : [];
     await this.cart.updateState(customer.lineUserId, paymentMethod === 'PROMPTPAY' ? 'AWAITING_SLIP' : null, { pendingOrderId: order.id }, true);
 
     return [buildOrderTicketFlex({
@@ -149,6 +173,7 @@ export class LineCheckoutService {
       deliveryOtp: order.deliveryOtp,
       customerName: customer.name,
       addressDetail: addr?.detail ?? '-',
+      stationName: st ? `${st.code} · ${st.name}` : undefined,
       items,
       totalSatang: order.totalSatang,
       expectBagReturn: order.expectBagReturn,

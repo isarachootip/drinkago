@@ -81,6 +81,7 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
             ],
           },
           { type: 'text', text: `📍 จัดส่งที่: ${input.addressDetail}`, size: 'xs', color: '#33475B', wrap: true, margin: 'sm' },
+          ...(input.stationName ? [{ type: 'text', text: `🚰 ตู้กดน้ำต้นทาง: ${input.stationName}`, size: 'xs', color: '#0B6E8A', weight: 'bold', wrap: true }] : []),
           { type: 'text', text: `🛍️ แจ้งคืนถุงรอบนี้: ${input.expectBagReturn} ใบ`, size: 'xs', color: '#0B6E8A' },
           { type: 'separator', margin: 'md' },
           ...itemLines,

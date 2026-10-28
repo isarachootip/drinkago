@@ -1,36 +1,13 @@
 import { z } from 'zod';
-import {
-  DevAuthSettings,
-  EvidenceInput,
-  OrderDetail,
-  orderDetailSchema,
-  RiderJob,
-  riderJobSchema,
-  uploadResponseSchema,
-} from './schemas';
-import {
-  enqueueOfflineMutation,
-  listOfflineMutations,
-  removeOfflineMutation,
-} from '../storage/offline-queue';
+import { DevAuthSettings, EvidenceInput, OrderDetail, orderDetailSchema, RiderJob, riderJobSchema, uploadResponseSchema } from './schemas';
+import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../storage/offline-queue';
 
 const SETTINGS_KEY = 'drinkgo_rider_dev_settings';
-
-const defaultApiOrigin =
-  typeof window !== 'undefined' && window.location.port !== '5173'
-    ? window.location.origin
-    : 'http://localhost:3000';
-
-const buildTimeDevKey =
-  (import.meta as unknown as { env?: { VITE_DEV_AUTH_KEY?: string } }).env?.VITE_DEV_AUTH_KEY ?? '';
+const defaultApiOrigin = typeof window !== 'undefined' && window.location.port !== '5173' ? window.location.origin : 'http://localhost:3000';
+const buildTimeDevKey = (import.meta as unknown as { env?: { VITE_DEV_AUTH_KEY?: string } }).env?.VITE_DEV_AUTH_KEY ?? '';
 
 export const DEFAULT_SETTINGS: DevAuthSettings = {
-  apiBaseUrl: defaultApiOrigin,
-  devUser: 'dev-rider',
-  devKey: buildTimeDevKey,
-  mockGps: true,
-  mockLat: 13.7563,
-  mockLng: 100.5018,
+  apiBaseUrl: defaultApiOrigin, devUser: 'dev-rider', devKey: buildTimeDevKey, mockGps: true, mockLat: 13.7563, mockLng: 100.5018,
 };
 
 export function loadDevSettings(): DevAuthSettings {
@@ -69,6 +46,18 @@ function buildHeaders(settings: DevAuthSettings, extra: Record<string, string> =
   const headers: Record<string, string> = { ...extra };
   if (settings.devUser) headers['x-dev-user'] = settings.devUser;
   if (settings.devKey) headers['x-dev-key'] = settings.devKey;
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('drinkgo_staff_session_v1') : null;
+    if (raw) {
+      const parsed = JSON.parse(raw) as { token?: string; user?: { role?: string; lineUserId?: string } };
+      if (parsed.token && parsed.user?.role === 'rider') {
+        headers['authorization'] = `Bearer ${parsed.token}`;
+        if (parsed.user.lineUserId) headers['x-dev-user'] = parsed.user.lineUserId;
+      }
+    }
+  } catch {
+    // ignore invalid localStorage
+  }
   return headers;
 }
 
@@ -159,6 +148,8 @@ export async function postMutationWithOfflineSupport(
 }
 
 export const riderActions = {
+  claim: (orderId: string) =>
+    postMutationWithOfflineSupport(`/orders/${orderId}/claim`, {}, `รับงาน #${orderId.slice(0, 6)}`),
   pack: (orderId: string) =>
     postMutationWithOfflineSupport(`/orders/${orderId}/pack`, {}, `กดน้ำ #${orderId.slice(0, 6)}`),
   pickup: (orderId: string, evidence: EvidenceInput) =>
@@ -168,7 +159,7 @@ export const riderActions = {
   deliver: (
     orderId: string,
     payload: { evidence: EvidenceInput; otp?: string; bagsCollected: number; bagPhotoUrl?: string },
-  ) => postMutationWithOfflineSupport(`/orders/${orderId}/deliver`, payload, `ส่งน้ำ #${orderId.slice(0, 6)}`),
+  ) => postMutationWithOfflineSupport(`/orders/${orderId}/deliver`, { ...payload, autoCloseBags: true }, `ส่งน้ำ #${orderId.slice(0, 6)}`),
   fail: (orderId: string, payload: { evidence: EvidenceInput; reason: string }) =>
     postMutationWithOfflineSupport(`/orders/${orderId}/fail`, payload, `ส่งไม่สำเร็จ #${orderId.slice(0, 6)}`),
 };

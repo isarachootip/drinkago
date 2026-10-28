@@ -7,13 +7,20 @@ import { OrdersService } from './orders.service';
 
 const createSchema = z.object({
   addressId: z.string().uuid(),
+  stationId: z.number().int().positive().optional(),
   items: z.array(z.object({ productId: z.number().int().positive(), qty: z.number().int().min(1).max(100) })).min(1).max(20),
   expectBagReturn: z.number().int().min(0).max(200).default(0),
   paymentMethod: z.enum(['CASH', 'PROMPTPAY', 'CREDIT']),
+  autoConfirm: z.boolean().optional(),
   slotStart: z.coerce.date().optional(),
   slotEnd: z.coerce.date().optional(),
 });
-const reorderSchema = z.object({ expectBagReturn: z.number().int().min(0).max(200).optional(), addressId: z.string().uuid().optional() });
+const reorderSchema = z.object({
+  expectBagReturn: z.number().int().min(0).max(200).optional(),
+  addressId: z.string().uuid().optional(),
+  stationId: z.number().int().positive().optional(),
+  autoConfirm: z.boolean().optional(),
+});
 const statusSchema = z.enum(['PENDING', 'CONFIRMED', 'PACKED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'FAILED_DELIVERY', 'BAG_COLLECTED', 'BAG_RETURNED', 'CLOSED', 'CLOSED_WITH_RETURN', 'CANCELLED']);
 const listSchema = z.object({ status: statusSchema.optional(), limit: z.coerce.number().int().min(1).max(200).optional() });
 const evidenceBody = z.object({ evidence: evidenceSchema.default({}) });
@@ -22,6 +29,7 @@ const deliverSchema = z.object({
   otp: z.string().regex(/^\d{4}$/).optional(),
   bagsCollected: z.number().int().min(0).max(200).default(0),
   bagPhotoUrl: photoUrlSchema.optional(),
+  autoCloseBags: z.boolean().optional(),
 });
 const failSchema = z.object({ evidence: evidenceSchema.default({}), reason: z.string().min(1).max(500) });
 const receiveSchema = z.object({ evidence: evidenceSchema.default({}), counted: z.number().int().min(0).max(1000) });
@@ -120,6 +128,14 @@ export class OrdersController {
   }
 
   // ไรเดอร์
+  @Post(':id/claim')
+  @HttpCode(200)
+  @Roles('rider')
+  @UseInterceptors(IdempotencyInterceptor)
+  claim(@Id() id: string, @CurrentUser() u: User) {
+    return this.orders.claim(id, u);
+  }
+
   @Post(':id/pickup')
   @HttpCode(200)
   @Roles('rider')
@@ -185,22 +201,7 @@ export class OrdersController {
 @Controller()
 export class RiderController {
   constructor(private readonly orders: OrdersService) {}
-
-  @Get('rider/jobs')
-  @Roles('rider')
-  jobs(@CurrentUser() u: User) {
-    return this.orders.riderJobs(u.id);
-  }
-
-  @Get('riders')
-  @Roles('warehouse', 'admin')
-  riders() {
-    return this.orders.listRiders();
-  }
-
-  @Get('admin/bag-mismatches')
-  @Roles('admin')
-  mismatches() {
-    return this.orders.bagMismatches();
-  }
+  @Get('rider/jobs') @Roles('rider') jobs(@CurrentUser() u: User) { return this.orders.riderJobs(u.id); }
+  @Get('riders') @Roles('warehouse', 'admin') riders() { return this.orders.listRiders(); }
+  @Get('admin/bag-mismatches') @Roles('admin') mismatches() { return this.orders.bagMismatches(); }
 }

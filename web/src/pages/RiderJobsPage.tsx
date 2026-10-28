@@ -32,7 +32,7 @@ export const RiderJobsPage: React.FC<Props> = ({
     .filter((j) => j.paymentMethod === 'CASH' && j.paymentStatus !== 'PAID')
     .reduce((sum, j) => sum + j.totalSatang, 0);
 
-  const badge = active ? orderStatusBadge(active.status) : null;
+  const badge = active ? orderStatusBadge(active.status, Boolean(active.riderId)) : null;
   const distText = active
     ? formatDistance(distanceMeters(settings.mockLat, settings.mockLng, active.address.lat, active.address.lng))
     : '';
@@ -72,8 +72,8 @@ export const RiderJobsPage: React.FC<Props> = ({
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
         {!active ? (
           <div style={{ background: '#FFFFFF', borderRadius: 16, padding: 24, textAlign: 'center', border: '1px solid #DCE4EC' }}>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{loading ? 'กำลังโหลดงานวันนี้...' : 'ยังไม่มีงานที่ได้รับมอบหมายในขณะนี้'}</div>
-            <div style={{ fontSize: 13, color: '#4A5B6E', marginBottom: 14 }}>เมื่อคลังกดรับออเดอร์ (ขั้น 2) และมอบหมายงานให้คุณ งานจะแสดงที่นี่ทันที</div>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>{loading ? 'กำลังโหลดงานวันนี้...' : 'ยังไม่มีงานในคิวขณะนี้'}</div>
+            <div style={{ fontSize: 13, color: '#4A5B6E', marginBottom: 14 }}>เมื่อลูกค้าสั่งน้ำดื่ม ระบบจะแนะนำตู้กดน้ำที่ใกล้ที่สุดและส่งงานเข้าคิวนี้ทันทีโดยไม่ต้องรอคลัง</div>
             <button type="button" onClick={onRefresh} style={{ minHeight: 44, padding: '0 18px', borderRadius: 12, border: '1px solid #1A56B0', background: '#FFFFFF', color: '#1A56B0', fontWeight: 600, cursor: 'pointer' }}>
               🔄 รีเฟรชรายการงาน
             </button>
@@ -157,7 +157,7 @@ export const RiderJobsPage: React.FC<Props> = ({
                   <span style={{ width: 28, height: 28, borderRadius: 14, background: '#E6EEF9', color: '#123F85', fontSize: 13, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{idx + 2}</span>
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>{job.customerName} · #{job.code}</span>
-                    <span style={{ fontSize: 12, color: '#4A5B6E' }}>{orderStatusBadge(job.status).stepText} · {job.paymentMethod === 'CASH' ? `เงินสด ${formatBaht(job.totalSatang)}` : 'PromptPay'}</span>
+                    <span style={{ fontSize: 12, color: '#4A5B6E' }}>{orderStatusBadge(job.status, Boolean(job.riderId)).stepText} · {job.paymentMethod === 'CASH' ? `เงินสด ${formatBaht(job.totalSatang)}` : 'PromptPay'}</span>
                   </div>
                   {job.expectBagReturn > 0 && (
                     <span style={{ fontSize: 12, fontWeight: 600, background: '#FCE8EF', color: '#9B1B49', padding: '3px 8px', borderRadius: 8 }}>ถุง {job.expectBagReturn}</span>

@@ -21,7 +21,7 @@ export interface ProductFlexItem {
 
 export interface OrderTicketFlexInput {
   orderCode: string; deliveryOtp: string; customerName: string; addressDetail: string;
-  items: LineCartItem[]; totalSatang: number; expectBagReturn: number;
+  stationName?: string; items: LineCartItem[]; totalSatang: number; expectBagReturn: number;
   paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT'; promptpayId: string;
   promptpayAccountName: string; publicWebUrl: string; lineUserId: string;
 }

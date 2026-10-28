@@ -97,22 +97,30 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     }).expect(200);
     expect(JSON.stringify(addrRes.body.replies)).toContain('แชร์โลเคชัน (GPS)');
 
-    // 5) ส่งพิกัด GPS ใกล้สาขาอ่อนนุช 17 (ST-02: 13.7135, 100.6105) -> ถุงค้าง = 0 จึงข้ามไปเลือกวิธีชำระเงินทันที
+    // 5) ส่งพิกัด GPS ใกล้สาขาอ่อนนุช 17 (ST-02: 13.7135, 100.6105) -> ระบบ Suggest ตู้กดน้ำ ST-02 ที่ใกล้ที่สุด
     const locRes = await sendLineEvent(lineUser, {
       type: 'message', message: { type: 'location', latitude: 13.7136, longitude: 100.6106 },
     }).expect(200);
-    expect(JSON.stringify(locRes.body.replies)).toContain('action=pay_method&method=PROMPTPAY');
+    expect(JSON.stringify(locRes.body.replies)).toContain('action=select_station&stationId=2');
 
-    // 6) กดเลือกชำระเงินแบบ PROMPTPAY -> สร้างออเดอร์จริง + ส่งการ์ด OTP 4 หลัก + QR Code
+    // ยืนยันเลือกตู้กดน้ำที่แนะนำ (stationId=2) -> ถุงค้าง = 0 จึงข้ามไปเลือกวิธีชำระเงินทันที
+    const stRes = await sendLineEvent(lineUser, {
+      type: 'postback', postback: { data: 'action=select_station&stationId=2' },
+    }).expect(200);
+    expect(JSON.stringify(stRes.body.replies)).toContain('action=pay_method&method=PROMPTPAY');
+
+    // 6) กดเลือกชำระเงินแบบ PROMPTPAY -> สร้างออเดอร์จริง (CONFIRMED อัตโนมัติ) + ส่งการ์ด OTP 4 หลัก + QR Code
     const payRes = await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=pay_method&method=PROMPTPAY' } }).expect(200);
     const ticketJson = JSON.stringify(payRes.body.replies);
     expect(ticketJson).toContain('DG-');
+    expect(ticketJson).toContain('ST-02');
     expect(ticketJson).toContain('promptpay.io/0899998888/120');
 
-    // ตรวจสอบในฐานข้อมูลว่าออเดอร์ถูกผูกกับตู้ ST-02 (id=2) และสถานะเป็น PENDING / UNPAID
+    // ตรวจสอบในฐานข้อมูลว่าออเดอร์ถูกผูกกับตู้ ST-02 (id=2) และสถานะเป็น CONFIRMED ทันทีโดยไม่ต้องผ่าน Warehouse
     const myOrders = await as(lineUser).get('/orders/mine').expect(200);
     expect(myOrders.body).toHaveLength(1);
     const order = myOrders.body[0];
+    expect(order.status).toBe('CONFIRMED');
     expect(order.totalSatang).toBe(12000);
     expect(order.paymentMethod).toBe('PROMPTPAY');
     expect(order.paymentStatus).toBe('UNPAID');
@@ -133,37 +141,39 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(afterReorder.body).toHaveLength(2);
   });
 
-  it('3. ลูกค้าที่มีที่อยู่เดิมและมียอดถุงค้าง: ระบบให้กดใช้ที่อยู่เดิม + เลือกจำนวนถุงคืนในแชทได้', async () => {
+  it('3. ไรเดอร์กดรับงานเอง (claim) โดยไม่ต้องมี Warehouse + ลูกค้าเลือกถุงคืน + ส่งน้ำพร้อมปิดงานถุงคืนอัตโนมัติ (CLOSED_WITH_RETURN)', async () => {
     const lineUser = 'U_odm_cust_001';
+    const sug = await as(lineUser).get('/stations/suggest?lat=13.7136&lng=100.6106').expect(200);
+    expect(sug.body[0].code).toBe('ST-02');
+
     const myOrders = await as(lineUser).get('/orders/mine').expect(200);
-    const firstOrder = myOrders.body[1]; // ออเดอร์แรก (2 ถัง)
+    const firstOrder = myOrders.body[1]; // ออเดอร์แรก (2 ถัง, สถานะ CONFIRMED รอไรเดอร์รับงาน)
     const detail = await as(lineUser).get(`/orders/${firstOrder.id}`).expect(200);
 
-    // เดินงานออเดอร์แรกจนส่งสำเร็จ ताकिลูกค้ามียอดถุงค้าง 2 ใบ
-    const riders = await admin.get('/admin/riders').expect(200);
-    const riderId = riders.body[0].id;
-    await admin.post(`/orders/${firstOrder.id}/confirm`).expect(200);
-    await admin.post(`/orders/${firstOrder.id}/assign`, { riderId }).expect(200);
+    // ไรเดอร์เห็นงานในคิวกลาง (/rider/jobs) และกด claim รับงานเองโดยไม่ต้องมีคลังสินค้า
+    const jobsBefore = await as('dev-rider').get('/rider/jobs').expect(200);
+    expect(jobsBefore.body.some((j: { id: string; riderId: string | null }) => j.id === firstOrder.id && j.riderId === null)).toBe(true);
+    await as('dev-rider').post(`/orders/${firstOrder.id}/claim`).expect(200);
     await as('dev-rider').post(`/orders/${firstOrder.id}/pack`).expect(200);
     const ev = { photoUrl: 'http://localhost:3000/uploads/pod.png', lat: 13.7136, lng: 100.6106 };
     await as('dev-rider').post(`/orders/${firstOrder.id}/pickup`, { evidence: ev }).expect(200);
     await as('dev-rider').post(`/orders/${firstOrder.id}/start`).expect(200);
     await as('dev-rider').post(`/orders/${firstOrder.id}/deliver`, {
-      evidence: ev,
-      otp: detail.body.deliveryOtp,
-      bagsCollected: 0,
+      evidence: ev, otp: detail.body.deliveryOtp, bagsCollected: 0,
     }).expect(200);
 
-    // ลูกค้ากดเพิ่มสินค้าเข้าตะกร้าและกด checkout -> ระบบเสนอ "ใช้ที่อยู่เดิม"
+    // ลูกค้ากดเพิ่มสินค้าเข้าตะกร้าและกด checkout -> ระบบเสนอ "ใช้ที่อยู่เดิม" -> แนะนำตู้กดน้ำ -> ถามจำนวนถุงคืน
     await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=quick_add&productId=1' } }).expect(200);
     const chk = await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=checkout' } }).expect(200);
-    const chkText = JSON.stringify(chk.body.replies);
-    expect(chkText).toContain('action=use_address&addressId=');
+    expect(JSON.stringify(chk.body.replies)).toContain('action=use_address&addressId=');
 
-    // กดใช้ที่อยู่เดิม -> ระบบตรวจพบถุงค้าง 2 ใบ จึงแสดงตัวเลือกจำนวนถุงคืน
+    const stPrompt = await sendLineEvent(lineUser, {
+      type: 'postback', postback: { data: `action=use_address&addressId=${detail.body.address.id}` },
+    }).expect(200);
+    expect(JSON.stringify(stPrompt.body.replies)).toContain('action=select_station&stationId=2');
+
     const bagPrompt = await sendLineEvent(lineUser, {
-      type: 'postback',
-      postback: { data: `action=use_address&addressId=${detail.body.address.id}` },
+      type: 'postback', postback: { data: 'action=select_station&stationId=2' },
     }).expect(200);
     expect(JSON.stringify(bagPrompt.body.replies)).toContain('action=set_bag_return&qty=2');
 
@@ -172,7 +182,19 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     await sendLineEvent(lineUser, { type: 'postback', postback: { data: 'action=pay_method&method=CASH' } }).expect(200);
 
     const latestOrders = await as(lineUser).get('/orders/mine').expect(200);
-    expect(latestOrders.body[0].expectBagReturn).toBe(2);
-    expect(latestOrders.body[0].paymentMethod).toBe('CASH');
+    const newOrd = latestOrders.body[0];
+    expect(newOrd.expectBagReturn).toBe(2);
+    expect(newOrd.status).toBe('CONFIRMED');
+    const newDetail = await as(lineUser).get(`/orders/${newOrd.id}`).expect(200);
+
+    // ไรเดอร์รับงานใหม่ กดน้ำ ส่งน้ำ + รับถุงคืน 2 ใบ พร้อม autoCloseBags=true -> ปิดงาน CLOSED_WITH_RETURN ทันทีโดยไม่มีขั้นที่ 8
+    await as('dev-rider').post(`/orders/${newOrd.id}/claim`).expect(200);
+    await as('dev-rider').post(`/orders/${newOrd.id}/pack`).expect(200);
+    await as('dev-rider').post(`/orders/${newOrd.id}/pickup`, { evidence: ev }).expect(200);
+    await as('dev-rider').post(`/orders/${newOrd.id}/start`).expect(200);
+    const delivered = await as('dev-rider').post(`/orders/${newOrd.id}/deliver`, {
+      evidence: ev, otp: newDetail.body.deliveryOtp, bagsCollected: 2, bagPhotoUrl: ev.photoUrl, autoCloseBags: true,
+    }).expect(200);
+    expect(delivered.body.status).toBe('CLOSED_WITH_RETURN');
   });
 });

@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, ne, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { randomInt, timingSafeEqual } from 'node:crypto';
 import { BagLedgerService } from '../bags/bag-ledger.service';
 import { User } from '../common/auth';
@@ -22,9 +22,11 @@ const actorOf = (u: User): Actor => ({ id: u.id, role: u.role });
 
 export interface CreateOrderInput {
   addressId: string;
+  stationId?: number;
   items: { productId: number; qty: number }[];
   expectBagReturn: number;
   paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT';
+  autoConfirm?: boolean;
   slotStart?: Date;
   slotEnd?: Date;
 }
@@ -139,10 +141,17 @@ export class OrdersService {
         }
       }
 
-      // คำนวณหาตู้กดน้ำที่ใกล้บ้านลูกค้าที่สุดอัตโนมัติ
-      const stationId = await this.stations.findNearestStation(addr.lat, addr.lng, tx);
+      // เลือกตู้กดน้ำตามที่ลูกค้ายืนยัน หรือคำนวณหาตู้กดน้ำที่ใกล้บ้านลูกค้าที่สุดอัตโนมัติ
+      let stationId: number | null = null;
+      if (input.stationId) {
+        const [st] = await tx.select().from(waterStations).where(and(eq(waterStations.id, input.stationId), eq(waterStations.active, true)));
+        if (!st) throw new DomainError(404, 'STATION_NOT_FOUND', 'ไม่พบตู้กดน้ำที่เลือก');
+        stationId = st.id;
+      } else {
+        stationId = await this.stations.findNearestStation(addr.lat, addr.lng, tx);
+      }
 
-      const [order] = await tx
+      let [order] = await tx
         .insert(orders)
         .values({
           code: `DG-${Date.now().toString(36).toUpperCase()}${randomInt(36 ** 2).toString(36).toUpperCase().padStart(2, '0')}`,
@@ -160,21 +169,29 @@ export class OrdersService {
       await tx.insert(orderItems).values(lines.map((l) => ({ ...l, orderId: order.id })));
       await tx.insert(orderEvents).values({ orderId: order.id, toStatus: 'PENDING', actorId: customer.id, actorRole: 'customer' });
       await this.notify.enqueue(tx, customer.id, 'ORDER_PLACED', { code: order.code, total: baht(total), otp: order.deliveryOtp });
-      await this.notify.enqueueForRole(tx, 'warehouse', 'NEW_ORDER_FOR_WAREHOUSE', { code: order.code });
+
+      if (input.autoConfirm) {
+        order = await this.transition(tx, order, 'CONFIRMED', SYSTEM, { note: 'auto_confirm_nearest_station' });
+        await this.notify.enqueueForRole(tx, 'rider', 'NEW_ORDER_FOR_RIDERS', { code: order.code, stationId });
+      } else {
+        await this.notify.enqueueForRole(tx, 'warehouse', 'NEW_ORDER_FOR_WAREHOUSE', { code: order.code });
+      }
       return order;
     });
   }
 
   /** สั่งซ้ำ 1 คลิก: คัดลอกรายการของออเดอร์ล่าสุด ใช้ราคาปัจจุบัน */
-  async reorderLast(customer: User, opts: { expectBagReturn?: number; addressId?: string }) {
+  async reorderLast(customer: User, opts: { expectBagReturn?: number; addressId?: string; stationId?: number; autoConfirm?: boolean }) {
     const [last] = await this.db.select().from(orders).where(eq(orders.customerId, customer.id)).orderBy(desc(orders.createdAt)).limit(1);
     if (!last) throw new DomainError(404, 'NO_PREVIOUS_ORDER', 'ยังไม่มีออเดอร์ก่อนหน้า');
     const items = await this.db.select().from(orderItems).where(eq(orderItems.orderId, last.id));
     return this.create(customer, {
       addressId: opts.addressId ?? last.addressId,
+      stationId: opts.stationId ?? last.stationId ?? undefined,
       items: items.map((i) => ({ productId: i.productId, qty: i.qty })),
       expectBagReturn: opts.expectBagReturn ?? 0,
       paymentMethod: last.paymentMethod,
+      autoConfirm: opts.autoConfirm,
     });
   }
 
@@ -241,7 +258,31 @@ export class OrdersService {
     });
   }
 
-  // ---------------------------------------------------------------- ไรเดอร์ (ขั้น 4–7)
+  // ---------------------------------------------------------------- ไรเดอร์ (รับงานเอง + ขั้น 4–7)
+
+  /** ไรเดอร์กดรับงานเองจากคิวกลางโดยไม่ต้องผ่าน Warehouse */
+  claim(id: string, rider: User) {
+    return this.withLockedOrder(id, async (tx, o) => {
+      if (o.riderId === rider.id) return o;
+      if (o.riderId && o.riderId !== rider.id) {
+        throw new DomainError(409, 'ALREADY_ASSIGNED', 'ออเดอร์นี้มีไรเดอร์ท่านอื่นรับงานไปแล้ว');
+      }
+      let cur = o;
+      if (cur.status === 'PENDING') {
+        cur = await this.transition(tx, cur, 'CONFIRMED', SYSTEM, { note: 'auto_confirm_on_claim' });
+      }
+      if (cur.status !== 'CONFIRMED') {
+        throw new DomainError(409, 'INVALID_TRANSITION', 'รับงานได้เฉพาะออเดอร์ที่รอรับงาน (CONFIRMED)');
+      }
+      const [updated] = await tx.update(orders).set({ riderId: rider.id, updatedAt: new Date() }).where(eq(orders.id, cur.id)).returning();
+      await tx.insert(orderEvents).values({
+        orderId: cur.id, fromStatus: cur.status, toStatus: cur.status,
+        actorId: rider.id, actorRole: 'rider', note: 'rider_claimed', data: { riderId: rider.id, stationId: cur.stationId },
+      });
+      await this.notify.enqueue(tx, cur.customerId, 'ORDER_CONFIRMED', { code: cur.code });
+      return updated;
+    });
+  }
 
   pickUp(id: string, by: User, evidence: Evidence) {
     return this.withLockedOrder(id, (tx, o) => this.transition(tx, o, 'PICKED_UP', actorOf(by), { evidence }));
@@ -258,10 +299,14 @@ export class OrdersService {
   /**
    * ขั้น 6 (+ ขั้น 7 ถ้ามีถุงคืน) ด้วยการกดครั้งเดียวตาม mockup หน้าไรเดอร์
    * - ส่งสำเร็จ: ออกถุงเข้าบัญชีลูกค้าตามสินค้าที่มีถุง, เงินสดถือว่าเก็บแล้ว
-   * - bagsCollected > 0: บันทึกรับถุงคืน → BAG_COLLECTED
+   * - bagsCollected > 0: บันทึกรับถุงคืน → BAG_COLLECTED (ถ้า autoCloseBags = true จะคืนถุงเข้าตู้และปิด CLOSED_WITH_RETURN ทันที)
    * - bagsCollected = 0: ปิดงานอัตโนมัติ → CLOSED
    */
-  async deliver(id: string, by: User, input: { evidence: Evidence; otp?: string; bagsCollected: number; bagPhotoUrl?: string }) {
+  async deliver(
+    id: string,
+    by: User,
+    input: { evidence: Evidence; otp?: string; bagsCollected: number; bagPhotoUrl?: string; autoCloseBags?: boolean },
+  ) {
     type DeliverResult =
       | { ok: false; otpError: 'OTP_LOCKED' | 'OTP_MISMATCH'; nextAttempts: number }
       | { ok: true; order: Order };
@@ -301,6 +346,26 @@ export class OrdersService {
           evidence: { ...input.evidence, photoUrl: input.bagPhotoUrl },
           data: { qty: input.bagsCollected, expected: o.expectBagReturn },
         });
+        if (input.autoCloseBags) {
+          cur = await this.transition(tx, cur, 'BAG_RETURNED', SYSTEM, {
+            evidence: { photoUrl: input.bagPhotoUrl },
+            note: 'auto_bag_return_without_warehouse',
+            data: { counted: input.bagsCollected },
+          });
+          await this.bags.receive(tx, { customerId: o.customerId, orderId: o.id, counted: input.bagsCollected, by: by.id });
+          if (o.stationId) {
+            await this.stations.recordMovement(tx, {
+              stationId: o.stationId,
+              orderId: o.id,
+              customerId: o.customerId,
+              movement: 'RETURNED_IN',
+              qty: input.bagsCollected,
+              actorId: by.id,
+              note: `ไรเดอร์รับถุงคืนเข้าตู้ ออเดอร์ #${o.code}`,
+            });
+          }
+          cur = await this.transition(tx, cur, 'CLOSED_WITH_RETURN', SYSTEM, { note: 'auto_closed_without_warehouse' });
+        }
       } else {
         cur = await this.transition(tx, cur, 'CLOSED', SYSTEM, { note: 'no_bag_return' });
       }
@@ -408,7 +473,7 @@ export class OrdersService {
 
   // ---------------------------------------------------------------- อ่านข้อมูล
 
-  /** ลูกค้าเห็นเฉพาะของตัวเอง ไรเดอร์เห็นเฉพาะงานที่ได้รับ พนักงานคลังและแอดมินเห็นทั้งหมด */
+  /** ลูกค้าเห็นเฉพาะของตัวเอง ไรเดอร์เห็นงานที่ได้รับหรือคิวงานใหม่รอผู้รับ แอดมินเห็นทั้งหมด */
   async getVisible(id: string, viewer: User) {
     const [o] = await this.db.select().from(orders).where(eq(orders.id, id));
     const visible =
@@ -416,7 +481,7 @@ export class OrdersService {
       (viewer.role === 'admin' ||
         viewer.role === 'warehouse' ||
         (viewer.role === 'customer' && o.customerId === viewer.id) ||
-        (viewer.role === 'rider' && o.riderId === viewer.id));
+        (viewer.role === 'rider' && (o.riderId === viewer.id || (!o.riderId && ['PENDING', 'CONFIRMED'].includes(o.status)))));
     if (!visible) throw new DomainError(404, 'NOT_FOUND', 'ไม่พบออเดอร์');
     const items = await this.db
       .select({ productId: orderItems.productId, name: products.name, qty: orderItems.qty, priceSatang: orderItems.priceSatang, isReturnable: orderItems.isReturnable })
@@ -447,13 +512,14 @@ export class OrdersService {
       .limit(Math.min(filter.limit ?? 50, 200));
   }
 
-  /** งานของไรเดอร์ที่ยังไม่จบ (ตามหน้า "งานวันนี้") พร้อมพิกัดตู้กดน้ำและบ้านลูกค้า */
+  /** งานของไรเดอร์ที่ยังไม่จบ + งานใหม่ในคิวกลางที่ยังไม่มีคนรับ (riderId IS NULL) พร้อมพิกัดตู้กดน้ำและบ้านลูกค้า */
   riderJobs(riderId: string) {
     return this.db
       .select({
         id: orders.id,
         code: orders.code,
         status: orders.status,
+        riderId: orders.riderId,
         stationId: orders.stationId,
         expectBagReturn: orders.expectBagReturn,
         paymentMethod: orders.paymentMethod,
@@ -475,7 +541,12 @@ export class OrdersService {
       .innerJoin(users, eq(users.id, orders.customerId))
       .innerJoin(addresses, eq(addresses.id, orders.addressId))
       .leftJoin(waterStations, eq(waterStations.id, orders.stationId))
-      .where(and(eq(orders.riderId, riderId), inArray(orders.status, ['CONFIRMED', 'PACKED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'])))
+      .where(
+        or(
+          and(eq(orders.riderId, riderId), inArray(orders.status, ['CONFIRMED', 'PACKED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'])),
+          and(isNull(orders.riderId), inArray(orders.status, ['CONFIRMED'])),
+        ),
+      )
       .orderBy(asc(orders.slotStart), asc(orders.createdAt));
   }
 
