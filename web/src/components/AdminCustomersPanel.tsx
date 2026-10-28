@@ -1,12 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminMgmtApi, ManagedCustomer } from '../api/admin-api';
-import { BagSummary, formatBaht } from '../api/schemas';
+import { BagSummary } from '../api/schemas';
+import { AdminCustomersView } from './AdminCustomersView';
+import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface Props {
   onNotify: (msg: string) => void;
+  viewMode?: AdminViewMode;
+  onViewModeChange?: (mode: AdminViewMode) => void;
 }
 
-export const AdminCustomersPanel: React.FC<Props> = ({ onNotify }) => {
+export const AdminCustomersPanel: React.FC<Props> = ({ onNotify, viewMode: propMode, onViewModeChange }) => {
+  const [localMode, setLocalMode] = useState<AdminViewMode>(() => getSavedViewMode());
+  const viewMode = propMode ?? localMode;
+  const handleModeChange = (m: AdminViewMode) => {
+    setLocalMode(m);
+    onViewModeChange?.(m);
+  };
+
   const [customers, setCustomers] = useState<ManagedCustomer[]>([]);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -43,6 +54,19 @@ export const AdminCustomersPanel: React.FC<Props> = ({ onNotify }) => {
     finally { setBusy(false); }
   };
 
+  const handleOpenEdit = (c: ManagedCustomer) => {
+    if (editId === c.id) return setEditId(null);
+    setEditId(c.id);
+    setEditForm({
+      name: c.name,
+      phone: c.phone ?? '',
+      addressDetail: c.addressDetail,
+      lat: String(c.lat),
+      lng: String(c.lng),
+      creditBaht: String(Math.round(c.creditLimitSatang / 100)),
+    });
+  };
+
   const handleSaveEdit = async (c: ManagedCustomer) => {
     setBusy(true);
     try {
@@ -66,6 +90,8 @@ export const AdminCustomersPanel: React.FC<Props> = ({ onNotify }) => {
     }
   };
 
+  const editingCustomer = customers.find((c) => c.id === editId) ?? null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <form
@@ -87,78 +113,35 @@ export const AdminCustomersPanel: React.FC<Props> = ({ onNotify }) => {
         </button>
       </form>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {customers.map((c) => {
-          const remainSatang = Math.max(0, c.creditLimitSatang - c.creditUsedSatang);
-          return (
-            <div key={c.id} style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <div>
-                  <span style={{ fontSize: 15, fontWeight: 700 }}>{c.name}</span>{' '}
-                  <span style={{ fontSize: 12, color: '#4A5B6E' }}>📞 {c.phone || '-'} · ({c.lineUserId})</span>
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ padding: '4px 10px', borderRadius: 8, background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 700 }}>
-                    💳 วงเงิน: {formatBaht(c.creditLimitSatang)} (คงเหลือ {formatBaht(remainSatang)})
-                  </span>
-                  <span style={{ padding: '4px 10px', borderRadius: 8, background: '#FCE8EF', color: '#C2255C', fontSize: 12, fontWeight: 700 }}>
-                    🛍️ ถุงค้าง: {c.bagBalance} ใบ
-                  </span>
-                </div>
-              </div>
+      <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายชื่อสมาชิกและวงเงินเครดิตทั้งหมด" count={customers.length} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: 13, color: '#33475B' }}>
-                <div>
-                  🏠 <b>{c.addressLabel}:</b> {c.addressDetail || '-'} ({c.lat.toFixed(4)}, {c.lng.toFixed(4)}){' '}
-                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`} target="_blank" rel="noreferrer" style={{ color: '#058C3B', fontWeight: 700 }}>
-                    [แผนที่บ้าน]
-                  </a>
-                </div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => handleViewBags(c)}
-                    style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #C2255C', background: '#FFFFFF', color: '#C2255C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                  >
-                    📜 ประวัติรับเข้า-คืนออกถุง
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditId(editId === c.id ? null : c.id);
-                      setEditForm({
-                        name: c.name,
-                        phone: c.phone ?? '',
-                        addressDetail: c.addressDetail,
-                        lat: String(c.lat),
-                        lng: String(c.lng),
-                        creditBaht: String(Math.round(c.creditLimitSatang / 100)),
-                      });
-                    }}
-                    style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #DCE4EC', background: '#F3F7FA', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                  >
-                    ✏️ แก้ไขพิกัด/วงเงิน
-                  </button>
-                </div>
-              </div>
+      {editingCustomer && (
+        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '2px solid #0B6E8A', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0B6E8A' }}>✏️ แก้ไขข้อมูลพิกัดและวงเงินสมาชิก: {editingCustomer.name}</span>
+            <button type="button" onClick={() => setEditId(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>✕ ปิด</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8 }}>
+            <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="ชื่อ-นามสกุล" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="เบอร์โทร" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editForm.creditBaht} type="number" onChange={(e) => setEditForm({ ...editForm, creditBaht: e.target.value })} placeholder="วงเงิน (บาท)" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editForm.addressDetail} onChange={(e) => setEditForm({ ...editForm, addressDetail: e.target.value })} placeholder="ที่อยู่บ้าน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editForm.lat} onChange={(e) => setEditForm({ ...editForm, lat: e.target.value })} placeholder="Latitude" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editForm.lng} onChange={(e) => setEditForm({ ...editForm, lng: e.target.value })} placeholder="Longitude" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <button type="button" onClick={() => handleSaveEdit(editingCustomer)} disabled={busy} style={{ minHeight: 36, borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+              💾 บันทึก
+            </button>
+          </div>
+        </div>
+      )}
 
-              {editId === c.id && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 8, paddingTop: 8, borderTop: '1px solid #EEF2F6' }}>
-                  <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} placeholder="ชื่อ-นามสกุล" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} placeholder="เบอร์โทร" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <input value={editForm.creditBaht} type="number" onChange={(e) => setEditForm({ ...editForm, creditBaht: e.target.value })} placeholder="วงเงิน (บาท)" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <input value={editForm.addressDetail} onChange={(e) => setEditForm({ ...editForm, addressDetail: e.target.value })} placeholder="ที่อยู่บ้าน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <input value={editForm.lat} onChange={(e) => setEditForm({ ...editForm, lat: e.target.value })} placeholder="Latitude" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <input value={editForm.lng} onChange={(e) => setEditForm({ ...editForm, lng: e.target.value })} placeholder="Longitude" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  <button type="button" onClick={() => handleSaveEdit(c)} disabled={busy} style={{ minHeight: 36, borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
-                    บันทึก
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      <AdminCustomersView
+        customers={customers}
+        viewMode={viewMode}
+        editId={editId}
+        onViewBags={handleViewBags}
+        onOpenEdit={handleOpenEdit}
+      />
 
       {selectedBagCust && (
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '2px solid #C2255C', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -1,11 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminMgmtApi, ManagedRider } from '../api/admin-api';
+import { AdminRidersView } from './AdminRidersView';
+import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface Props {
   onNotify: (msg: string) => void;
+  viewMode?: AdminViewMode;
+  onViewModeChange?: (mode: AdminViewMode) => void;
 }
 
-export const AdminRidersPanel: React.FC<Props> = ({ onNotify }) => {
+export const AdminRidersPanel: React.FC<Props> = ({ onNotify, viewMode: propMode, onViewModeChange }) => {
+  const [localMode, setLocalMode] = useState<AdminViewMode>(() => getSavedViewMode());
+  const viewMode = propMode ?? localMode;
+  const handleModeChange = (m: AdminViewMode) => {
+    setLocalMode(m);
+    onViewModeChange?.(m);
+  };
+
   const [riders, setRiders] = useState<ManagedRider[]>([]);
   const [lineUserId, setLineUserId] = useState('');
   const [name, setName] = useState('');
@@ -54,6 +65,14 @@ export const AdminRidersPanel: React.FC<Props> = ({ onNotify }) => {
     }
   };
 
+  const handleOpenEdit = (r: ManagedRider) => {
+    if (editingId === r.id) return setEditingId(null);
+    setEditingId(r.id);
+    setEditPhone(r.phone ?? '');
+    setEditVehicle(r.vehicle ?? '');
+    setEditZone(r.zone ?? '');
+  };
+
   const handleSaveEdit = async (r: ManagedRider) => {
     setBusy(true);
     try {
@@ -85,6 +104,8 @@ export const AdminRidersPanel: React.FC<Props> = ({ onNotify }) => {
     }
   };
 
+  const editingRider = riders.find((r) => r.id === editingId) ?? null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <form
@@ -104,52 +125,33 @@ export const AdminRidersPanel: React.FC<Props> = ({ onNotify }) => {
         </button>
       </form>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {riders.map((r) => (
-          <div key={r.id} style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-              <div>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{r.name}</span>{' '}
-                <span style={{ fontSize: 12, color: '#4A5B6E' }}>({r.lineUserId})</span>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingId(editingId === r.id ? null : r.id);
-                    setEditPhone(r.phone ?? '');
-                    setEditVehicle(r.vehicle ?? '');
-                    setEditZone(r.zone ?? '');
-                  }}
-                  style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid #DCE4EC', background: '#F3F7FA', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                >
-                  ✏️ แก้ไข
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleToggleActive(r)}
-                  style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: r.active ? '#E7F5EC' : '#FCE8EF', color: r.active ? '#1E7B45' : '#C2255C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                >
-                  {r.active ? '● พร้อมรับงาน' : '○ ระงับชั่วคราว'}
-                </button>
-              </div>
-            </div>
-            <div style={{ fontSize: 13, color: '#33475B' }}>
-              📞 {r.phone || '-'} · 🛵 พาหนะ: <b>{r.vehicle || '-'}</b> · 📍 โซน: <b>{r.zone || '-'}</b>
-            </div>
-            {editingId === r.id && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, paddingTop: 6, borderTop: '1px solid #EEF2F6' }}>
-                <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="เบอร์โทร" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                <input value={editVehicle} onChange={(e) => setEditVehicle(e.target.value)} placeholder="พาหนะ/ทะเบียน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                <input value={editZone} onChange={(e) => setEditZone(e.target.value)} placeholder="โซน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                <button type="button" onClick={() => handleSaveEdit(r)} disabled={busy} style={{ minHeight: 36, borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
-                  บันทึก
-                </button>
-              </div>
-            )}
+      <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายชื่อไรเดอร์ทั้งหมด" count={riders.length} />
+
+      {editingRider && (
+        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '2px solid #0B6E8A', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#0B6E8A' }}>✏️ แก้ไขข้อมูลไรเดอร์: {editingRider.name}</span>
+            <button type="button" onClick={() => setEditingId(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>✕ ปิด</button>
           </div>
-        ))}
-      </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+            <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="เบอร์โทร" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editVehicle} onChange={(e) => setEditVehicle(e.target.value)} placeholder="พาหนะ/ทะเบียน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editZone} onChange={(e) => setEditZone(e.target.value)} placeholder="โซน" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <button type="button" onClick={() => handleSaveEdit(editingRider)} disabled={busy} style={{ minHeight: 36, borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
+              💾 บันทึกการแก้ไข
+            </button>
+          </div>
+        </div>
+      )}
+
+      <AdminRidersView
+        riders={riders}
+        viewMode={viewMode}
+        editingId={editingId}
+        busy={busy}
+        onOpenEdit={handleOpenEdit}
+        onToggleActive={handleToggleActive}
+      />
     </div>
   );
 };

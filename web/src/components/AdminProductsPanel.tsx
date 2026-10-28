@@ -1,14 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
-import { formatBaht, Product } from '../api/schemas';
-import { resolveProductImageUrl } from '../domain/photo-picker';
+import { Product } from '../api/schemas';
+import { AdminProductsView } from './AdminProductsView';
 import { ProductImageUploader } from './ProductImageUploader';
+import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface Props {
   onNotify: (msg: string) => void;
+  viewMode?: AdminViewMode;
+  onViewModeChange?: (mode: AdminViewMode) => void;
 }
 
-export const AdminProductsPanel: React.FC<Props> = ({ onNotify }) => {
+export const AdminProductsPanel: React.FC<Props> = ({ onNotify, viewMode: propMode, onViewModeChange }) => {
+  const [localMode, setLocalMode] = useState<AdminViewMode>(() => getSavedViewMode());
+  const viewMode = propMode ?? localMode;
+  const handleModeChange = (m: AdminViewMode) => {
+    setLocalMode(m);
+    onViewModeChange?.(m);
+  };
+
   const [products, setProducts] = useState<Product[]>([]);
   const [sku, setSku] = useState('');
   const [name, setName] = useState('');
@@ -118,6 +128,8 @@ export const AdminProductsPanel: React.FC<Props> = ({ onNotify }) => {
     }
   };
 
+  const editingProduct = products.find((p) => p.id === editingId) ?? null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: '#E6EEF9', borderRadius: 14, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
@@ -148,52 +160,39 @@ export const AdminProductsPanel: React.FC<Props> = ({ onNotify }) => {
         </button>
       </form>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {products.map((p) => {
-          const thumbUrl = resolveProductImageUrl(p.imageUrl);
-          const isActive = p.active ?? true;
-          return (
-            <div key={p.id} style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                {thumbUrl ? (
-                  <img src={thumbUrl} alt={p.name} style={{ width: 64, height: 64, borderRadius: 12, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }} />
-                ) : (
-                  <div style={{ width: 64, height: 64, borderRadius: 12, background: '#E6EEF9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#64748B' }}>
-                    <span>{p.isReturnable ? '🛢️' : '📦'}</span>
-                    <span style={{ fontSize: 9 }}>No Img</span>
-                  </div>
-                )}
-                <div style={{ flex: 1, minWidth: 160 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{p.name} <span style={{ fontSize: 12, color: '#64748B' }}>({p.sku})</span></div>
-                  <div style={{ fontSize: 13, color: '#1A56B0', fontWeight: 600 }}>{formatBaht(p.priceSatang)} · {p.isReturnable ? '🔄 มีถุงหมุนเวียน' : '📦 ไม่ต้องคืนถุง'}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => openEdit(p)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #1A56B0', background: '#FFFFFF', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✏️ {editingId === p.id ? 'ปิดแก้ไข' : 'แก้ไข'}</button>
-                  <button type="button" onClick={() => handleToggleActive(p)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: isActive ? '#E2F8EB' : '#FEE2E2', color: isActive ? '#1E7B45' : '#B91C1C', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{isActive ? '● เปิดขาย' : '○ ปิดขาย'}</button>
-                  <button type="button" onClick={() => handleDelete(p)} disabled={busy} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #FECACA', background: '#FEF2F2', color: '#B91C1C', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>🗑️ ลบ</button>
-                </div>
-              </div>
-              {editingId === p.id && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 10, borderTop: '1px solid #E2E8F0' }}>
-                  <ProductImageUploader value={editImage} onChange={setEditImage} onNotify={onNotify} onUploadingChange={setUploadingImg} compact />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px', gap: 8 }}>
-                    <input value={editSku} onChange={(e) => setEditSku(e.target.value)} placeholder="รหัส SKU" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                    <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="ชื่อสินค้า" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                    <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder="ราคา (บาท)" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                    <div style={{ display: 'flex', gap: 14 }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><input type="checkbox" checked={editReturnable} onChange={(e) => setEditReturnable(e.target.checked)} /> มีถุงหมุนเวียน</label>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} /> แสดงในเมนูขาย (Show on Sale)</label>
-                    </div>
-                    <button type="button" onClick={() => handleSaveEdit(p)} disabled={busy || uploadingImg} style={{ minHeight: 36, padding: '0 16px', borderRadius: 8, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>💾 บันทึกการแก้ไข</button>
-                  </div>
-                </div>
-              )}
+      <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายการสินค้าทั้งหมด" count={products.length} />
+
+      {editingProduct && (
+        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '2px solid #1A56B0', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#1A56B0' }}>✏️ แก้ไขข้อมูลและรูปภาพสินค้า: {editingProduct.name}</span>
+            <button type="button" onClick={() => setEditingId(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontWeight: 700 }}>✕ ปิด</button>
+          </div>
+          <ProductImageUploader value={editImage} onChange={setEditImage} onNotify={onNotify} onUploadingChange={setUploadingImg} compact />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px', gap: 8 }}>
+            <input value={editSku} onChange={(e) => setEditSku(e.target.value)} placeholder="รหัส SKU" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="ชื่อสินค้า" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+            <input type="number" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} placeholder="ราคา (บาท)" style={{ minHeight: 36, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 14 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><input type="checkbox" checked={editReturnable} onChange={(e) => setEditReturnable(e.target.checked)} /> มีถุงหมุนเวียน</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600 }}><input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} /> แสดงในเมนูขาย (Show on Sale)</label>
             </div>
-          );
-        })}
-      </div>
+            <button type="button" onClick={() => handleSaveEdit(editingProduct)} disabled={busy || uploadingImg} style={{ minHeight: 36, padding: '0 16px', borderRadius: 8, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>💾 บันทึกการแก้ไข</button>
+          </div>
+        </div>
+      )}
+
+      <AdminProductsView
+        products={products}
+        viewMode={viewMode}
+        editingId={editingId}
+        busy={busy}
+        onOpenEdit={openEdit}
+        onToggleActive={handleToggleActive}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };

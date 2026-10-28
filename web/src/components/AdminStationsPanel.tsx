@@ -1,11 +1,22 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { adminMgmtApi, StationLedgerEntry, WaterStation } from '../api/admin-api';
+import { AdminStationsView } from './AdminStationsView';
+import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
 
 interface Props {
   onNotify: (msg: string) => void;
+  viewMode?: AdminViewMode;
+  onViewModeChange?: (mode: AdminViewMode) => void;
 }
 
-export const AdminStationsPanel: React.FC<Props> = ({ onNotify }) => {
+export const AdminStationsPanel: React.FC<Props> = ({ onNotify, viewMode: propMode, onViewModeChange }) => {
+  const [localMode, setLocalMode] = useState<AdminViewMode>(() => getSavedViewMode());
+  const viewMode = propMode ?? localMode;
+  const handleModeChange = (m: AdminViewMode) => {
+    setLocalMode(m);
+    onViewModeChange?.(m);
+  };
+
   const [stations, setStations] = useState<WaterStation[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [ledger, setLedger] = useState<StationLedgerEntry[]>([]);
@@ -98,72 +109,20 @@ export const AdminStationsPanel: React.FC<Props> = ({ onNotify }) => {
         </button>
       </form>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-        {stations.map((st) => (
-          <div
-            key={st.id}
-            style={{
-              background: '#FFFFFF',
-              borderRadius: 14,
-              border: selectedId === st.id ? '2px solid #0B6E8A' : '1px solid #DCE4EC',
-              padding: 14,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: 15, fontWeight: 700 }}>{st.code} · {st.name}</span>
-                <div style={{ fontSize: 12, color: '#4A5B6E' }}>📍 {st.addressDetail} ({st.lat.toFixed(4)}, {st.lng.toFixed(4)})</div>
-              </div>
-              <div style={{ background: '#E6F4F8', color: '#0B6E8A', padding: '6px 12px', borderRadius: 12, textAlign: 'center' }}>
-                <div style={{ fontSize: 10, fontWeight: 700 }}>สต็อกถุงในตู้</div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>{st.bagBalance} ใบ</div>
-              </div>
-            </div>
+      <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายการจุดตู้กดน้ำและสต็อกถุงทั้งหมด" count={stations.length} />
 
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{ padding: '5px 10px', borderRadius: 8, background: '#E8F8EE', color: '#058C3B', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
-              >
-                🗺️ ดูพิกัดนำทาง Google Maps
-              </a>
-              <button
-                type="button"
-                onClick={() => setSelectedId(st.id)}
-                style={{ padding: '5px 10px', borderRadius: 8, border: '1px solid #0B6E8A', background: selectedId === st.id ? '#0B6E8A' : '#FFFFFF', color: selectedId === st.id ? '#FFFFFF' : '#0B6E8A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-              >
-                📋 ดูประวัติรับเข้า-จ่ายออกของสมาชิก
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingTop: 6, borderTop: '1px solid #EEF2F6' }}>
-              <input
-                type="number"
-                value={restockQty[st.id] ?? 10}
-                onChange={(e) => setRestockQty({ ...restockQty, [st.id]: Number(e.target.value) })}
-                style={{ width: 64, minHeight: 34, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD', fontWeight: 700 }}
-              />
-              <input
-                value={restockNote[st.id] ?? ''}
-                onChange={(e) => setRestockNote({ ...restockNote, [st.id]: e.target.value })}
-                placeholder="หมายเหตุเติมถุง/ปรับยอด"
-                style={{ flex: 1, minHeight: 34, padding: '0 8px', borderRadius: 8, border: '1px solid #9AABBD', fontSize: 12 }}
-              />
-              <button type="button" onClick={() => handleBagAction(st.id, 'RESTOCK_IN')} disabled={busy} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                +รับเข้าตู้
-              </button>
-              <button type="button" onClick={() => handleBagAction(st.id, 'ADJUST')} disabled={busy} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#4A5B6E', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                ปรับยอด
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+      <AdminStationsView
+        stations={stations}
+        viewMode={viewMode}
+        selectedId={selectedId}
+        restockQty={restockQty}
+        restockNote={restockNote}
+        busy={busy}
+        onSelect={setSelectedId}
+        onQtyChange={(id, qty) => setRestockQty({ ...restockQty, [id]: qty })}
+        onNoteChange={(id, note) => setRestockNote({ ...restockNote, [id]: note })}
+        onBagAction={handleBagAction}
+      />
 
       {selectedId && (
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>

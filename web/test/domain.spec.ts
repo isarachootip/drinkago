@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { bagSummarySchema, formatBaht, orderStatusBadge, productSchema, riderJobSchema, staffOrderSchema } from '../src/api/schemas';
 import { distanceMeters, formatDistance } from '../src/domain/geo';
 import { MAX_PRODUCT_IMAGE_BYTES, resolveProductImageUrl, validateProductImageFile } from '../src/domain/photo-picker';
+import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
 describe('Geo domain helpers', () => {
@@ -101,5 +102,17 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(resolveProductImageUrl('/uploads/water.png', 'http://localhost:3000/')).toBe('http://localhost:3000/uploads/water.png');
     expect(resolveProductImageUrl('http://localhost:3000/uploads/water.png', 'https://idrink.tamadee.online')).toBe('https://idrink.tamadee.online/uploads/water.png');
     expect(resolveProductImageUrl('https://cdn.example.com/a.jpg', 'http://localhost:3000')).toBe('https://cdn.example.com/a.jpg');
+  });
+
+  it('ตรวจสอบและสลับโหมดการแสดงผล Card / Grid ของหน้า Admin พร้อมบันทึกค่าได้ถูกต้อง', () => {
+    expect(parseViewMode('grid')).toBe('grid');
+    expect(parseViewMode('card')).toBe('card');
+    expect(parseViewMode('invalid')).toBe('card');
+    expect(parseViewMode(null)).toBe('card');
+
+    saveViewMode('grid');
+    expect(getSavedViewMode()).toBe('grid');
+    saveViewMode('card');
+    expect(getSavedViewMode()).toBe('card');
   });
 });
