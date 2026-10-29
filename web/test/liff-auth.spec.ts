@@ -1,4 +1,7 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { StaffLoginCard } from '../src/components/StaffLoginCard';
 import { pickDefaultTrackedOrderId, shouldShowCustomerOtp } from '../src/domain/customer-track';
 import { buildWebLineOauthStartUrl, lineAuthConfigSchema } from '../src/domain/liff-auth';
 import { isDemoUnlocked, resolveInitialOrderId, resolveInitialQueryTab } from '../src/domain/session-gate';
@@ -64,5 +67,22 @@ describe('LINE Login & LIFF Frontend Helpers', () => {
     expect(shouldShowCustomerOtp('DELIVERED')).toBe(false);
     expect(shouldShowCustomerOtp('CLOSED_WITH_RETURN')).toBe(false);
     expect(shouldShowCustomerOtp('CANCELLED')).toBe(false);
+  });
+
+  it('StaffLoginCard: ไม่แสดงกรอบปุ่มช่วยกรอกบัญชีมาตรฐานสำหรับทดสอบ แต่ยังคงมีปุ่มเข้าสู่ระบบด้วย LINE และช่อง Username/Password', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(StaffLoginCard, {
+        onLoginSuccess: () => {},
+        onNotify: () => {},
+      }),
+    );
+    expect(html).not.toContain('ปุ่มช่วยกรอกบัญชีมาตรฐานสำหรับทดสอบ');
+    expect(html).not.toContain('Admin (admin)');
+    expect(html).not.toContain('Rider (rider)');
+    expect(html).not.toContain('คลัง (warehouse)');
+    expect(html).not.toContain('ลูกค้า (customer)');
+    expect(html).toContain('ลูกค้า: เข้าสู่ระบบด้วย LINE');
+    expect(html).toContain('ชื่อผู้ใช้ (Username)');
+    expect(html).toContain('รหัสผ่าน (Password)');
   });
 });

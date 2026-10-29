@@ -10,13 +10,6 @@ interface Props {
   onNotify: (msg: string) => void;
 }
 
-const QUICK_ACCOUNTS = [
-  { label: '👑 Admin (admin)', user: 'admin', pass: 'admin1234' },
-  { label: '🛵 Rider (rider)', user: 'rider', pass: 'rider1234' },
-  { label: '📦 คลัง (warehouse)', user: 'warehouse', pass: 'warehouse1234' },
-  { label: '🏠 ลูกค้า (customer)', user: 'customer', pass: 'customer1234' },
-];
-
 export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'any', onLoginSuccess, onCancel, onNotify }) => {
   const [username, setUsername] = useState(targetRole === 'admin' ? 'admin' : '');
   const [password, setPassword] = useState('');
@@ -90,25 +83,6 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'any', onLoginSuc
           <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
           <span>หรือเข้าสู่ระบบด้วยรหัสผ่าน (พนักงาน / แอดมิน)</span>
           <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
-        </div>
-
-        <div style={{ background: '#F8FAFC', borderRadius: 10, border: '1px solid #E2E8F0', padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>⚡ ปุ่มช่วยกรอกบัญชีมาตรฐานสำหรับทดสอบ:</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-            {QUICK_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.user}
-                type="button"
-                onClick={() => {
-                  setUsername(acc.user);
-                  setPassword(acc.pass);
-                }}
-                style={{ minHeight: 32, padding: '0 8px', borderRadius: 8, border: '1px solid #CBD5E1', background: username === acc.user ? '#E0F2FE' : '#FFFFFF', color: '#0F2236', fontSize: 11, fontWeight: 600, cursor: 'pointer', textAlign: 'left' }}
-              >
-                {acc.label}
-              </button>
-            ))}
-          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
