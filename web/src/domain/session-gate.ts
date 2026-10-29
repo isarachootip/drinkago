@@ -42,6 +42,12 @@ export function loadLineToken(): string | null {
 
 export function isDemoUnlocked(): boolean {
   try {
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab === 'events' || tab === 'shop' || tab === 'stations' || tab === 'track') {
+        return true;
+      }
+    }
     return typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_UNLOCK_STORAGE_KEY) === '1';
   } catch {
     return false;

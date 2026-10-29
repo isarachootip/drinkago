@@ -30,7 +30,9 @@ export const App: React.FC = () => {
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
-  const [custScreen, setCustScreen] = useState<'shop' | 'track'>('shop');
+  const [custScreen, setCustScreen] = useState<'shop' | 'track'>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'track' ? 'track' : 'shop',
+  );
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
   const [jobs, setJobs] = useState<RiderJob[]>([]);
@@ -165,9 +167,7 @@ export const App: React.FC = () => {
       {toast && <div style={{ background: '#17613A', color: '#FFFFFF', padding: '10px 16px', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{toast}</div>}
 
       {showTraining ? (
-        <div style={{ padding: 16 }}>
-          <AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} />
-        </div>
+        <div style={{ padding: 16 }}><AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} /></div>
       ) : showStaffLogin ? (
         <StaffLoginCard targetRole="any" onLoginSuccess={handleLoginSuccess} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
       ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
