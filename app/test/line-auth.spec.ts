@@ -60,5 +60,17 @@ describe('LINE Login OAuth 2.0 & LIFF Helpers', () => {
       oauthEnabled: false,
       oaBasicId: '@157iywjs',
     });
+
+    // กรณีเซิร์ฟเวอร์มีค่าเก่าของ Messaging API Channel ID (เช่น 2012189549) ค้างใน LINE_LOGIN_CHANNEL_ID
+    // ต้องยึดรหัส LINE Login Channel ID จาก LINE_LIFF_ID (2012276679) เป็นหลักเสมอ
+    const cfgWithOldMessagingId = loadConfig({
+      NODE_ENV: 'development',
+      DATABASE_URL: 'postgres://drinkgo:drinkgo@localhost:5433/drinkgo',
+      AUTH_MODE: 'dev',
+      LINE_LOGIN_CHANNEL_ID: '2012189549',
+      LINE_LIFF_ID: '2012276679-cVW55jug',
+    });
+    const svcFixed = new LineAuthService({} as Db, cfgWithOldMessagingId);
+    expect(svcFixed.getEffectiveLoginChannelId()).toBe('2012276679');
   });
 });

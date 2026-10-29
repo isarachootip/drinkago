@@ -99,9 +99,13 @@ export class AuthGuard implements CanActivate {
     }
     if (!auth?.startsWith('Bearer ')) throw new UnauthorizedException('ต้องส่ง LINE ID token หรือเข้าสู่ระบบ');
     try {
+      const liffChannelId = this.cfg.LINE_LIFF_ID?.split('-')[0]?.trim();
+      const audience = Array.from(
+        new Set([this.cfg.LINE_LOGIN_CHANNEL_ID, liffChannelId].filter((v): v is string => Boolean(v))),
+      );
       const { payload } = await jwtVerify(auth.slice(7), LINE_JWKS, {
         issuer: 'https://access.line.me',
-        audience: this.cfg.LINE_LOGIN_CHANNEL_ID,
+        audience,
       });
       return { lineUserId: String(payload.sub), displayName: payload.name as string | undefined };
     } catch {

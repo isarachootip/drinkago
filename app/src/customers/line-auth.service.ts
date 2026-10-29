@@ -75,9 +75,9 @@ export class LineAuthService {
   }
 
   getEffectiveLoginChannelId(): string | null {
-    if (this.cfg.LINE_LOGIN_CHANNEL_ID) return this.cfg.LINE_LOGIN_CHANNEL_ID;
     const fromLiff = this.cfg.LINE_LIFF_ID?.split('-')[0]?.trim();
-    return fromLiff && /^\d+$/.test(fromLiff) ? fromLiff : null;
+    if (fromLiff && /^\d+$/.test(fromLiff)) return fromLiff;
+    return this.cfg.LINE_LOGIN_CHANNEL_ID || null;
   }
 
   getPublicConfig() {
