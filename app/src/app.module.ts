@@ -20,6 +20,7 @@ import { LineCartService } from './line/line-cart.service';
 import { LineCheckoutService } from './line/line-checkout.service';
 import { LinePaymentReorderService } from './line/line-payment-reorder.service';
 import { LineRichMenuService } from './line/line-rich-menu.service';
+import { LineStatusService } from './line/line-status.service';
 import { LineWebhookController } from './line/line-webhook.controller';
 import { NotificationsService } from './notifications/notifications.service';
 import { OrdersController, RiderController } from './orders/orders.controller';
@@ -75,6 +76,7 @@ export class AppModule {
         LineCheckoutService,
         LinePaymentReorderService,
         LineRichMenuService,
+        LineStatusService,
         IdempotencyService,
         IdempotencyInterceptor,
         { provide: FILE_STORAGE, useClass: LocalStorageService },

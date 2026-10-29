@@ -3,6 +3,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypt
 
 const STAFF_ISSUER = 'drinkgo-staff';
 const DEFAULT_LINK_SECRET = 'drinkgo-default-customer-link-hmac-2026';
+export const DEFAULT_CUSTOMER_LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function hashPassword(plain: string): string {
   const salt = randomBytes(16).toString('hex');
@@ -58,13 +59,24 @@ function resolveLinkSecret(rawSecret?: string): string {
   return rawSecret || process.env.DEV_AUTH_KEY || process.env.LINE_CHANNEL_SECRET || DEFAULT_LINK_SECRET;
 }
 
-export function signCustomerLinkToken(lineUserId: string, rawSecret?: string): string {
-  const b64 = Buffer.from(lineUserId, 'utf8').toString('base64url');
+export function signCustomerLinkToken(
+  lineUserId: string,
+  rawSecret?: string,
+  opts?: { ttlMs?: number; nowMs?: number },
+): string {
+  const nowMs = opts?.nowMs ?? Date.now();
+  const ttlMs = opts?.ttlMs ?? DEFAULT_CUSTOMER_LINK_TTL_MS;
+  const payload = JSON.stringify({ u: lineUserId, exp: nowMs + ttlMs });
+  const b64 = Buffer.from(payload, 'utf8').toString('base64url');
   const sig = createHmac('sha256', resolveLinkSecret(rawSecret)).update(b64).digest('base64url');
   return `${b64}.${sig}`;
 }
 
-export function verifyCustomerLinkToken(token: string | undefined | null, rawSecret?: string): string | null {
+export function verifyCustomerLinkToken(
+  token: string | undefined | null,
+  rawSecret?: string,
+  nowMs = Date.now(),
+): string | null {
   if (!token || !token.includes('.')) return null;
   const [b64, givenSig] = token.split('.');
   if (!b64 || !givenSig) return null;
@@ -72,15 +84,26 @@ export function verifyCustomerLinkToken(token: string | undefined | null, rawSec
     const expectedSig = createHmac('sha256', resolveLinkSecret(rawSecret)).update(b64).digest();
     const givenBuf = Buffer.from(givenSig, 'base64url');
     if (expectedSig.length !== givenBuf.length || !timingSafeEqual(expectedSig, givenBuf)) return null;
-    const lineUserId = Buffer.from(b64, 'base64url').toString('utf8');
-    return lineUserId.length > 0 ? lineUserId : null;
+    const decoded = Buffer.from(b64, 'base64url').toString('utf8');
+    if (decoded.startsWith('{')) {
+      const parsed = JSON.parse(decoded) as { u?: unknown; exp?: unknown };
+      if (typeof parsed.u !== 'string' || parsed.u.length === 0) return null;
+      if (typeof parsed.exp !== 'number' || !Number.isFinite(parsed.exp) || nowMs > parsed.exp) return null;
+      return parsed.u;
+    }
+    return decoded.length > 0 ? decoded : null;
   } catch {
     return null;
   }
 }
 
-export function buildSignedCustomerUrl(publicWebUrl: string, lineUserId: string, rawSecret?: string): string {
+export function buildSignedCustomerUrl(
+  publicWebUrl: string,
+  lineUserId: string,
+  rawSecret?: string,
+  opts?: { ttlMs?: number; nowMs?: number },
+): string {
   const cleanWeb = publicWebUrl.replace(/\/+$/, '');
-  const token = signCustomerLinkToken(lineUserId, rawSecret);
+  const token = signCustomerLinkToken(lineUserId, rawSecret, opts);
   return `${cleanWeb}/?lineUserId=${encodeURIComponent(lineUserId)}&lineToken=${encodeURIComponent(token)}`;
 }

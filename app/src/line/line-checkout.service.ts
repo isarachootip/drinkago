@@ -187,6 +187,7 @@ export class LineCheckoutService {
       promptpayAccountName: this.cfg.PROMPTPAY_ACCOUNT_NAME,
       publicWebUrl: this.cfg.PUBLIC_WEB_URL,
       lineUserId: customer.lineUserId,
+      liffId: this.cfg.LINE_LIFF_ID,
     })];
   }
 

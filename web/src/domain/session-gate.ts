@@ -41,24 +41,22 @@ export function loadLineToken(): string | null {
 }
 
 const ALLOWED_QUERY_TABS = new Set(['events', 'shop', 'stations', 'track']);
+const PUBLIC_DISCOVERY_TABS = new Set(['events', 'stations']);
+const SAFE_ORDER_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 
-export function resolveInitialQueryTab(search?: string): 'events' | 'shop' | 'stations' | 'track' | null {
+function extractQueryParam(key: string, search?: string): string | null {
   try {
     const rawSearch = search !== undefined ? search : typeof window !== 'undefined' ? window.location.search : '';
     if (!rawSearch) return null;
     const params = new URLSearchParams(rawSearch.startsWith('?') ? rawSearch : `?${rawSearch}`);
-    const directTab = params.get('tab')?.trim().toLowerCase();
-    if (directTab && ALLOWED_QUERY_TABS.has(directTab)) {
-      return directTab as 'events' | 'shop' | 'stations' | 'track';
-    }
+    const direct = params.get(key)?.trim();
+    if (direct) return direct;
     const liffState = params.get('liff.state');
     if (liffState) {
       const qIdx = liffState.indexOf('?');
       const stateQuery = qIdx >= 0 ? liffState.slice(qIdx + 1) : liffState;
-      const stateTab = new URLSearchParams(stateQuery).get('tab')?.trim().toLowerCase();
-      if (stateTab && ALLOWED_QUERY_TABS.has(stateTab)) {
-        return stateTab as 'events' | 'shop' | 'stations' | 'track';
-      }
+      const fromState = new URLSearchParams(stateQuery).get(key)?.trim();
+      if (fromState) return fromState;
     }
     return null;
   } catch {
@@ -66,9 +64,20 @@ export function resolveInitialQueryTab(search?: string): 'events' | 'shop' | 'st
   }
 }
 
-export function isDemoUnlocked(): boolean {
+export function resolveInitialQueryTab(search?: string): 'events' | 'shop' | 'stations' | 'track' | null {
+  const val = extractQueryParam('tab', search)?.toLowerCase();
+  return val && ALLOWED_QUERY_TABS.has(val) ? (val as 'events' | 'shop' | 'stations' | 'track') : null;
+}
+
+export function resolveInitialOrderId(search?: string): string | null {
+  const val = extractQueryParam('orderId', search);
+  return val && SAFE_ORDER_ID_RE.test(val) ? val : null;
+}
+
+export function isDemoUnlocked(search?: string): boolean {
   try {
-    if (resolveInitialQueryTab() !== null) return true;
+    const tab = resolveInitialQueryTab(search);
+    if (tab && PUBLIC_DISCOVERY_TABS.has(tab)) return true;
     return typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_UNLOCK_STORAGE_KEY) === '1';
   } catch {
     return false;
@@ -93,10 +102,21 @@ export function resolveInitialCustomerSession(): { customerUser: string; hasLine
   if (queryToken && typeof localStorage !== 'undefined') {
     localStorage.setItem(LINE_TOKEN_STORAGE_KEY, queryToken);
   }
-  const activeToken = queryToken || loadLineToken();
-
   if (queryUser && typeof localStorage !== 'undefined') {
     localStorage.setItem(CUSTOMER_USER_STORAGE_KEY, queryUser);
+  }
+  if ((queryToken || queryUser) && typeof window !== 'undefined' && window.history?.replaceState) {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('lineToken');
+      url.searchParams.delete('lineUserId');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    } catch {
+      // ignore history errors
+    }
+  }
+  const activeToken = queryToken || loadLineToken();
+  if (queryUser) {
     return { customerUser: queryUser, hasLineToken: Boolean(activeToken) };
   }
   const storedUser = typeof localStorage !== 'undefined' ? localStorage.getItem(CUSTOMER_USER_STORAGE_KEY) : null;

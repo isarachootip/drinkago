@@ -2,7 +2,12 @@ import liff from '@line/liff';
 import { z } from 'zod';
 import { loadDevSettings } from '../api/client';
 import { requestJson, saveStaffSession, StaffSession } from '../api/role-api';
-import { CUSTOMER_USER_STORAGE_KEY, LINE_TOKEN_STORAGE_KEY, resolveInitialQueryTab } from './session-gate';
+import {
+  CUSTOMER_USER_STORAGE_KEY,
+  LINE_TOKEN_STORAGE_KEY,
+  resolveInitialOrderId,
+  resolveInitialQueryTab,
+} from './session-gate';
 
 export const lineAuthConfigSchema = z.object({
   liffId: z.string().nullable(),
@@ -38,9 +43,10 @@ export async function fetchLineAuthConfig(): Promise<LineAuthConfig> {
   return lineAuthConfigSchema.parse(raw);
 }
 
-export function buildWebLineOauthStartUrl(apiBaseUrl: string, tab = 'shop'): string {
+export function buildWebLineOauthStartUrl(apiBaseUrl: string, tab = 'shop', orderId?: string | null): string {
   const base = apiBaseUrl.replace(/\/+$/, '');
-  return `${base}/auth/line/start?tab=${encodeURIComponent(tab)}`;
+  const orderSuffix = orderId ? `&orderId=${encodeURIComponent(orderId)}` : '';
+  return `${base}/auth/line/start?tab=${encodeURIComponent(tab)}${orderSuffix}`;
 }
 
 export async function tryAutoLoginWithLiff(): Promise<{ session: StaffSession; lineToken: string } | null> {
@@ -68,13 +74,13 @@ export async function tryAutoLoginWithLiff(): Promise<{ session: StaffSession; l
       localStorage.setItem(CUSTOMER_USER_STORAGE_KEY, parsed.user.lineUserId);
       if (typeof window !== 'undefined' && window.history?.replaceState) {
         const activeTab = resolveInitialQueryTab();
+        const activeOrderId = resolveInitialOrderId();
         const url = new URL(window.location.href);
         for (const key of ['code', 'state', 'liff.state', 'liffClientId', 'liffRedirectUri']) {
           url.searchParams.delete(key);
         }
-        if (activeTab && !url.searchParams.get('tab')) {
-          url.searchParams.set('tab', activeTab);
-        }
+        if (activeTab && !url.searchParams.get('tab')) url.searchParams.set('tab', activeTab);
+        if (activeOrderId && !url.searchParams.get('orderId')) url.searchParams.set('orderId', activeOrderId);
         window.history.replaceState({}, '', url.pathname + url.search);
       }
     } catch {
@@ -92,6 +98,8 @@ export async function tryAutoLoginWithLiff(): Promise<{ session: StaffSession; l
 export async function startLineLogin(tab = 'shop', onNotify?: (msg: string) => void): Promise<void> {
   try {
     const targetTab = resolveInitialQueryTab() ?? tab;
+    const targetOrderId = resolveInitialOrderId();
+    const orderQuery = targetOrderId ? `&orderId=${encodeURIComponent(targetOrderId)}` : '';
     const cfg = await fetchLineAuthConfig();
     if (cfg.liffId) {
       await ensureLiffReady(cfg.liffId);
@@ -100,13 +108,13 @@ export async function startLineLogin(tab = 'shop', onNotify?: (msg: string) => v
         const isLocal = host === 'localhost' || host === '127.0.0.1';
         if (isLocal && cfg.oauthEnabled) {
           const s = loadDevSettings();
-          window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab);
+          window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab, targetOrderId);
           return;
         }
         liff.login(
           isLocal
             ? undefined
-            : { redirectUri: `${window.location.origin}/?tab=${encodeURIComponent(targetTab)}` },
+            : { redirectUri: `${window.location.origin}/?tab=${encodeURIComponent(targetTab)}${orderQuery}` },
         );
         return;
       }
@@ -119,7 +127,7 @@ export async function startLineLogin(tab = 'shop', onNotify?: (msg: string) => v
     }
     if (cfg.oauthEnabled) {
       const s = loadDevSettings();
-      window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab);
+      window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab, targetOrderId);
       return;
     }
     onNotify?.('กำลังรอตั้งค่า LINE_LOGIN_CHANNEL_SECRET หรือ LINE_LIFF_ID บนเซิร์ฟเวอร์ (ระหว่างนี้เข้าผ่านแชท LINE OA @157iywjs ได้ทันที)');

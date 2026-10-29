@@ -1,6 +1,6 @@
-import { buildSignedCustomerUrl } from '../common/password';
 import { LineAutoReplyInput } from './line-reply';
 import { LineFlexMessage, OrderTicketFlexInput } from './line-flex.templates';
+import { buildCustomerTrackingFlex, buildTrackDeepLinkUrl } from './line-status.templates';
 
 const formatBahtNum = (satang: number): string => {
   const b = satang / 100;
@@ -9,7 +9,12 @@ const formatBahtNum = (satang: number): string => {
 
 export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessage {
   const totalBaht = formatBahtNum(input.totalSatang);
-  const trackUrl = `${buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId)}&tab=track`;
+  const trackUrl = buildTrackDeepLinkUrl({
+    publicWebUrl: input.publicWebUrl,
+    liffId: input.liffId,
+    lineUserId: input.lineUserId,
+    orderId: input.orderId,
+  });
   const qrUrl = `https://promptpay.io/${encodeURIComponent(input.promptpayId)}/${encodeURIComponent(totalBaht)}.png`;
 
   const itemLines = input.items.map((item) => ({
@@ -122,49 +127,14 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
   };
 }
 
-export function buildStatusAndBagFlex(input: LineAutoReplyInput): LineFlexMessage {
-  const trackUrl = `${buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId)}&tab=track`;
-  const orderSection = input.latestOrder
-    ? [
-        { type: 'text', text: `📦 ออเดอร์ล่าสุด: #${input.latestOrder.code}`, size: 'sm', weight: 'bold', color: '#0F2236' },
-        { type: 'text', text: `สถานะ: ${input.latestOrder.status}`, size: 'xs', color: '#1A56B0' },
-        { type: 'text', text: `🔑 รหัส OTP แจ้งไรเดอร์: ${input.latestOrder.deliveryOtp}`, size: 'md', weight: 'bold', color: '#B45309', margin: 'xs' },
-      ]
-    : [{ type: 'text', text: '📋 ยังไม่มีประวัติคำสั่งซื้อ กดดูเมนูเพื่อสั่งน้ำดื่มได้เลยครับ', size: 'xs', color: '#64748B', wrap: true }];
-
-  return {
-    type: 'flex',
-    altText: `สถานะออเดอร์และยอดถุงค้าง (${input.bagBalance} ใบ)`,
-    contents: {
-      type: 'bubble',
-      size: 'kilo',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: '#0F2236',
-        contents: [{ type: 'text', text: `💧 Drink&Go (${input.oaBasicId})`, weight: 'bold', size: 'sm', color: '#FFFFFF' }],
-      },
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'xs',
-        contents: [
-          { type: 'text', text: `สวัสดีคุณ ${input.customerName}`, size: 'sm', weight: 'bold' },
-          { type: 'separator', margin: 'sm' },
-          ...orderSection,
-          { type: 'separator', margin: 'sm' },
-          { type: 'text', text: `🛍️ ยอดถุงค้างสะสม: ${input.bagBalance} ใบ`, size: 'sm', weight: 'bold', color: '#C2255C' },
-        ],
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'xs',
-        contents: [
-          { type: 'button', style: 'primary', color: '#1A56B0', height: 'sm', action: { type: 'postback', label: '🛒 ดูเมนูสั่งน้ำดื่ม', data: 'action=menu' } },
-          { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🌐 เปิดหน้าเว็บติดตามสถานะ', uri: trackUrl } },
-        ],
-      },
-    },
-  };
+export function buildStatusAndBagFlex(input: LineAutoReplyInput & { liffId?: string | null }): LineFlexMessage {
+  return buildCustomerTrackingFlex({
+    customerName: input.customerName,
+    lineUserId: input.lineUserId,
+    oaBasicId: input.oaBasicId,
+    publicWebUrl: input.publicWebUrl,
+    liffId: input.liffId,
+    bagBalance: input.bagBalance,
+    orders: input.latestOrder ? [input.latestOrder] : [],
+  });
 }

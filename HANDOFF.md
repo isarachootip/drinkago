@@ -16,6 +16,7 @@
 | Dev auth + LINE ID token | ✅ | ยังไม่ได้ทดสอบกับ LINE จริง (ยังไม่มีบัญชี) |
 | LINE webhook (ลายเซ็น + กันซ้ำ) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนอัตโนมัติ + ตอบกลับด้วยรหัส OTP ล่าสุด |
 | LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุดให้ยืนยัน/เปลี่ยนตู้ได้ → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงิน → สร้างออเดอร์เป็น `CONFIRMED` อัตโนมัติ → ไรเดอร์กด `claim` รับงานเอง และเมื่อรับถุงคืนจบงาน `CLOSED_WITH_RETURN` อัตโนมัติโดยไม่ต้องมี Warehouse) |
+| ระบบติดตามสถานะจากบัญชี LINE ปัจจุบัน (`action=status` & LIFF Track) | ✅ | ดึงออเดอร์ทั้งหมดของ `lineUserId` ปัจจุบัน แสดงออเดอร์ที่กำลังดำเนินการ (Active) เป็น Flex Carousel ภาษาไทย 8 ขั้นก่อน + ซ่อนรหัส OTP 4 หลักหลังส่งมอบเสร็จ + Deep-Link เข้า LIFF (`?tab=track&orderId=...`) พร้อม Fallback Signed Token อายุ 24 ชม. |
 | Role-Based Web UI (`Customer` / `Rider` / `Admin`) | ✅ | แยกหน้าเว็บตามบทบาทจริง: ลูกค้าเห็นเฉพาะหน้าสั่งซื้อ/ติดตาม, ไรเดอร์เห็นเฉพาะหน้ารับงาน/ส่งน้ำ, เฉพาะ Admin เห็นแถบสลับดูทุกมุมมอง (ตัดแท็บ Warehouse ออก) |
 | Catalog & Product Image CRUD (`/admin/products`) | ✅ | จัดการข้อมูลและรูปภาพ Product Master สไตล์ ODM (กรอบประ Click-to-Upload จำกัด 2 MB + Preview ทันที + ช่องวาง URL + ปุ่ม Clear ลบรูป + แก้ไขครบทุกฟิลด์ + Hard/Soft Delete + แสดงรูปจริงทั้งหน้าเว็บลูกค้าและ LINE Flex Menu) |
 | Notification outbox + LINE push | ✅ | ไม่มี token = พิมพ์ลง log |

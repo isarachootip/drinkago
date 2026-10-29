@@ -47,6 +47,7 @@ export class LinePaymentReorderService {
     );
     return [
       buildOrderTicketFlex({
+        orderId: order.id,
         orderCode: order.code,
         deliveryOtp: order.deliveryOtp,
         customerName: customer.name,
@@ -59,6 +60,7 @@ export class LinePaymentReorderService {
         promptpayAccountName: this.cfg.PROMPTPAY_ACCOUNT_NAME,
         publicWebUrl: this.cfg.PUBLIC_WEB_URL,
         lineUserId: customer.lineUserId,
+        liffId: this.cfg.LINE_LIFF_ID,
       }),
     ];
   }

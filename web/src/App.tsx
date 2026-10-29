@@ -12,7 +12,7 @@ import { TopAuthBar } from './components/TopAuthBar';
 import { safeLiffLogout, tryAutoLoginWithLiff } from './domain/liff-auth';
 import {
   AppRoleTab, clearAllAuthSessions, CUSTOMER_USER_STORAGE_KEY, isDemoUnlocked,
-  resolveActiveIdentity, resolveInitialCustomerSession, resolveInitialQueryTab,
+  resolveActiveIdentity, resolveInitialCustomerSession, resolveInitialOrderId, resolveInitialQueryTab,
   shouldOpenStaffLoginInitially, shouldRequireEntryGate, unlockDemoMode, UserRole,
 } from './domain/session-gate';
 import { AdminPage } from './pages/AdminPage';
@@ -32,7 +32,8 @@ export const App: React.FC = () => {
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
   const [custScreen, setCustScreen] = useState<'shop' | 'track'>(() => (resolveInitialQueryTab() === 'track' ? 'track' : 'shop'));
-  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
+  const [trackedOrderId, setTrackedOrderId] = useState<string | null>(() => resolveInitialOrderId());
+  const [liffChecking, setLiffChecking] = useState<boolean>(() => shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }));
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
   const [jobs, setJobs] = useState<RiderJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
@@ -46,24 +47,21 @@ export const App: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
 
   const showNotice = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 4000);
+    setToast(msg); setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 4000);
   }, []);
-
   const customerUser = staffSession?.user.role === 'customer' ? staffSession.user.lineUserId : custSession.customerUser;
 
   useEffect(() => {
-    if (staffSession) return;
+    if (staffSession) { setLiffChecking(false); return; }
     void tryAutoLoginWithLiff().then((res) => {
-      if (res) {
-        saveStaffSession(res.session); setStaffSession(res.session);
-        setCustSession({ customerUser: res.session.user.lineUserId, hasLineToken: true });
-      }
-    });
-    customerApi.getMe(custSession.customerUser)
-      .then((me) => { setDetectedLineName(me.name || null); setDetectedLineRole(me.role === 'admin' || me.role === 'warehouse' || me.role === 'rider' ? me.role : 'customer'); })
-      .catch(() => { setDetectedLineName(null); setDetectedLineRole('customer'); });
-  }, [custSession.customerUser, staffSession]);
+      if (res) { saveStaffSession(res.session); setStaffSession(res.session); setCustSession({ customerUser: res.session.user.lineUserId, hasLineToken: true }); }
+    }).finally(() => setLiffChecking(false));
+    if (!shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: false, demoUnlocked })) {
+      customerApi.getMe(custSession.customerUser)
+        .then((me) => { setDetectedLineName(me.name || null); setDetectedLineRole(me.role === 'admin' || me.role === 'warehouse' || me.role === 'rider' ? me.role : 'customer'); })
+        .catch(() => { setDetectedLineName(null); setDetectedLineRole('customer'); });
+    }
+  }, [custSession.customerUser, custSession.hasLineToken, demoUnlocked, staffSession]);
 
   const identity = resolveActiveIdentity({
     staffUser: staffSession?.user ?? null, customerUser, detectedLineName, detectedLineRole, hasLineToken: custSession.hasLineToken,
@@ -92,9 +90,7 @@ export const App: React.FC = () => {
     showNotice('ออกจากระบบแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีที่ต้องการทดสอบ');
   };
 
-  const refreshQueueCount = useCallback(async () => {
-    setOfflineCount((await listOfflineMutations()).length);
-  }, []);
+  const refreshQueueCount = useCallback(async () => setOfflineCount((await listOfflineMutations()).length), []);
 
   const loadJobs = useCallback(async (currentSettings = settings) => {
     setLoading(true);
@@ -168,6 +164,8 @@ export const App: React.FC = () => {
         <div style={{ padding: 16 }}><AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} /></div>
       ) : showStaffLogin ? (
         <StaffLoginCard targetRole="any" onLoginSuccess={handleLoginSuccess} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
+      ) : liffChecking ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontWeight: 600, color: '#1A56B0' }}>🔄 กำลังเชื่อมบัญชี LINE ของคุณ...</div>
       ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
         <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} onNotify={showNotice} />
       ) : (

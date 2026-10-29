@@ -1,5 +1,15 @@
 import { LineCartItem } from '../db/schema';
 export { buildOrderTicketFlex, buildStatusAndBagFlex } from './line-ticket.templates';
+export {
+  buildCustomerTrackingFlex,
+  buildTrackDeepLinkUrl,
+  CustomerTrackingFlexInput,
+  getThaiOrderProgress,
+  isActiveOrderStatus,
+  selectOrdersForTracking,
+  shouldShowDeliveryOtp,
+  TrackableOrderCardInput,
+} from './line-status.templates';
 export { buildContactAndShareMessages, buildShareOaFlex, ShareOaFlexInput } from './line-share.templates';
 export { buildMeetupEventsFlex, buildStationsCarouselFlex, buildVisitUsFlex, StationFlexItem, VisitUsFlexInput } from './line-discovery.templates';
 
@@ -26,6 +36,7 @@ export interface OrderTicketFlexInput {
   stationName?: string; items: LineCartItem[]; totalSatang: number; expectBagReturn: number;
   paymentMethod: 'CASH' | 'PROMPTPAY' | 'CREDIT'; promptpayId: string;
   promptpayAccountName: string; publicWebUrl: string; lineUserId: string;
+  liffId?: string | null;
 }
 
 const FALLBACK_WATER_IMAGE = 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=600&q=80';

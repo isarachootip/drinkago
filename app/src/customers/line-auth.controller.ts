@@ -41,7 +41,11 @@ export class LineAuthController {
 
   @Get('start')
   @Public()
-  startOauth(@Query('tab') tab: string | undefined, @Res() res: Response) {
+  startOauth(
+    @Query('tab') tab: string | undefined,
+    @Query('orderId') orderId: string | undefined,
+    @Res() res: Response,
+  ) {
     const channelId = this.lineAuth.getEffectiveLoginChannelId();
     const channelSecret = this.cfg.LINE_LOGIN_CHANNEL_SECRET;
     if (!channelId || !channelSecret) {
@@ -51,7 +55,7 @@ export class LineAuthController {
         'กรุณาตั้งค่า LINE_LOGIN_CHANNEL_ID และ LINE_LOGIN_CHANNEL_SECRET บนเซิร์ฟเวอร์ก่อนใช้งานปุ่ม Login ผ่านเว็บ',
       );
     }
-    const state = signLineOauthState(tab, this.lineAuth.getSigningSecret());
+    const state = signLineOauthState({ tab, orderId }, this.lineAuth.getSigningSecret());
     const authorizeUrl = buildLineAuthorizeUrl({
       channelId,
       callbackUrl: this.lineAuth.getCallbackUrl(),
@@ -84,6 +88,7 @@ export class LineAuthController {
       lineUserId: user.lineUserId,
       lineToken: session.lineToken,
       tab: verifiedState.tab,
+      ...(verifiedState.orderId ? { orderId: verifiedState.orderId } : {}),
     });
     return res.redirect(`${webBase}/?${redirectParams.toString()}`);
   }

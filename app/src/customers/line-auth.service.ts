@@ -9,6 +9,7 @@ import { Db, DB } from '../db/db';
 import { addresses, users } from '../db/schema';
 
 const ALLOWED_TABS = new Set(['shop', 'track', 'events', 'stations']);
+const SAFE_ORDER_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const STATE_TTL_MS = 10 * 60 * 1000;
 
 export function sanitizeRedirectTab(tab?: string | null): string {
@@ -16,9 +17,21 @@ export function sanitizeRedirectTab(tab?: string | null): string {
   return ALLOWED_TABS.has(clean) ? clean : 'shop';
 }
 
-export function signLineOauthState(tab: string | undefined, secret: string, nowMs = Date.now()): string {
+export function sanitizeOrderId(orderId?: string | null): string | undefined {
+  const clean = (orderId ?? '').trim();
+  return SAFE_ORDER_ID_RE.test(clean) ? clean : undefined;
+}
+
+export function signLineOauthState(
+  input: string | { tab?: string | null; orderId?: string | null } | undefined,
+  secret: string,
+  nowMs = Date.now(),
+): string {
+  const tab = typeof input === 'string' ? input : input?.tab;
+  const orderId = typeof input === 'object' && input !== null ? sanitizeOrderId(input.orderId) : undefined;
   const payload = JSON.stringify({
     t: sanitizeRedirectTab(tab),
+    ...(orderId ? { o: orderId } : {}),
     n: randomBytes(8).toString('hex'),
     iat: nowMs,
   });
@@ -31,7 +44,7 @@ export function verifyLineOauthState(
   state: string | undefined | null,
   secret: string,
   nowMs = Date.now(),
-): { tab: string } | null {
+): { tab: string; orderId?: string } | null {
   if (!state || !state.includes('.')) return null;
   const [b64, givenSig] = state.split('.');
   if (!b64 || !givenSig) return null;
@@ -39,9 +52,10 @@ export function verifyLineOauthState(
     const expected = createHmac('sha256', secret).update(b64).digest();
     const given = Buffer.from(givenSig, 'base64url');
     if (expected.length !== given.length || !timingSafeEqual(expected, given)) return null;
-    const parsed = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8')) as { t?: string; iat?: number };
+    const parsed = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8')) as { t?: string; o?: string; iat?: number };
     if (typeof parsed.iat !== 'number' || Math.abs(nowMs - parsed.iat) > STATE_TTL_MS) return null;
-    return { tab: sanitizeRedirectTab(parsed.t) };
+    const orderId = sanitizeOrderId(parsed.o);
+    return orderId ? { tab: sanitizeRedirectTab(parsed.t), orderId } : { tab: sanitizeRedirectTab(parsed.t) };
   } catch {
     return null;
   }
@@ -134,18 +148,12 @@ export class LineAuthService {
       throw new DomainError(401, 'LINE_OAUTH_FAILED', 'แลกรับ Token จาก LINE ไม่สำเร็จ กรุณาตรวจสอบ Callback URL และ Channel Secret');
     }
     const tokens = (await tokenRes.json()) as { id_token?: string; access_token?: string };
-    if (tokens.id_token) {
-      return this.verifyIdTokenWithLine(tokens.id_token);
-    }
-    if (!tokens.access_token) {
-      throw new DomainError(401, 'LINE_OAUTH_FAILED', 'ไม่ได้รับ Access Token จาก LINE');
-    }
+    if (tokens.id_token) return this.verifyIdTokenWithLine(tokens.id_token);
+    if (!tokens.access_token) throw new DomainError(401, 'LINE_OAUTH_FAILED', 'ไม่ได้รับ Access Token จาก LINE');
     const profRes = await fetch('https://api.line.me/v2/profile', {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
     });
-    if (!profRes.ok) {
-      throw new DomainError(401, 'LINE_PROFILE_FAILED', 'ดึงข้อมูลโปรไฟล์ LINE ไม่สำเร็จ');
-    }
+    if (!profRes.ok) throw new DomainError(401, 'LINE_PROFILE_FAILED', 'ดึงข้อมูลโปรไฟล์ LINE ไม่สำเร็จ');
     const prof = (await profRes.json()) as { userId?: string; displayName?: string };
     if (!prof.userId) throw new DomainError(401, 'LINE_PROFILE_FAILED', 'ไม่พบ LINE userId');
     return { lineUserId: prof.userId, displayName: (prof.displayName ?? '').trim() || 'ลูกค้า LINE' };
@@ -164,26 +172,13 @@ export class LineAuthService {
 
     const [created] = await this.db
       .insert(users)
-      .values({
-        lineUserId,
-        role: 'customer',
-        name: displayName || 'ลูกค้า LINE',
-        phone: '0800000000',
-        customerType: 'individual',
-        pdpaConsentAt: new Date(),
-      })
+      .values({ lineUserId, role: 'customer', name: displayName || 'ลูกค้า LINE', phone: '0800000000', customerType: 'individual', pdpaConsentAt: new Date() })
       .onConflictDoNothing()
       .returning();
 
     const user = created ?? (await this.db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1))[0];
     if (created) {
-      await this.db.insert(addresses).values({
-        userId: created.id,
-        label: 'บ้าน (LINE)',
-        detail: 'กรุณาตรวจสอบที่อยู่จัดส่ง',
-        lat: 13.7563,
-        lng: 100.5018,
-      });
+      await this.db.insert(addresses).values({ userId: created.id, label: 'บ้าน (LINE)', detail: 'กรุณาตรวจสอบที่อยู่จัดส่ง', lat: 13.7563, lng: 100.5018 });
     }
     return user;
   }

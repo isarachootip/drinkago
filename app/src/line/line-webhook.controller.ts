@@ -1,25 +1,23 @@
 import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Inject, Logger, Post, Req } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
 import { Request } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { BagLedgerService } from '../bags/bag-ledger.service';
 import { Public, Roles, User } from '../common/auth';
 import { parse } from '../common/validate';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
-import { addresses, lineWebhookEvents, orders, users } from '../db/schema';
+import { lineWebhookEvents } from '../db/schema';
 import { MeetupEventsService } from '../events/meetup-events.service';
 import { StationsService } from '../stations/stations.service';
 import { LineCartService } from './line-cart.service';
 import { LineCheckoutService } from './line-checkout.service';
 import {
   buildContactAndShareMessages, buildMeetupEventsFlex, buildShareOaFlex,
-  buildStationsCarouselFlex, buildStatusAndBagFlex, buildVisitUsFlex, LineMessage,
+  buildStationsCarouselFlex, buildVisitUsFlex, LineMessage,
 } from './line-flex.templates';
 import { LinePaymentReorderService } from './line-payment-reorder.service';
-import { formatLineAutoReply } from './line-reply';
 import { LineRichMenuService } from './line-rich-menu.service';
+import { LineStatusService } from './line-status.service';
 
 const syncRichMenuSchema = z.object({ imageUrl: z.string().trim().max(500).nullable().optional() });
 
@@ -50,13 +48,13 @@ export class LineWebhookController {
   constructor(
     @Inject(DB) private readonly db: Db,
     @Inject(APP_CONFIG) private readonly cfg: AppConfig,
-    private readonly bags: BagLedgerService,
     private readonly eventsService: MeetupEventsService,
     private readonly stations: StationsService,
     private readonly cart: LineCartService,
     private readonly checkout: LineCheckoutService,
     private readonly paymentReorder: LinePaymentReorderService,
     private readonly richMenu: LineRichMenuService,
+    private readonly statusService: LineStatusService,
   ) {}
 
   @Post('line/webhook')
@@ -88,7 +86,7 @@ export class LineWebhookController {
     for (const ev of events) {
       const fresh = await this.db.insert(lineWebhookEvents).values({ webhookEventId: ev.webhookEventId, type: ev.type }).onConflictDoNothing().returning();
       if (fresh.length === 0 || !ev.source?.userId) continue;
-      const customer = await this.ensureCustomerFromLine(ev.source.userId);
+      const customer = await this.statusService.ensureCustomerFromLine(ev.source.userId);
       try {
         const messages = await this.dispatchEvent(customer, ev);
         allReplies.push(messages);
@@ -106,7 +104,7 @@ export class LineWebhookController {
     const shareInput = { oaBasicId: this.cfg.LINE_OA_BASIC_ID, publicWebUrl: this.cfg.PUBLIC_WEB_URL };
     const visitInput = { ...shareInput, facebookUrl: this.cfg.FACEBOOK_PAGE_URL };
     if (ev.type === 'follow') {
-      return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId), ...(await this.cart.showMenu(this.cfg.PUBLIC_WEB_URL))];
+      return [await this.statusService.buildStatusFlex(customer), ...(await this.cart.showMenu(this.cfg.PUBLIC_WEB_URL))];
     }
     if (ev.type === 'postback') {
       const params = new URLSearchParams(ev.postback?.data ?? '');
@@ -139,7 +137,7 @@ export class LineWebhookController {
       }
       if (action === 'cancel_order') return this.checkout.cancelOrderFromLine(customer, params.get('orderId') ?? '');
       if (action === 'reorder') return this.paymentReorder.handleQuickReorder(customer);
-      if (action === 'status') return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
+      if (action === 'status') return [await this.statusService.buildStatusFlex(customer)];
     }
 
     if (ev.type === 'message' && ev.message) {
@@ -169,39 +167,13 @@ export class LineWebhookController {
         if (/ค้นหาตู้|ตู้เติมน้ำ|ตู้กดน้ำ|สาขา|station/i.test(text)) return [buildStationsCarouselFlex(await this.stations.listStations())];
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
         if (/สั่งซ้ำ|โปรโมชั่น|โปรโมชัน|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
-        if (/ติดตามสถานะ|บริการของเรา|สถานะ|เช็คสถานะ|otp|ถุงค้าง/i.test(text)) return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
+        if (/ติดตามสถานะ|บริการของเรา|สถานะ|เช็คสถานะ|otp|ถุงค้าง/i.test(text)) return [await this.statusService.buildStatusFlex(customer)];
         if (/เยี่ยมชม|เยี่ยมชมเรา|facebook|เพจ|visit/i.test(text)) return [buildVisitUsFlex(visitInput)];
         if (/เป็นเพื่อน|เป็นเพื่อนกับเรา|แชร์|แนะนำเพื่อน|ติดต่อเรา|qr|share|ilife/i.test(text)) return buildContactAndShareMessages(shareInput);
-        return [{ type: 'text', text: await this.buildReplyText(customer.id, customer.name, customer.lineUserId) }, await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
+        return [{ type: 'text', text: await this.statusService.buildReplyText(customer) }, await this.statusService.buildStatusFlex(customer)];
       }
     }
     return [];
-  }
-
-  private async ensureCustomerFromLine(lineUserId: string): Promise<User> {
-    const [existing] = await this.db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1);
-    if (existing) return existing;
-    const [created] = await this.db.insert(users).values({ lineUserId, role: 'customer', name: 'ลูกค้า LINE', phone: '0800000000', customerType: 'individual', pdpaConsentAt: new Date() }).onConflictDoNothing().returning();
-    const user = created ?? (await this.db.select().from(users).where(eq(users.lineUserId, lineUserId)).limit(1))[0];
-    if (created) await this.db.insert(addresses).values({ userId: created.id, label: 'บ้าน (LINE)', detail: 'กรุณาตรวจสอบที่อยู่จัดส่ง', lat: 13.7563, lng: 100.5018 });
-    return user;
-  }
-
-  private async buildStatusInput(userId: string, name: string, lineUserId: string) {
-    const [myLatest] = await this.db.select().from(orders).where(eq(orders.customerId, userId)).orderBy(desc(orders.createdAt)).limit(1);
-    return {
-      customerName: name, lineUserId, oaBasicId: this.cfg.LINE_OA_BASIC_ID, publicWebUrl: this.cfg.PUBLIC_WEB_URL,
-      bagBalance: await this.bags.balance(userId),
-      latestOrder: myLatest ? { code: myLatest.code, status: myLatest.status, deliveryOtp: myLatest.deliveryOtp } : null,
-    };
-  }
-
-  private async buildReplyText(userId: string, name: string, lineUserId: string): Promise<string> {
-    return formatLineAutoReply(await this.buildStatusInput(userId, name, lineUserId));
-  }
-
-  private async buildStatusFlex(userId: string, name: string, lineUserId: string): Promise<LineMessage> {
-    return buildStatusAndBagFlex(await this.buildStatusInput(userId, name, lineUserId));
   }
 
   private async replyLine(replyToken: string, messages: LineMessage[]) {

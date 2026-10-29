@@ -21,6 +21,15 @@ describe('LINE Login OAuth 2.0 & LIFF Helpers', () => {
 
     // หมดอายุเกิน 10 นาที -> ปฏิเสธ
     expect(verifyLineOauthState(state, secret, now + 11 * 60_000)).toBeNull();
+
+    // รองรับการส่งต่อ orderId ข้าม OAuth State พร้อมกรองอักขระอันตราย
+    const stateWithOrder = signLineOauthState({ tab: 'track', orderId: '550e8400-e29b-41d4-a716-446655440000' }, secret, now);
+    expect(verifyLineOauthState(stateWithOrder, secret, now + 5000)).toEqual({
+      tab: 'track',
+      orderId: '550e8400-e29b-41d4-a716-446655440000',
+    });
+    const stateBadOrder = signLineOauthState({ tab: 'track', orderId: '<script>alert(1)</script>' }, secret, now);
+    expect(verifyLineOauthState(stateBadOrder, secret, now + 5000)).toEqual({ tab: 'track' });
   });
 
   it('sanitizeRedirectTab: อนุญาตเฉพาะแท็บที่ปลอดภัยเท่านั้น', () => {

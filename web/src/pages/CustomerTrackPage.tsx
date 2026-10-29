@@ -3,6 +3,7 @@ import { customerApi } from '../api/role-api';
 import { BagSummary, formatBaht, OrderDetail, OrderEvent, StaffOrder } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
 import { PromptPayQrCard } from '../components/PromptPayQrCard';
+import { FLOW_STEPS, pickDefaultTrackedOrderId, shouldShowCustomerOtp } from '../domain/customer-track';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
 import { canCustomerCancelOrder } from '../domain/session-gate';
 
@@ -12,17 +13,6 @@ interface Props {
   onBackToShop: () => void;
   onNotify: (msg: string) => void;
 }
-
-const FLOW_STEPS: { status: string; label: string }[] = [
-  { status: 'PENDING', label: '1. ลูกค้าสั่งซื้อ (PENDING)' },
-  { status: 'CONFIRMED', label: '2. รับคำสั่งซื้อแล้ว (CONFIRMED)' },
-  { status: 'PACKED', label: '3. พนักงานขนส่ง กดน้ำ/จัดของ (PACKED)' },
-  { status: 'PICKED_UP', label: '4. ยืนยันการรับสินค้า (PICKED_UP)' },
-  { status: 'OUT_FOR_DELIVERY', label: '5. วิ่งส่งสินค้า (OUT_FOR_DELIVERY)' },
-  { status: 'DELIVERED', label: '6. ยืนยันการจัดส่ง (DELIVERED)' },
-  { status: 'BAG_COLLECTED', label: '7. ยืนยันรับถุงขาคืน (BAG_COLLECTED)' },
-  { status: 'CLOSED_WITH_RETURN', label: '8. ปิดงานพร้อมบันทึกถุงคืน' },
-];
 
 export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderId, onBackToShop, onNotify }) => {
   const [orders, setOrders] = useState<StaffOrder[]>([]);
@@ -40,7 +30,7 @@ export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderI
       ]);
       setOrders(mine);
       setBags(bagSum);
-      const targetId = selectedId ?? mine[0]?.id ?? null;
+      const targetId = pickDefaultTrackedOrderId(mine, selectedId);
       setSelectedId(targetId);
       if (targetId) {
         const [d, ev] = await Promise.all([
@@ -115,16 +105,27 @@ export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderI
           <div style={{ background: '#FFFFFF', padding: 20, borderRadius: 14, textAlign: 'center' }}>ยังไม่มีออเดอร์</div>
         ) : (
           <>
-            {/* กล่องแสดงรหัส OTP 4 หลักสำหรับแจ้งไรเดอร์ตอนส่งน้ำ */}
-            <div style={{ background: '#0F2236', color: '#FFFFFF', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 12, color: '#C5D2E0' }}>รหัส OTP แจ้งไรเดอร์เมื่อรับน้ำ (ขั้นที่ 6)</span>
-                <span style={{ fontSize: 13, color: '#A8E6C1' }}>#{detail.code} · {formatBaht(detail.totalSatang)}</span>
+            {/* กล่องแสดงรหัส OTP 4 หลักเฉพาะก่อนส่งน้ำถึงมือลูกค้า (ซ่อนอัตโนมัติเมื่อส่งเสร็จหรือยกเลิกแล้ว) */}
+            {shouldShowCustomerOtp(detail.status) ? (
+              <div style={{ background: '#0F2236', color: '#FFFFFF', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: 12, color: '#C5D2E0' }}>รหัส OTP แจ้งไรเดอร์เมื่อรับน้ำ (ขั้นที่ 6)</span>
+                  <span style={{ fontSize: 13, color: '#A8E6C1' }}>#{detail.code} · {formatBaht(detail.totalSatang)}</span>
+                </div>
+                <span style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, background: '#1C3550', padding: '6px 14px', borderRadius: 12, color: '#A8E6C1' }}>
+                  {detail.deliveryOtp ?? '----'}
+                </span>
               </div>
-              <span style={{ fontSize: 28, fontWeight: 700, letterSpacing: 4, background: '#1C3550', padding: '6px 14px', borderRadius: 12, color: '#A8E6C1' }}>
-                {detail.deliveryOtp ?? '----'}
-              </span>
-            </div>
+            ) : (
+              <div style={{ background: detail.status === 'CANCELLED' ? '#F1F5F9' : '#E8F8EE', color: detail.status === 'CANCELLED' ? '#475569' : '#17613A', borderRadius: 14, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #DCE4EC' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700 }}>
+                    {detail.status === 'CANCELLED' ? '❌ คำสั่งซื้อนี้ถูกยกเลิกแล้ว' : '✅ จัดส่งน้ำดื่มเรียบร้อยแล้ว'}
+                  </span>
+                  <span style={{ fontSize: 13 }}>#{detail.code} · {formatBaht(detail.totalSatang)} (ซ่อนรหัส OTP หลังจบขั้นตอนส่งมอบ)</span>
+                </div>
+              </div>
+            )}
 
             {detail.paymentMethod === 'PROMPTPAY' && (
               <PromptPayQrCard
