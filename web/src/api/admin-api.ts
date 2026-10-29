@@ -168,8 +168,10 @@ export const adminMgmtApi = {
     return toRelativeUploadPath(uploadResponseSchema.parse(data).url);
   },
 
-  syncLineRichMenu: (user = 'dev-admin') =>
-    requestJson<{ ok: boolean; mode: string; richMenuId: string; areas: number }>('/admin/line/rich-menu/sync', { method: 'POST', useStaffToken: true, userOverride: user }),
+  syncLineRichMenu: (imageUrl?: string | null, user = 'dev-admin') =>
+    requestJson<{ ok: boolean; mode: string; richMenuId: string; areas: number; imageSource?: string }>('/admin/line/rich-menu/sync', {
+      method: 'POST', body: imageUrl ? { imageUrl } : {}, useStaffToken: true, userOverride: user,
+    }),
 
   getPreferences: (user = 'dev-admin') =>
     requestJson<{ viewMode: 'card' | 'grid' }>('/admin/preferences', { useStaffToken: true, userOverride: user }),

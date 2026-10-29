@@ -1,12 +1,16 @@
 import { signCustomerLinkToken, verifyCustomerLinkToken } from '../src/common/password';
+import { loadConfig } from '../src/config';
 import { PAYMENT_QUICK_REPLY_ITEMS, safeQuickReplyLabel } from '../src/line/line-checkout.service';
 import {
   buildCartFlex,
+  buildContactAndShareMessages,
   buildOrderTicketFlex,
   buildProductCarouselFlex,
+  buildShareOaFlex,
   buildStatusAndBagFlex,
   getSafeProductImageUrl,
 } from '../src/line/line-flex.templates';
+import { LineRichMenuService } from '../src/line/line-rich-menu.service';
 
 describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
   it('getSafeProductImageUrl: คืนค่า URL ที่ปลอดภัย และแปลง localhost /uploads เป็น PUBLIC_WEB_URL เสมอ', () => {
@@ -152,5 +156,48 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     expect(verifyCustomerLinkToken(token, 'test-secret-key-123456')).toBe('U_real_customer_99');
     expect(verifyCustomerLinkToken(`${token}tampered`, 'test-secret-key-123456')).toBeNull();
     expect(verifyCustomerLinkToken('invalid-token', 'test-secret-key-123456')).toBeNull();
+  });
+
+  it('buildShareOaFlex: สร้างการ์ด QR Code เพิ่มเพื่อน พร้อมปุ่มแชร์นามบัตรร้านให้เพื่อน (recommendOA) และปุ่มเปิดหน้า QR เต็มจอ', () => {
+    const msg = buildShareOaFlex({
+      oaBasicId: '@157iywjs',
+      publicWebUrl: 'https://idrink.tamadee.online',
+    });
+
+    expect(msg.type).toBe('flex');
+    const json = JSON.stringify(msg);
+    expect(json).toContain('https://line.me/R/nv/recommendOA/@157iywjs');
+    expect(json).toContain('https://line.me/R/ti/p/@157iywjs');
+    expect(json).toContain('api.qrserver.com/v1/create-qr-code');
+
+    const contactMsgs = buildContactAndShareMessages({
+      oaBasicId: '@157iywjs',
+      publicWebUrl: 'https://idrink.tamadee.online',
+    });
+    expect(contactMsgs).toHaveLength(2);
+    expect(contactMsgs[0].type).toBe('text');
+    expect(contactMsgs[1].type).toBe('flex');
+  });
+
+  it('LineRichMenuService: สร้างโครงสร้าง Rich Menu 6 ช่อง (2x3) พร้อมปุ่มแชร์ QR ให้เพื่อน (action=share_oa) และซิงก์สำเร็จ', async () => {
+    const cfg = loadConfig({ AUTH_MODE: 'dev', LINE_OA_BASIC_ID: '@157iywjs' } as unknown as NodeJS.ProcessEnv);
+    const mockStorage = {
+      save: async () => ({ url: '/uploads/x.png', filename: 'x.png', size: 10, mimetype: 'image/png' }),
+      getFilePath: async () => null,
+    };
+    const svc = new LineRichMenuService(cfg, mockStorage);
+    const def = svc.buildRichMenuDefinition();
+    expect(def.areas).toHaveLength(6);
+    expect(def.areas[0].action.data).toBe('action=share_oa');
+    expect(def.areas[1].action.data).toBe('action=status');
+    expect(def.areas[2].action.data).toBe('action=reorder');
+    expect(def.areas[3].action.data).toBe('action=share_oa');
+    expect(def.areas[4].action.data).toBe('action=menu');
+    expect(def.areas[5].action.data).toBe('action=contact');
+
+    const syncRes = await svc.syncDefaultRichMenu('/uploads/nonexistent.png');
+    expect(syncRes.ok).toBe(true);
+    expect(syncRes.areas).toBe(6);
+    expect(syncRes.imageSource).toBe('generated');
   });
 });

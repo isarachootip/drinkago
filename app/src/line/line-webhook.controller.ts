@@ -1,18 +1,24 @@
-import { Controller, ForbiddenException, Get, Headers, HttpCode, Inject, Logger, Post, Req } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Headers, HttpCode, Inject, Logger, Post, Req } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import { Request } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { z } from 'zod';
 import { BagLedgerService } from '../bags/bag-ledger.service';
 import { Public, Roles, User } from '../common/auth';
+import { parse } from '../common/validate';
 import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { addresses, lineWebhookEvents, orders, users } from '../db/schema';
 import { LineCartService } from './line-cart.service';
 import { LineCheckoutService } from './line-checkout.service';
-import { buildStatusAndBagFlex, LineMessage } from './line-flex.templates';
+import { buildContactAndShareMessages, buildShareOaFlex, buildStatusAndBagFlex, LineMessage } from './line-flex.templates';
 import { LinePaymentReorderService } from './line-payment-reorder.service';
 import { formatLineAutoReply } from './line-reply';
 import { LineRichMenuService } from './line-rich-menu.service';
+
+const syncRichMenuSchema = z.object({
+  imageUrl: z.string().trim().max(500).nullable().optional(),
+});
 
 export function verifyLineSignature(rawBody: Buffer, signature: string | undefined, secret: string): boolean {
   if (!signature) return false;
@@ -69,8 +75,9 @@ export class LineWebhookController {
 
   @Post('admin/line/rich-menu/sync')
   @Roles('admin', 'warehouse')
-  syncRichMenu() {
-    return this.richMenu.syncDefaultRichMenu();
+  syncRichMenu(@Body() body?: unknown) {
+    const dto = parse(syncRichMenuSchema, body ?? {});
+    return this.richMenu.syncDefaultRichMenu(dto.imageUrl);
   }
 
   async process(events: LineEvent[]): Promise<LineMessage[][]> {
@@ -96,6 +103,7 @@ export class LineWebhookController {
   }
 
   private async dispatchEvent(customer: User, ev: LineEvent): Promise<LineMessage[]> {
+    const shareInput = { oaBasicId: this.cfg.LINE_OA_BASIC_ID, publicWebUrl: this.cfg.PUBLIC_WEB_URL };
     if (ev.type === 'follow') {
       return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId), ...(await this.cart.showMenu(this.cfg.PUBLIC_WEB_URL))];
     }
@@ -103,6 +111,8 @@ export class LineWebhookController {
       const params = new URLSearchParams(ev.postback?.data ?? '');
       const action = params.get('action');
       if (action === 'menu') return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
+      if (action === 'share_oa') return [buildShareOaFlex(shareInput)];
+      if (action === 'contact') return buildContactAndShareMessages(shareInput);
       if (action === 'quick_add') return this.cart.addItem(customer.lineUserId, Number(params.get('productId')));
       if (action === 'increase') return this.cart.changeQty(customer.lineUserId, Number(params.get('productId')), 1);
       if (action === 'decrease') return this.cart.changeQty(customer.lineUserId, Number(params.get('productId')), -1);
@@ -145,9 +155,11 @@ export class LineWebhookController {
           const m = /โอน|promptpay/i.test(text) ? 'PROMPTPAY' : /เครดิต|credit/i.test(text) ? 'CREDIT' : 'CASH';
           return this.checkout.completeCheckout(customer, m);
         }
-        if (/เมนู|สั่งน้ำ|สั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
+        if (/เมนู|สั่งน้ำ|สั่งซื้อ|ส่งใบสั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
-        if (/สั่งซ้ำ|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
+        if (/สั่งซ้ำ|โปรโมชั่น|โปรโมชัน|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
+        if (/บริการของเรา|สถานะ|เช็คสถานะ|otp|ถุงค้าง/i.test(text)) return [await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
+        if (/แชร์|แนะนำเพื่อน|ติดต่อเรา|qr|share|ilife/i.test(text)) return buildContactAndShareMessages(shareInput);
         return [{ type: 'text', text: await this.buildReplyText(customer.id, customer.name, customer.lineUserId) }, await this.buildStatusFlex(customer.id, customer.name, customer.lineUserId)];
       }
     }
@@ -167,11 +179,7 @@ export class LineWebhookController {
     const [myLatest] = await this.db.select().from(orders).where(eq(orders.customerId, userId)).orderBy(desc(orders.createdAt)).limit(1);
     const bagBalance = await this.bags.balance(userId);
     return {
-      customerName: name,
-      lineUserId,
-      oaBasicId: this.cfg.LINE_OA_BASIC_ID,
-      publicWebUrl: this.cfg.PUBLIC_WEB_URL,
-      bagBalance,
+      customerName: name, lineUserId, oaBasicId: this.cfg.LINE_OA_BASIC_ID, publicWebUrl: this.cfg.PUBLIC_WEB_URL, bagBalance,
       latestOrder: myLatest ? { code: myLatest.code, status: myLatest.status, deliveryOtp: myLatest.deliveryOtp } : null,
     };
   }

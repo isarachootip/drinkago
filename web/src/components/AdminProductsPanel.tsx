@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
 import { Product } from '../api/schemas';
 import { AdminProductsView } from './AdminProductsView';
+import { AdminRichMenuBanner } from './AdminRichMenuBanner';
 import { ProductImageUploader } from './ProductImageUploader';
 import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
 
@@ -116,31 +117,11 @@ export const AdminProductsPanel: React.FC<Props> = ({ onNotify, viewMode: propMo
     }
   };
 
-  const handleSyncRichMenu = async () => {
-    setBusy(true);
-    try {
-      const res = await adminMgmtApi.syncLineRichMenu();
-      onNotify(`ซิงก์ LINE Rich Menu (${res.areas} ปุ่ม) สำเร็จ [${res.mode}: ${res.richMenuId}]`);
-    } catch (err) {
-      onNotify(err instanceof Error ? err.message : 'ซิงก์ Rich Menu ไม่สำเร็จ');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const editingProduct = products.find((p) => p.id === editingId) ?? null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ background: '#E6EEF9', borderRadius: 14, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A56B0' }}>📱 Product Master &amp; LINE Flex Menu (สไตล์ ODM)</div>
-          <div style={{ fontSize: 12, color: '#33475B' }}>จัดการรูปภาพสินค้า (จำกัด 2 MB) แสดงผลทั้งหน้าเว็บลูกค้าและ LINE Flex Carousel</div>
-        </div>
-        <button type="button" onClick={handleSyncRichMenu} disabled={busy} style={{ minHeight: 40, padding: '0 14px', borderRadius: 10, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}>
-          🔄 ซิงก์ LINE Rich Menu 4 ปุ่ม
-        </button>
-      </div>
+      <AdminRichMenuBanner busy={busy} onBusyChange={setBusy} onNotify={onNotify} />
 
       <form onSubmit={handleCreate} style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ fontSize: 15, fontWeight: 700 }}>➕ เพิ่มสินค้าใหม่ (New Product Master)</div>

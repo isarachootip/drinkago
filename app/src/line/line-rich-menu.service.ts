@@ -1,52 +1,82 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { promises as fs } from 'node:fs';
+import { basename, extname } from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { APP_CONFIG, AppConfig } from '../config';
+import { FILE_STORAGE, FileStorage } from '../uploads/storage.interface';
 
 export interface RichMenuSyncResult {
   ok: boolean;
   mode: 'live' | 'mock';
   richMenuId: string;
   areas: number;
+  imageSource?: 'custom' | 'generated';
 }
 
 @Injectable()
 export class LineRichMenuService {
   private readonly log = new Logger(LineRichMenuService.name);
 
-  constructor(@Inject(APP_CONFIG) private readonly cfg: AppConfig) {}
+  constructor(
+    @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+    @Inject(FILE_STORAGE) private readonly storage: FileStorage,
+  ) {}
 
   buildRichMenuDefinition() {
     return {
       size: { width: 2500, height: 1686 },
       selected: true,
-      name: 'Drink&Go Delivery Menu',
-      chatBarText: 'เมนูสั่งน้ำดื่ม 💧',
+      name: 'ilife Drink&Go 6-Grid Menu',
+      chatBarText: 'เมนูสั่งน้ำ & แชร์เพื่อน 💧',
       areas: [
         {
-          bounds: { x: 0, y: 0, width: 1250, height: 843 },
-          action: { type: 'postback', label: 'สั่งน้ำดื่ม (ดูเมนู)', data: 'action=menu', displayText: 'ดูเมนูสั่งน้ำ' },
+          bounds: { x: 0, y: 0, width: 833, height: 843 },
+          action: { type: 'postback', label: 'แนะนำเพื่อน / แชร์ QR', data: 'action=share_oa', displayText: 'แชร์ QR Code ให้เพื่อน' },
         },
         {
-          bounds: { x: 1250, y: 0, width: 1250, height: 843 },
-          action: { type: 'postback', label: 'สั่งซ้ำออเดอร์เดิม', data: 'action=reorder', displayText: 'สั่งซ้ำออเดอร์เดิม' },
+          bounds: { x: 833, y: 0, width: 834, height: 843 },
+          action: { type: 'postback', label: 'บริการของเรา (สถานะ/OTP)', data: 'action=status', displayText: 'บริการของเรา' },
         },
         {
-          bounds: { x: 0, y: 843, width: 1250, height: 843 },
-          action: { type: 'postback', label: 'ตะกร้าสินค้า', data: 'action=view_cart', displayText: 'ตะกร้าสินค้า' },
+          bounds: { x: 1667, y: 0, width: 833, height: 843 },
+          action: { type: 'postback', label: 'โปรโมชั่น / สั่งซ้ำด่วน', data: 'action=reorder', displayText: 'โปรโมชั่น / สั่งซ้ำออเดอร์เดิม' },
         },
         {
-          bounds: { x: 1250, y: 843, width: 1250, height: 843 },
-          action: { type: 'postback', label: 'สถานะ / OTP / ถุงค้าง', data: 'action=status', displayText: 'เช็คสถานะและรหัส OTP' },
+          bounds: { x: 0, y: 843, width: 833, height: 843 },
+          action: { type: 'postback', label: 'แชร์ LINE OA ให้เพื่อน', data: 'action=share_oa', displayText: 'แชร์ LINE OA ให้เพื่อน' },
+        },
+        {
+          bounds: { x: 833, y: 843, width: 834, height: 843 },
+          action: { type: 'postback', label: 'ส่งใบสั่งซื้อ (ดูเมนู)', data: 'action=menu', displayText: 'ส่งใบสั่งซื้อ' },
+        },
+        {
+          bounds: { x: 1667, y: 843, width: 833, height: 843 },
+          action: { type: 'postback', label: 'ติดต่อเรา / แชร์เพื่อน', data: 'action=contact', displayText: 'ติดต่อเรา' },
         },
       ],
     };
   }
 
-  async syncDefaultRichMenu(): Promise<RichMenuSyncResult> {
+  private async resolveRichMenuImage(imageUrl?: string | null): Promise<{ buffer: Buffer; contentType: string; source: 'custom' | 'generated' }> {
+    if (imageUrl && imageUrl.trim()) {
+      const filename = basename(imageUrl.trim());
+      const filePath = await this.storage.getFilePath(filename);
+      if (filePath) {
+        const buffer = await fs.readFile(filePath);
+        const ext = extname(filename).toLowerCase();
+        const contentType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+        return { buffer, contentType, source: 'custom' };
+      }
+    }
+    return { buffer: buildSixGridPng(900, 606), contentType: 'image/png', source: 'generated' };
+  }
+
+  async syncDefaultRichMenu(imageUrl?: string | null): Promise<RichMenuSyncResult> {
     const def = this.buildRichMenuDefinition();
+    const img = await this.resolveRichMenuImage(imageUrl);
     const token = this.cfg.LINE_CHANNEL_ACCESS_TOKEN;
     if (!token) {
-      return { ok: true, mode: 'mock', richMenuId: 'richmenu-mock-drinkgo', areas: def.areas.length };
+      return { ok: true, mode: 'mock', richMenuId: 'richmenu-mock-drinkgo', areas: def.areas.length, imageSource: img.source };
     }
 
     try {
@@ -57,50 +87,50 @@ export class LineRichMenuService {
       });
       if (!createRes.ok) {
         this.log.warn(`LINE create richmenu status ${createRes.status}`);
-        return { ok: true, mode: 'mock', richMenuId: 'richmenu-fallback-drinkgo', areas: def.areas.length };
+        return { ok: true, mode: 'mock', richMenuId: 'richmenu-fallback-drinkgo', areas: def.areas.length, imageSource: img.source };
       }
       const { richMenuId } = (await createRes.json()) as { richMenuId: string };
-      const png = buildQuadGridPng(800, 540);
 
       await fetch(`https://api-data.line.me/v2/bot/richmenu/${encodeURIComponent(richMenuId)}/content`, {
         method: 'POST',
-        headers: { 'Content-Type': 'image/png', Authorization: `Bearer ${token}` },
-        body: new Uint8Array(png),
+        headers: { 'Content-Type': img.contentType, Authorization: `Bearer ${token}` },
+        body: new Uint8Array(img.buffer),
       });
       await fetch(`https://api.line.me/v2/bot/user/all/richmenu/${encodeURIComponent(richMenuId)}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      return { ok: true, mode: 'live', richMenuId, areas: def.areas.length };
+      return { ok: true, mode: 'live', richMenuId, areas: def.areas.length, imageSource: img.source };
     } catch (e) {
       this.log.warn(`RichMenu sync fallback: ${(e as Error).message}`);
-      return { ok: true, mode: 'mock', richMenuId: 'richmenu-fallback-drinkgo', areas: def.areas.length };
+      return { ok: true, mode: 'mock', richMenuId: 'richmenu-fallback-drinkgo', areas: def.areas.length, imageSource: img.source };
     }
   }
 }
 
-function buildQuadGridPng(width: number, height: number): Buffer {
+function buildSixGridPng(width: number, height: number): Buffer {
   const rowSize = width * 3 + 1;
   const raw = Buffer.alloc(rowSize * height);
+  const colW = Math.floor(width / 3);
+  const rowH = Math.floor(height / 2);
+  const palette: [number, number, number][] = [
+    [6, 199, 85], [26, 86, 176], [11, 110, 138],
+    [16, 152, 104], [30, 123, 69], [15, 34, 54],
+  ];
   for (let y = 0; y < height; y++) {
     const rowStart = y * rowSize;
     raw[rowStart] = 0;
     for (let x = 0; x < width; x++) {
       const p = rowStart + 1 + x * 3;
-      const isRight = x >= width / 2;
-      const isBottom = y >= height / 2;
-      const isBorder = Math.abs(x - width / 2) < 4 || Math.abs(y - height / 2) < 4;
+      const isBorder = Math.abs(x - colW) < 3 || Math.abs(x - colW * 2) < 3 || Math.abs(y - rowH) < 3;
       if (isBorder) {
         raw[p] = 255; raw[p + 1] = 255; raw[p + 2] = 255;
-      } else if (!isRight && !isBottom) {
-        raw[p] = 26; raw[p + 1] = 86; raw[p + 2] = 176;
-      } else if (isRight && !isBottom) {
-        raw[p] = 11; raw[p + 1] = 110; raw[p + 2] = 138;
-      } else if (!isRight && isBottom) {
-        raw[p] = 30; raw[p + 1] = 123; raw[p + 2] = 69;
       } else {
-        raw[p] = 15; raw[p + 1] = 34; raw[p + 2] = 54;
+        const col = x < colW ? 0 : x < colW * 2 ? 1 : 2;
+        const row = y < rowH ? 0 : 1;
+        const [r, g, b] = palette[row * 3 + col];
+        raw[p] = r; raw[p + 1] = g; raw[p + 2] = b;
       }
     }
   }

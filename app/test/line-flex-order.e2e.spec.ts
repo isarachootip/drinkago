@@ -87,11 +87,21 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(hardDel.body).toEqual({ id: created.body.id, deleted: true, mode: 'HARD_DELETE', active: false });
 
     const richSpec = await admin.get('/admin/line/rich-menu').expect(200);
-    expect(richSpec.body.areas).toHaveLength(4);
+    expect(richSpec.body.areas).toHaveLength(6);
+    expect(richSpec.body.areas[0].action.data).toBe('action=share_oa');
+    expect(richSpec.body.areas[3].action.data).toBe('action=share_oa');
+    expect(richSpec.body.areas[4].action.data).toBe('action=menu');
 
-    const synced = await admin.post('/admin/line/rich-menu/sync').expect(201);
+    const synced = await admin.post('/admin/line/rich-menu/sync', { imageUrl: '/uploads/richmenu-ilife.png' }).expect(201);
     expect(synced.body.ok).toBe(true);
-    expect(synced.body.areas).toBe(4);
+    expect(synced.body.areas).toBe(6);
+
+    const sharePostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=share_oa' } }).expect(200);
+    expect(JSON.stringify(sharePostback.body.replies)).toContain('https://line.me/R/nv/recommendOA/');
+    expect(JSON.stringify(sharePostback.body.replies)).toContain('https://line.me/R/ti/p/');
+
+    const contactText = await sendLineEvent('U_odm_cust_001', { type: 'message', message: { type: 'text', text: 'ติดต่อเรา' } }).expect(200);
+    expect(JSON.stringify(contactText.body.replies)).toContain('https://line.me/R/nv/recommendOA/');
   });
 
   it('2. ลูกค้าสั่งน้ำผ่าน LINE Flex Menu → ตะกร้า Postback → แชร์พิกัด GPS → สร้างออเดอร์ PromptPay → ส่งสลิปในแชท', async () => {
