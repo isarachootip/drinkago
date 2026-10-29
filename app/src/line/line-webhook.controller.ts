@@ -8,12 +8,13 @@ import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { lineWebhookEvents } from '../db/schema';
 import { MeetupEventsService } from '../events/meetup-events.service';
+import { isStationRegion, parseStationRegionFromText, StationRegion } from '../stations/station-regions';
 import { StationsService } from '../stations/stations.service';
 import { LineCartService } from './line-cart.service';
 import { LineCheckoutService } from './line-checkout.service';
 import {
   buildContactAndShareMessages, buildMeetupEventsFlex, buildShareOaFlex,
-  buildStationsCarouselFlex, buildVisitUsFlex, LineMessage,
+  buildStationRegionPickerFlex, buildStationsCarouselFlex, buildVisitUsFlex, LineMessage,
 } from './line-flex.templates';
 import { LinePaymentReorderService } from './line-payment-reorder.service';
 import { LineRichMenuService } from './line-rich-menu.service';
@@ -27,16 +28,11 @@ export function verifyLineSignature(rawBody: Buffer, signature: string | undefin
   try {
     const given = Buffer.from(signature, 'base64');
     return given.length === expected.length && timingSafeEqual(given, expected);
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 interface LineEvent {
-  type: string;
-  webhookEventId: string;
-  replyToken?: string;
-  source?: { userId?: string };
+  type: string; webhookEventId: string; replyToken?: string; source?: { userId?: string };
   message?: { id?: string; type: string; text?: string; latitude?: number; longitude?: number; address?: string };
   postback?: { data?: string };
 }
@@ -111,7 +107,8 @@ export class LineWebhookController {
       const action = params.get('action');
       if (action === 'menu') return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
       if (action === 'events') return [buildMeetupEventsFlex(await this.eventsService.listPublic(), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
-      if (action === 'find_stations') return [buildStationsCarouselFlex(await this.stations.listStations())];
+      if (action === 'find_stations') return this.replyStationDiscovery(customer);
+      if (action === 'stations_by_region') return this.replyStationDiscovery(customer, params.get('region'));
       if (action === 'visit_us') return [buildVisitUsFlex(visitInput)];
       if (action === 'share_oa') return [buildShareOaFlex(shareInput)];
       if (action === 'contact') return buildContactAndShareMessages(shareInput);
@@ -147,7 +144,7 @@ export class LineWebhookController {
         const session = await this.cart.getSession(customer.lineUserId);
         if (session.state === 'AWAITING_LOCATION') return this.checkout.saveAddressAndProceed(customer, { lat, lng });
         const nearest = await this.stations.suggestStations(lat, lng);
-        return [buildStationsCarouselFlex(nearest.slice(0, 6), 'ตู้เติมน้ำที่ใกล้คุณที่สุด')];
+        return [buildStationsCarouselFlex(nearest.slice(0, 6), { subtitle: 'ตู้เติมน้ำที่ใกล้คุณที่สุด', publicWebUrl: this.cfg.PUBLIC_WEB_URL, lineUserId: customer.lineUserId })];
       }
       if (ev.message.type === 'image') return this.paymentReorder.handleSlipImage(customer, ev.message.id ?? 'img');
       if (ev.message.type === 'text') {
@@ -164,7 +161,7 @@ export class LineWebhookController {
         }
         if (/กิจกรรม|กิจกรรมพบปะ|ตารางกิจกรรม|event/i.test(text)) return [buildMeetupEventsFlex(await this.eventsService.listPublic(), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
         if (/เมนู|สั่งน้ำ|สั่งซื้อ|ส่งใบสั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
-        if (/ค้นหาตู้|ตู้เติมน้ำ|ตู้กดน้ำ|สาขา|station/i.test(text)) return [buildStationsCarouselFlex(await this.stations.listStations())];
+        if (/ค้นหาตู้|ตู้เติมน้ำ|ตู้กดน้ำ|สาขา|station/i.test(text)) return this.replyStationDiscovery(customer, parseStationRegionFromText(text));
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
         if (/สั่งซ้ำ|โปรโมชั่น|โปรโมชัน|reorder/i.test(text)) return this.paymentReorder.handleQuickReorder(customer);
         if (/ติดตามสถานะ|บริการของเรา|สถานะ|เช็คสถานะ|otp|ถุงค้าง/i.test(text)) return [await this.statusService.buildStatusFlex(customer)];
@@ -174,6 +171,14 @@ export class LineWebhookController {
       }
     }
     return [];
+  }
+
+  private async replyStationDiscovery(customer: User, regionParam?: StationRegion | string | null): Promise<LineMessage[]> {
+    if (isStationRegion(regionParam)) {
+      const list = await this.stations.listStations({ region: regionParam, activeOnly: true });
+      return [buildStationsCarouselFlex(list, { region: regionParam, publicWebUrl: this.cfg.PUBLIC_WEB_URL, lineUserId: customer.lineUserId })];
+    }
+    return [buildStationRegionPickerFlex(await this.stations.listStations({ activeOnly: true }), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
   }
 
   private async replyLine(replyToken: string, messages: LineMessage[]) {

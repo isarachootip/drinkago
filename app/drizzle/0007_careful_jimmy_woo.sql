@@ -1,0 +1,1 @@
+ALTER TABLE "water_stations" ADD COLUMN "region" text DEFAULT 'BANGKOK' NOT NULL;

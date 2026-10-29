@@ -102,10 +102,10 @@ test/                            unit + e2e
 | POST | `/orders/:id/verify-payment` | admin | ยืนยันสลิป |
 | POST | `/orders/:id/unlock-otp` | admin | ปลดล็อก OTP หลังกรอกผิดครบ 5 ครั้ง |
 | GET | `/admin/bag-mismatches` | admin | |
-| GET | `/stations` | ทุกบทบาท | รายการตู้กดน้ำ + ยอดสต็อกถุงประจำตู้ |
-| GET | `/stations/suggest?lat=&lng=` | ทุกบทบาท | Suggest ตู้กดน้ำที่ใกล้พิกัดบ้านลูกค้าที่สุด เรียงตามระยะทาง (กม.) |
+| GET | `/stations?region=&activeOnly=` | ทุกบทบาท (Public) | รายการตู้กดน้ำ + ยอดสต็อกถุงประจำตู้ (รองรับกรองโซน `BANGKOK`, `CENTRAL`, `NORTH`, `NORTHEAST`, `EAST`, `SOUTH` และ `activeOnly=true`) |
+| GET | `/stations/suggest?lat=&lng=` | ทุกบทบาท (Public) | Suggest ตู้กดน้ำที่ใกล้พิกัดบ้านลูกค้าที่สุด เรียงตามระยะทาง (กม.) |
 | POST | `/orders/:id/claim` | rider | ไรเดอร์กดรับงานเองจากคิวกลาง (ไม่ต้องรอคลังสินค้า) |
-| POST/PATCH | `/admin/stations`, `/admin/stations/:id` | warehouse, admin | เพิ่ม/แก้ไขตู้กดน้ำและพิกัดนำทาง |
+| POST/PATCH | `/admin/stations`, `/admin/stations/:id` | warehouse, admin | เพิ่ม/แก้ไขตู้กดน้ำ โซน/ภูมิภาค (`region`) และพิกัดนำทาง |
 | POST | `/admin/stations/:id/bags` | warehouse, admin | เติมถุงเข้าตู้ (`RESTOCK_IN`) / ปรับยอด (`ADJUST`) |
 | GET | `/admin/stations/:id/ledger` | warehouse, admin | ประวัติรับเข้า-จ่ายออกถุงประจำตู้เชื่อมกับสมาชิก |
 | GET/PATCH | `/admin/preferences` | warehouse, admin | ดึงและบันทึกโหมดการแสดงผลหลังบ้าน (`card` / `grid`) ลงฐานข้อมูล Server |

@@ -5,9 +5,9 @@ import { LineBanner } from '../components/LineBanner';
 import { PromptPayQrCard } from '../components/PromptPayQrCard';
 import { resolveProductImageUrl } from '../domain/photo-picker';
 
-interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onNotify: (msg: string) => void }
+interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onGoStations?: () => void; onNotify: (msg: string) => void }
 
-export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onNotify }) => {
+export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onGoStations, onNotify }) => {
   const [registeredName, setRegisteredName] = useState<string | null>(null);
   const [needsRegister, setNeedsRegister] = useState(false);
   const [regName, setRegName] = useState('คุณสมใจ');
@@ -22,9 +22,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const [hasReturnBag, setHasReturnBag] = useState(false);
   const [returnBagQty, setReturnBagQty] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'PROMPTPAY' | 'CREDIT'>('CASH');
-  const [creditLimitSatang, setCreditLimitSatang] = useState<number>(100000);
-  const [lastOrder, setLastOrder] = useState<StaffOrder | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [creditLimitSatang, setCreditLimitSatang] = useState<number>(100000); const [lastOrder, setLastOrder] = useState<StaffOrder | null>(null); const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -96,11 +94,12 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <div style={{ background: '#FFFFFF', padding: '16px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #DCE4EC' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1A56B0' }}>Drink&amp;Go</div>
-          <button type="button" onClick={onGoTrack} style={{ padding: '6px 12px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            📦 ติดตามสถานะ / ดู OTP ({registeredName})
-          </button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {onGoStations && <button type="button" onClick={onGoStations} style={{ padding: '6px 10px', borderRadius: 12, border: '1px solid #0B6E8A', background: '#E0F2FE', color: '#0B6E8A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📍 ตู้ทั่วไทย</button>}
+            <button type="button" onClick={onGoTrack} style={{ padding: '6px 10px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 สถานะ / OTP ({registeredName})</button>
+          </div>
         </div>
         <LineBanner customerUser={customerUser} />
         {activeAddr && (

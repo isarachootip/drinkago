@@ -55,6 +55,7 @@ export const waterStations = pgTable('water_stations', {
   code: text('code').notNull(),
   name: text('name').notNull(),
   addressDetail: text('address_detail').notNull(),
+  region: text('region').notNull().default('BANGKOK'),
   lat: doublePrecision('lat').notNull(),
   lng: doublePrecision('lng').notNull(),
   active: boolean('active').notNull().default(true),
@@ -161,7 +162,6 @@ export const payments = pgTable('payments', {
   verified: boolean('verified').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
-
 export const notificationOutbox = pgTable('notification_outbox', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.id),
@@ -172,7 +172,6 @@ export const notificationOutbox = pgTable('notification_outbox', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   sentAt: timestamp('sent_at', { withTimezone: true }),
 }, (t) => [index('notification_outbox_status_idx').on(t.status)]);
-
 export const lineWebhookEvents = pgTable('line_webhook_events', {
   webhookEventId: text('webhook_event_id').primaryKey(),
   type: text('type').notNull(),

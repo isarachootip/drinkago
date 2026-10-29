@@ -1,8 +1,16 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
-import { CurrentUser, Roles, User } from '../common/auth';
+import { CurrentUser, Public, Roles, User } from '../common/auth';
 import { parse } from '../common/validate';
+import { STATION_REGIONS } from './station-regions';
 import { StationsService } from './stations.service';
+
+const regionSchema = z.enum(STATION_REGIONS);
+
+const listStationsQuerySchema = z.object({
+  region: regionSchema.optional(),
+  activeOnly: z.enum(['true', 'false']).optional(),
+});
 
 const suggestQuerySchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
@@ -13,6 +21,7 @@ const createStationSchema = z.object({
   code: z.string().min(1).max(30),
   name: z.string().min(1).max(120),
   addressDetail: z.string().min(1).max(500),
+  region: regionSchema.optional(),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
 });
@@ -20,6 +29,7 @@ const createStationSchema = z.object({
 const updateStationSchema = z.object({
   name: z.string().min(1).max(120).optional(),
   addressDetail: z.string().min(1).max(500).optional(),
+  region: regionSchema.optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
   active: z.boolean().optional(),
@@ -36,11 +46,17 @@ export class StationsController {
   constructor(private readonly stations: StationsService) {}
 
   @Get('stations')
-  listStations() {
-    return this.stations.listStations();
+  @Public()
+  listStations(@Query() q?: unknown) {
+    const parsed = parse(listStationsQuerySchema, q ?? {});
+    return this.stations.listStations({
+      region: parsed.region,
+      activeOnly: parsed.activeOnly === 'true',
+    });
   }
 
   @Get('stations/suggest')
+  @Public()
   suggestStations(@Query() q: unknown) {
     const { lat, lng } = parse(suggestQuerySchema, q);
     return this.stations.suggestStations(lat, lng);

@@ -114,6 +114,35 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
 
     const visitPostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=visit_us' } }).expect(200);
     expect(JSON.stringify(visitPostback.body.replies)).toContain('facebook.com');
+
+    // ทดสอบค้นหาตู้เติมน้ำทั่วไทยแบบแบ่งกรุงเทพฯ และ 5 ภูมิภาค (ทั้ง Public API และ LINE Postback)
+    const publicBkk = await request(server).get('/stations?region=BANGKOK&activeOnly=true').expect(200);
+    expect(publicBkk.body).toHaveLength(10);
+    const publicSouth = await request(server).get('/stations?region=SOUTH&activeOnly=true').expect(200);
+    expect(publicSouth.body).toHaveLength(1);
+    expect(publicSouth.body[0].code).toBe('ST-14');
+    await request(server).get('/stations?region=INVALID_REGION').expect(400);
+
+    const pickerRes = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=find_stations' } }).expect(200);
+    const pickerJson = JSON.stringify(pickerRes.body.replies);
+    expect(pickerJson).toContain('action=stations_by_region&region=BANGKOK');
+    expect(pickerJson).toContain('10 สาขา');
+    expect(pickerJson).toContain('action=stations_by_region&region=SOUTH');
+    expect(pickerJson).toContain('tab=stations');
+
+    const southPostback = await sendLineEvent('U_odm_cust_001', {
+      type: 'postback',
+      postback: { data: 'action=stations_by_region&region=SOUTH' },
+    }).expect(200);
+    expect(JSON.stringify(southPostback.body.replies)).toContain('ST-14');
+    expect(JSON.stringify(southPostback.body.replies)).toContain('สงขลา-หาดใหญ่');
+
+    const northChat = await sendLineEvent('U_odm_cust_001', {
+      type: 'message',
+      message: { type: 'text', text: 'ค้นหาตู้ภาคเหนือ' },
+    }).expect(200);
+    expect(JSON.stringify(northChat.body.replies)).toContain('ST-11');
+    expect(JSON.stringify(northChat.body.replies)).toContain('เชียงใหม่');
   });
 
   it('2. ลูกค้าสั่งน้ำผ่าน LINE Flex Menu → ตะกร้า Postback → แชร์พิกัด GPS → สร้างออเดอร์ PromptPay → ส่งสลิปในแชท', async () => {

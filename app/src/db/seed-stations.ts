@@ -1,3 +1,5 @@
+import { StationRegion } from '../stations/station-regions';
+
 /**
  * รายการตู้กดน้ำตั้งต้น 15 สาขา:
  * - ST-01 ถึง ST-10: 10 เขตทั่วกรุงเทพมหานคร (รวมรามอินทรา 57 และ พุทธบูชา 34)
@@ -7,6 +9,7 @@ export interface SeedStation {
   code: string;
   name: string;
   addressDetail: string;
+  region: StationRegion;
   lat: number;
   lng: number;
 }
@@ -17,6 +20,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-01',
     name: 'ตู้กดน้ำสาขาสุขุมวิท 50 (จุดหลัก)',
     addressDetail: 'ปากซอยสุขุมวิท 50 แขวงพระโขนง เขตคลองเตย กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.7058,
     lng: 100.6012,
   },
@@ -24,6 +28,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-02',
     name: 'ตู้กดน้ำสาขาอ่อนนุช 17',
     addressDetail: 'ซอยอ่อนนุช 17 แขวงสวนหลวง เขตสวนหลวง กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.7135,
     lng: 100.6105,
   },
@@ -31,6 +36,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-03',
     name: 'ตู้กดน้ำสาขารามอินทรา 57',
     addressDetail: 'ซอยรามอินทรา 57 แขวงท่าแร้ง เขตบางเขน กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.8512,
     lng: 100.6415,
   },
@@ -38,6 +44,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-04',
     name: 'ตู้กดน้ำสาขาพุทธบูชา 34',
     addressDetail: 'ซอยพุทธบูชา 34 แขวงบางมด เขตทุ่งครุ กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.6458,
     lng: 100.4932,
   },
@@ -45,6 +52,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-05',
     name: 'ตู้กดน้ำสาขาลาดพร้าว 71',
     addressDetail: 'ถนนนาคนิวาส (ลาดพร้าว 71) แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.8035,
     lng: 100.6075,
   },
@@ -52,6 +60,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-06',
     name: 'ตู้กดน้ำสาขารัชดาภิเษก-ห้วยขวาง',
     addressDetail: 'ถนนประชาราษฎร์บำเพ็ญ แขวงห้วยขวาง เขตห้วยขวาง กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.777,
     lng: 100.5736,
   },
@@ -59,6 +68,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-07',
     name: 'ตู้กดน้ำสาขาพหลโยธิน-จตุจักร',
     addressDetail: 'ซอยพหลโยธิน 24 แขวงจอมพล เขตจตุจักร กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.816,
     lng: 100.5612,
   },
@@ -66,6 +76,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-08',
     name: 'ตู้กดน้ำสาขาบางแค-เพชรเกษม',
     addressDetail: 'ซอยเพชรเกษม 63 แขวงหลักสอง เขตบางแค กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.7118,
     lng: 100.4085,
   },
@@ -73,6 +84,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-09',
     name: 'ตู้กดน้ำสาขาพระราม 2-ท่าข้าม',
     addressDetail: 'ถนนท่าข้าม แขวงแสมดำ เขตบางขุนเทียน กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.6615,
     lng: 100.443,
   },
@@ -80,6 +92,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-10',
     name: 'ตู้กดน้ำสาขาลาดกระบัง-ร่มเกล้า',
     addressDetail: 'ถนนลาดกระบัง แขวงลาดกระบัง เขตลาดกระบัง กรุงเทพฯ',
+    region: 'BANGKOK',
     lat: 13.7275,
     lng: 100.7485,
   },
@@ -89,6 +102,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-11',
     name: 'ตู้กดน้ำสาขาเชียงใหม่ (ภาคเหนือ)',
     addressDetail: 'ถนนนิมมานเหมินท์ ต.สุเทพ อ.เมืองเชียงใหม่ จ.เชียงใหม่',
+    region: 'NORTH',
     lat: 18.7961,
     lng: 98.968,
   },
@@ -96,6 +110,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-12',
     name: 'ตู้กดน้ำสาขาขอนแก่น (ภาคอีสาน)',
     addressDetail: 'ถนนมิตรภาพ ต.ในเมือง อ.เมืองขอนแก่น จ.ขอนแก่น',
+    region: 'NORTHEAST',
     lat: 16.4322,
     lng: 102.8236,
   },
@@ -103,6 +118,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-13',
     name: 'ตู้กดน้ำสาขาชลบุรี-พัทยากลาง (ภาคตะวันออก)',
     addressDetail: 'ถนนพัทยากลาง ต.หนองปรือ อ.บางละมุง จ.ชลบุรี',
+    region: 'EAST',
     lat: 12.9236,
     lng: 100.8825,
   },
@@ -110,6 +126,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-14',
     name: 'ตู้กดน้ำสาขาสงขลา-หาดใหญ่ (ภาคใต้)',
     addressDetail: 'ถนนเพชรเกษม ต.หาดใหญ่ อ.หาดใหญ่ จ.สงขลา',
+    region: 'SOUTH',
     lat: 7.0086,
     lng: 100.4747,
   },
@@ -117,6 +134,7 @@ export const SAMPLE_STATIONS: SeedStation[] = [
     code: 'ST-15',
     name: 'ตู้กดน้ำสาขาพระนครศรีอยุธยา (ภาคกลาง)',
     addressDetail: 'ถนนโรจนะ ต.หอรัตนไชย อ.พระนครศรีอยุธยา จ.พระนครศรีอยุธยา',
+    region: 'CENTRAL',
     lat: 14.3532,
     lng: 100.5684,
   },

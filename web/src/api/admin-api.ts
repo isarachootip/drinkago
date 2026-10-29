@@ -3,9 +3,11 @@ import { ApiClientError, loadDevSettings } from './client';
 import { toRelativeUploadPath } from '../domain/photo-picker';
 import { loadStaffSession, requestJson, StaffSession } from './role-api';
 import { BagSummary, bagSummarySchema, Product, productSchema, uploadResponseSchema } from './schemas';
+import { STATION_REGIONS, StationRegion } from '../domain/station-regions';
 
 export const waterStationSchema = z.object({
   id: z.number().int(), code: z.string(), name: z.string(), addressDetail: z.string(),
+  region: z.enum(STATION_REGIONS).default('BANGKOK'),
   lat: z.number(), lng: z.number(), active: z.boolean(), bagBalance: z.number().int(),
 });
 export type WaterStation = z.infer<typeof waterStationSchema>;
@@ -74,14 +76,14 @@ export const adminMgmtApi = {
     z.array(waterStationSchema).parse(await requestJson('/stations', { userOverride: user })),
 
   createStation: async (
-    body: { code: string; name: string; addressDetail: string; lat: number; lng: number },
+    body: { code: string; name: string; addressDetail: string; region?: StationRegion; lat: number; lng: number },
     user = 'dev-admin',
   ): Promise<WaterStation> =>
     waterStationSchema.parse(await requestJson('/admin/stations', { method: 'POST', body, userOverride: user })),
 
   updateStation: async (
     id: number,
-    body: Partial<{ name: string; addressDetail: string; lat: number; lng: number; active: boolean }>,
+    body: Partial<{ name: string; addressDetail: string; region: StationRegion; lat: number; lng: number; active: boolean }>,
     user = 'dev-admin',
   ): Promise<WaterStation> =>
     waterStationSchema.parse(await requestJson(`/admin/stations/${id}`, { method: 'PATCH', body, userOverride: user })),

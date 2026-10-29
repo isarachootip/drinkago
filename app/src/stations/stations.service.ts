@@ -1,8 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, SQL, sql } from 'drizzle-orm';
 import { DomainError } from '../common/errors';
 import { Db, DB, DbOrTx } from '../db/db';
 import { orders, stationBagLedger, users, waterStations } from '../db/schema';
+import { inferStationRegion, StationRegion } from './station-regions';
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -27,8 +28,16 @@ export class StationsService {
     return bal;
   }
 
-  async listStations() {
-    const stations = await this.db.select().from(waterStations).orderBy(waterStations.id);
+  async listStations(filter?: { region?: StationRegion; activeOnly?: boolean }) {
+    const conds: SQL[] = [];
+    if (filter?.region) conds.push(eq(waterStations.region, filter.region));
+    if (filter?.activeOnly) conds.push(eq(waterStations.active, true));
+
+    const query = this.db.select().from(waterStations);
+    const stations = conds.length > 0
+      ? await query.where(and(...conds)).orderBy(waterStations.id)
+      : await query.orderBy(waterStations.id);
+
     const result = [];
     for (const s of stations) {
       result.push({ ...s, bagBalance: await this.bagBalance(s.id) });
@@ -59,12 +68,14 @@ export class StationsService {
     code: string;
     name: string;
     addressDetail: string;
+    region?: StationRegion;
     lat: number;
     lng: number;
   }) {
+    const region = input.region ?? inferStationRegion(input.name, input.addressDetail);
     const [st] = await this.db
       .insert(waterStations)
-      .values(input)
+      .values({ ...input, region })
       .onConflictDoNothing()
       .returning();
     if (!st) throw new DomainError(409, 'STATION_CODE_EXISTS', 'รหัสตู้กดน้ำนี้มีอยู่แล้ว');
@@ -73,7 +84,7 @@ export class StationsService {
 
   async updateStation(
     id: number,
-    input: Partial<{ name: string; addressDetail: string; lat: number; lng: number; active: boolean }>,
+    input: Partial<{ name: string; addressDetail: string; region: StationRegion; lat: number; lng: number; active: boolean }>,
   ) {
     const [st] = await this.db
       .update(waterStations)
@@ -126,7 +137,7 @@ export class StationsService {
   }
 
   async ledgerOf(stationId: number) {
-    const rows = await this.db
+    return this.db
       .select({
         id: stationBagLedger.id,
         stationId: stationBagLedger.stationId,
@@ -145,6 +156,5 @@ export class StationsService {
       .where(eq(stationBagLedger.stationId, stationId))
       .orderBy(desc(stationBagLedger.id))
       .limit(100);
-    return rows;
   }
 }

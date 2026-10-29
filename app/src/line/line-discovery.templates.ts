@@ -2,17 +2,13 @@ import { buildSignedCustomerUrl } from '../common/password';
 import { MeetupEventItem } from '../events/meetup-events.service';
 import { LineFlexMessage } from './line-flex.templates';
 import { normalizeOaBasicId } from './line-share.templates';
-
-export interface StationFlexItem {
-  id: number;
-  code: string;
-  name: string;
-  addressDetail: string;
-  lat: number;
-  lng: number;
-  bagBalance?: number;
-  distanceKm?: number;
-}
+export {
+  buildStationRegionPickerFlex,
+  buildStationsCarouselFlex,
+  buildStationsWebUrl,
+  StationFlexItem,
+  StationsCarouselOptions,
+} from './line-stations.templates';
 
 export interface VisitUsFlexInput {
   oaBasicId: string;
@@ -95,19 +91,8 @@ export function buildMeetupEventsFlex(
       spacing: 'xs',
       paddingAll: '12px',
       contents: [
-        {
-          type: 'button',
-          style: 'primary',
-          color: '#7C3AED',
-          height: 'sm',
-          action: { type: 'uri', label: '🗺️ แผนที่สถานที่จัดงาน', uri: ev.mapUrl },
-        },
-        {
-          type: 'button',
-          style: 'secondary',
-          height: 'sm',
-          action: { type: 'uri', label: '🌐 ดูตารางกิจกรรมทั้งหมด', uri: webEventsUrl },
-        },
+        { type: 'button', style: 'primary', color: '#7C3AED', height: 'sm', action: { type: 'uri', label: '🗺️ แผนที่สถานที่จัดงาน', uri: ev.mapUrl } },
+        { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🌐 ดูตารางกิจกรรมทั้งหมด', uri: webEventsUrl } },
       ],
     },
   }));
@@ -116,62 +101,6 @@ export function buildMeetupEventsFlex(
     type: 'flex',
     altText: `📅 ตารางกิจกรรมพบปะทีม ilife (${events.length} รายการ)`,
     contents: { type: 'carousel', contents: bubbles },
-  };
-}
-
-export function buildStationsCarouselFlex(stations: StationFlexItem[], subtitle = 'ค้นหาตู้เติมน้ำทั่วไทย'): LineFlexMessage {
-  const bubbles = stations.slice(0, 12).map((s) => {
-    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.lat},${s.lng}`)}`;
-    return {
-      type: 'bubble',
-      size: 'kilo',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: '#0B6E8A',
-        paddingAll: '10px',
-        contents: [
-          { type: 'text', text: `🚰 ${s.name}`, weight: 'bold', size: 'sm', color: '#FFFFFF', wrap: true },
-          { type: 'text', text: `รหัสสาขา: ${s.code}`, size: 'xs', color: '#E0F2FE' },
-        ],
-      },
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'xs',
-        paddingAll: '12px',
-        contents: [
-          ...(s.distanceKm !== undefined
-            ? [{ type: 'text', text: `📏 ห่างจากคุณประมาณ ${s.distanceKm.toFixed(1)} กม.`, size: 'xs', weight: 'bold', color: '#1E7B45' }]
-            : []),
-          { type: 'text', text: `📍 ${s.addressDetail}`, size: 'xs', color: '#33475B', wrap: true },
-          ...(s.bagBalance !== undefined
-            ? [{ type: 'text', text: `🛍️ สต็อกถุงพร้อมจ่าย: ${s.bagBalance} ใบ`, size: 'xs', color: '#1A56B0' }]
-            : []),
-        ],
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'xs',
-        paddingAll: '10px',
-        contents: [
-          { type: 'button', style: 'primary', color: '#0B6E8A', height: 'sm', action: { type: 'uri', label: '🗺️ นำทาง Google Maps', uri: mapUrl } },
-        ],
-      },
-    };
-  });
-
-  return {
-    type: 'flex',
-    altText: `📍 ${subtitle} (${stations.length} สาขา)`,
-    contents: { type: 'carousel', contents: bubbles },
-    quickReply: {
-      items: [
-        { type: 'action', action: { type: 'location', label: '📍 หาตู้ใกล้ฉัน' } },
-        { type: 'action', action: { type: 'postback', label: '💧 สั่งน้ำดื่ม', data: 'action=menu', displayText: 'สั่งน้ำดื่ม' } },
-      ],
-    },
   };
 }
 

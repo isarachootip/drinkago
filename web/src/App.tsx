@@ -17,9 +17,11 @@ import {
 } from './domain/session-gate';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
+import { CustomerStationsPage } from './pages/CustomerStationsPage';
 import { CustomerTrackPage } from './pages/CustomerTrackPage';
 import { RiderJobsPage } from './pages/RiderJobsPage';
 import { RiderPodPage } from './pages/RiderPodPage';
+import { resolveInitialRegionParam } from './domain/station-regions';
 import { listOfflineMutations } from './storage/offline-queue';
 
 export const App: React.FC = () => {
@@ -31,7 +33,7 @@ export const App: React.FC = () => {
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
-  const [custScreen, setCustScreen] = useState<'shop' | 'track'>(() => (resolveInitialQueryTab() === 'track' ? 'track' : 'shop'));
+  const [custScreen, setCustScreen] = useState<'shop' | 'track' | 'stations'>(() => { const t = resolveInitialQueryTab(); return t === 'track' ? 'track' : t === 'stations' ? 'stations' : 'shop'; });
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(() => resolveInitialOrderId());
   const [liffChecking, setLiffChecking] = useState<boolean>(() => shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }));
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
@@ -170,8 +172,10 @@ export const App: React.FC = () => {
         <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} onNotify={showNotice} />
       ) : (
         <>
-          {activeTab === 'customer' && (custScreen === 'shop' ? (
-            <CustomerOrderPage key={customerUser} customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onNotify={showNotice} />
+          {activeTab === 'customer' && (custScreen === 'stations' ? (
+            <CustomerStationsPage initialRegion={resolveInitialRegionParam()} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
+          ) : custScreen === 'shop' ? (
+            <CustomerOrderPage key={customerUser} customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onGoStations={() => setCustScreen('stations')} onNotify={showNotice} />
           ) : (
             <CustomerTrackPage key={customerUser} customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
           ))}

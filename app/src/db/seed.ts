@@ -9,6 +9,7 @@ import { runOneTimeOrderReset } from '../orders/order-reset';
 import { createDb } from './db';
 import { products, stationBagLedger, users, waterStations } from './schema';
 import { SAMPLE_STATIONS } from './seed-stations';
+import { inferStationRegion } from '../stations/station-regions';
 
 export { SAMPLE_STATIONS };
 
@@ -81,6 +82,28 @@ export async function seed(url: string) {
       }
     }
     await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS system_migrations_log (
+        key TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+    const regionBackfilled = await db.execute<{ key: string }>(
+      sql`SELECT key FROM system_migrations_log WHERE key = 'backfill_station_regions_v1' LIMIT 1`,
+    );
+    if (regionBackfilled.rows.length === 0) {
+      const existingStations = await db.select().from(waterStations);
+      for (const st of existingStations) {
+        const sampleMatch = SAMPLE_STATIONS.find((s) => s.code === st.code);
+        const targetRegion = sampleMatch?.region ?? inferStationRegion(st.name, st.addressDetail);
+        if (st.region !== targetRegion) {
+          await db.update(waterStations).set({ region: targetRegion }).where(eq(waterStations.id, st.id));
+        }
+      }
+      await db.execute(sql`
+        INSERT INTO system_migrations_log (key) VALUES ('backfill_station_regions_v1') ON CONFLICT (key) DO NOTHING
+      `);
+    }
 
     const [admin] = await db.select().from(users).where(eq(users.lineUserId, 'dev-admin')).limit(1);
     if (admin && (!admin.username || !admin.passwordHash)) {

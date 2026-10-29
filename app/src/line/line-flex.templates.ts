@@ -11,7 +11,7 @@ export {
   TrackableOrderCardInput,
 } from './line-status.templates';
 export { buildContactAndShareMessages, buildShareOaFlex, ShareOaFlexInput } from './line-share.templates';
-export { buildMeetupEventsFlex, buildStationsCarouselFlex, buildVisitUsFlex, StationFlexItem, VisitUsFlexInput } from './line-discovery.templates';
+export { buildMeetupEventsFlex, buildStationRegionPickerFlex, buildStationsCarouselFlex, buildVisitUsFlex, StationFlexItem, VisitUsFlexInput } from './line-discovery.templates';
 
 export interface LineAction {
   type: 'postback' | 'message' | 'uri' | 'location';
