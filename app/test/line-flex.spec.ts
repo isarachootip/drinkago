@@ -125,6 +125,7 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     expect(json).toContain('8421');
     expect(json).toContain('4 ใบ');
     expect(json).toContain('lineToken=');
+    expect(json).toContain('tab=track');
   });
 
   it('PAYMENT_QUICK_REPLY_ITEMS & safeQuickReplyLabel: ป้ายกำกับ Quick Reply ทุกปุ่มต้องยาวไม่เกิน 20 ตัวอักษรตามข้อกำหนด LINE API', () => {

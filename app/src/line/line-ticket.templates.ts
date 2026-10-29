@@ -9,7 +9,7 @@ const formatBahtNum = (satang: number): string => {
 
 export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessage {
   const totalBaht = formatBahtNum(input.totalSatang);
-  const trackUrl = buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId);
+  const trackUrl = `${buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId)}&tab=track`;
   const qrUrl = `https://promptpay.io/${encodeURIComponent(input.promptpayId)}/${encodeURIComponent(totalBaht)}.png`;
 
   const itemLines = input.items.map((item) => ({
@@ -123,7 +123,7 @@ export function buildOrderTicketFlex(input: OrderTicketFlexInput): LineFlexMessa
 }
 
 export function buildStatusAndBagFlex(input: LineAutoReplyInput): LineFlexMessage {
-  const trackUrl = buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId);
+  const trackUrl = `${buildSignedCustomerUrl(input.publicWebUrl, input.lineUserId)}&tab=track`;
   const orderSection = input.latestOrder
     ? [
         { type: 'text', text: `📦 ออเดอร์ล่าสุด: #${input.latestOrder.code}`, size: 'sm', weight: 'bold', color: '#0F2236' },
