@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { eventsApi, MeetupEvent } from '../api/events-api';
+import { getBangkokTodayIso, isoDateToThaiLabel } from '../domain/thai-datetime';
 import { AdminEventsView } from './AdminEventsView';
 import { DateTimeSchedulePicker } from './DateTimeSchedulePicker';
 import { AdminViewMode, getSavedViewMode, ViewModeToggle } from './ViewModeToggle';
@@ -17,7 +18,7 @@ export const AdminEventsPanel: React.FC<Props> = ({ onNotify, viewMode: propMode
 
   const [events, setEvents] = useState<MeetupEvent[]>([]);
   const [title, setTitle] = useState('กิจกรรมพบปะทีม ilife');
-  const [eventDate, setEventDate] = useState('17 มีนา 2569');
+  const [eventDate, setEventDate] = useState(() => isoDateToThaiLabel(getBangkokTodayIso()));
   const [eventTime, setEventTime] = useState('10.00');
   const [locationName, setLocationName] = useState('โรงแรมอุทัยรัตน อ เมือง อุทัยธานี');
   const [contactPhone, setContactPhone] = useState('0634455');
@@ -106,7 +107,7 @@ export const AdminEventsPanel: React.FC<Props> = ({ onNotify, viewMode: propMode
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ background: '#F3E8FF', borderRadius: 14, padding: 14, border: '1px solid #C084FC' }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#6B21A8' }}>📅 จัดการตารางกิจกรรมพบปะทีม ilife (เชื่อมปุ่มที่ 1 บน LINE Rich Menu)</div>
-        <div style={{ fontSize: 12, color: '#4C1D95' }}>กำหนดวันด้วยปฏิทินมาตรฐาน และเลือกเวลาแบบหมุนวน พร้อมสถานที่ เบอร์โทร และพิกัดแผนที่</div>
+        <div style={{ fontSize: 12, color: '#4C1D95' }}>ระบบบน LINE จะดึงเฉพาะกิจกรรมที่เปิดแสดงผลและมีวันจัดงานในช่วง <b>1 เดือนข้างหน้า (วันนี้ ถึง +30 วัน)</b> เรียงงานใกล้สุดขึ้นก่อนโดยอัตโนมัติ</div>
       </div>
 
       <form onSubmit={handleCreate} style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>

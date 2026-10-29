@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { DomainError } from '../common/errors';
 import { Db, DB } from '../db/db';
+import { filterAndSortMeetupEvents, getBangkokIsoDate } from './meetup-date';
 
 export interface MeetupEventItem {
   id: number;
@@ -104,18 +105,22 @@ export class MeetupEventsService {
     };
   }
 
-  async listPublic(): Promise<MeetupEventItem[]> {
+  async listPublic(opts?: { window?: '30d' | 'all'; now?: Date }): Promise<MeetupEventItem[]> {
     await this.ensureReady();
     const res = await this.db.execute<RawMeetupRow>(
       sql`SELECT * FROM meetup_events WHERE active = true ORDER BY id ASC`,
     );
-    return res.rows.map((r) => this.mapRow(r));
+    const items = res.rows.map((r) => this.mapRow(r));
+    return filterAndSortMeetupEvents(items, {
+      window: opts?.window ?? 'all',
+      todayIso: getBangkokIsoDate(opts?.now),
+    });
   }
 
   async listAll(): Promise<MeetupEventItem[]> {
     await this.ensureReady();
     const res = await this.db.execute<RawMeetupRow>(sql`SELECT * FROM meetup_events ORDER BY id ASC`);
-    return res.rows.map((r) => this.mapRow(r));
+    return filterAndSortMeetupEvents(res.rows.map((r) => this.mapRow(r)), { window: 'all' });
   }
 
   async create(input: CreateMeetupEventInput): Promise<MeetupEventItem> {

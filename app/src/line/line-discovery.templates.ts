@@ -23,11 +23,12 @@ export function buildMeetupEventsFlex(
 ): LineFlexMessage {
   const baseCustomerUrl = lineUserId ? buildSignedCustomerUrl(publicWebUrl, lineUserId) : publicWebUrl;
   const webEventsUrl = `${baseCustomerUrl}${baseCustomerUrl.includes('?') ? '&' : '?'}tab=events`;
+  const webAllEventsUrl = `${webEventsUrl}&view=all`;
 
   if (events.length === 0) {
     return {
       type: 'flex',
-      altText: '📅 ตารางกิจกรรมพบปะทีม ilife',
+      altText: '📅 กิจกรรมพบปะทีม ilife (ในช่วง 1 เดือนนี้)',
       contents: {
         type: 'bubble',
         size: 'kilo',
@@ -35,15 +36,15 @@ export function buildMeetupEventsFlex(
           type: 'box',
           layout: 'vertical',
           backgroundColor: '#7C3AED',
-          contents: [{ type: 'text', text: '📅 กิจกรรมพบปะทีม ilife', weight: 'bold', size: 'md', color: '#FFFFFF' }],
+          contents: [{ type: 'text', text: '📅 กิจกรรมพบปะ (ใน 1 เดือนนี้)', weight: 'bold', size: 'md', color: '#FFFFFF' }],
         },
         body: {
           type: 'box',
           layout: 'vertical',
           spacing: 'sm',
           contents: [
-            { type: 'text', text: 'ขณะนี้ยังไม่มีกำหนดการกิจกรรมพบปะใหม่', size: 'sm', weight: 'bold', wrap: true },
-            { type: 'text', text: 'สามารถติดตามอัปเดตตารางกิจกรรมผ่านหน้าเว็บหรือสั่งน้ำดื่มได้เลยครับ', size: 'xs', color: '#64748B', wrap: true },
+            { type: 'text', text: 'ขณะนี้ยังไม่มีกำหนดการกิจกรรมพบปะในช่วง 1 เดือนข้างหน้า', size: 'sm', weight: 'bold', wrap: true },
+            { type: 'text', text: 'สามารถกดเปิดดูตารางกิจกรรมทั้งหมดบนหน้าเว็บ หรือสั่งน้ำดื่มได้เลยครับ', size: 'xs', color: '#64748B', wrap: true },
           ],
         },
         footer: {
@@ -51,7 +52,7 @@ export function buildMeetupEventsFlex(
           layout: 'vertical',
           spacing: 'xs',
           contents: [
-            { type: 'button', style: 'primary', color: '#7C3AED', height: 'sm', action: { type: 'uri', label: '🌐 ดูหน้าตารางกิจกรรม', uri: webEventsUrl } },
+            { type: 'button', style: 'primary', color: '#7C3AED', height: 'sm', action: { type: 'uri', label: '🌐 ดูตารางกิจกรรมทั้งหมด', uri: webAllEventsUrl } },
             { type: 'button', style: 'secondary', height: 'sm', action: { type: 'postback', label: '💧 สั่งน้ำดื่ม', data: 'action=menu', displayText: 'สั่งน้ำดื่ม' } },
           ],
         },
@@ -68,7 +69,7 @@ export function buildMeetupEventsFlex(
       backgroundColor: '#7C3AED',
       paddingAll: '12px',
       contents: [
-        { type: 'text', text: '📅 กิจกรรมพบปะทีม ilife', weight: 'bold', size: 'sm', color: '#E9D5FF' },
+        { type: 'text', text: '📅 กิจกรรมพบปะ (ใน 1 เดือนนี้)', weight: 'bold', size: 'sm', color: '#E9D5FF' },
         { type: 'text', text: ev.title, weight: 'bold', size: 'md', color: '#FFFFFF', wrap: true },
       ],
     },
@@ -92,7 +93,7 @@ export function buildMeetupEventsFlex(
       paddingAll: '12px',
       contents: [
         { type: 'button', style: 'primary', color: '#7C3AED', height: 'sm', action: { type: 'uri', label: '🗺️ แผนที่สถานที่จัดงาน', uri: ev.mapUrl } },
-        { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🌐 ดูตารางกิจกรรมทั้งหมด', uri: webEventsUrl } },
+        { type: 'button', style: 'secondary', height: 'sm', action: { type: 'uri', label: '🌐 ดูตารางกิจกรรมทั้งหมด', uri: webAllEventsUrl } },
       ],
     },
   }));

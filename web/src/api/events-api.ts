@@ -26,8 +26,10 @@ export interface CreateMeetupEventPayload {
 }
 
 export const eventsApi = {
-  listPublicEvents: async (): Promise<MeetupEvent[]> =>
-    z.array(meetupEventSchema).parse(await requestJson('/events')),
+  listPublicEvents: async (windowMode?: '30d' | 'all'): Promise<MeetupEvent[]> =>
+    z.array(meetupEventSchema).parse(
+      await requestJson(windowMode ? `/events?window=${windowMode}` : '/events'),
+    ),
 
   listAdminEvents: async (user = 'dev-admin'): Promise<MeetupEvent[]> =>
     z.array(meetupEventSchema).parse(

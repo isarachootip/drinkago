@@ -5,9 +5,9 @@ import { LineBanner } from '../components/LineBanner';
 import { PromptPayQrCard } from '../components/PromptPayQrCard';
 import { resolveProductImageUrl } from '../domain/photo-picker';
 
-interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onGoStations?: () => void; onNotify: (msg: string) => void }
+interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onGoStations?: () => void; onGoEvents?: () => void; onNotify: (msg: string) => void }
 
-export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onGoStations, onNotify }) => {
+export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onGoStations, onGoEvents, onNotify }) => {
   const [registeredName, setRegisteredName] = useState<string | null>(null);
   const [needsRegister, setNeedsRegister] = useState(false);
   const [regName, setRegName] = useState('คุณสมใจ');
@@ -96,8 +96,9 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       <div style={{ background: '#FFFFFF', padding: '16px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #DCE4EC' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1A56B0' }}>Drink&amp;Go</div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {onGoStations && <button type="button" onClick={onGoStations} style={{ padding: '6px 10px', borderRadius: 12, border: '1px solid #0B6E8A', background: '#E0F2FE', color: '#0B6E8A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📍 ตู้ทั่วไทย</button>}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {onGoEvents && <button type="button" onClick={onGoEvents} style={{ padding: '6px 9px', borderRadius: 12, border: '1px solid #7C3AED', background: '#F3E8FF', color: '#6B21A8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📅 กิจกรรม</button>}
+            {onGoStations && <button type="button" onClick={onGoStations} style={{ padding: '6px 9px', borderRadius: 12, border: '1px solid #0B6E8A', background: '#E0F2FE', color: '#0B6E8A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📍 ตู้ทั่วไทย</button>}
             <button type="button" onClick={onGoTrack} style={{ padding: '6px 10px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 สถานะ / OTP ({registeredName})</button>
           </div>
         </div>

@@ -77,7 +77,7 @@ test/                            unit + e2e
 | GET | `/products` | ทุกบทบาท | รายการสินค้าที่เปิดขาย |
 | GET | `/payment-config` | ทุกบทบาท (Public) | ข้อมูลบัญชีรับชำระ PromptPay ต้นแบบ (`อิศระ ชูทิพย์` · `0636395619`) |
 | GET/POST/PATCH/DELETE | `/admin/products`, `/admin/products/:id` | warehouse, admin | บริหารจัดการ Product Master (SKU/ชื่อ/ราคา/ถุงคืน/รูปภาพสไตล์ ODM + Hard/Soft Delete) |
-| GET | `/events` | ทุกบทบาท (Public) | รายการตารางกิจกรรมพบปะทีม `ilife` ที่เปิดแสดงผล |
+| GET | `/events?window=` | ทุกบทบาท (Public) | รายการตารางกิจกรรมพบปะทีม `ilife` ที่เปิดแสดงผล (รองรับ `window=30d` กรองเฉพาะกิจกรรมตั้งแต่วันนี้ถึงอีก 30 วันข้างหน้า เรียงงานใกล้สุดขึ้นก่อน หรือ `window=all`) |
 | GET/POST/PATCH/DELETE | `/admin/events`, `/admin/events/:id` | warehouse, admin | จัดการตารางกิจกรรมพบปะ (วัน/เวลา/สถานที่/เบอร์โทร/พิกัดแผนที่ Google Maps) |
 | GET/POST | `/admin/line/rich-menu`, `/admin/line/rich-menu/sync` | admin | ดูโครงสร้างและซิงก์ Rich Menu 6 ปุ่ม (กิจกรรมพบปะ, สั่งน้ำดื่ม, ค้นหาตู้เติมน้ำทั่วไทย, ติดตามสถานะ, เป็นเพื่อนกับเรา, เยี่ยมชมเรา) พร้อมภาพมาตรฐาน `ilife` |
 | POST | `/orders` | customer | 1 สั่งซื้อ |

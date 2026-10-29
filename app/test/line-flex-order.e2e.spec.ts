@@ -8,6 +8,7 @@ import { AppModule } from '../src/app.module';
 import { loadConfig } from '../src/config';
 import { runMigrations } from '../src/db/migrate';
 import { seed } from '../src/db/seed';
+import { addDaysIsoDate, getBangkokIsoDate, isoDateToThaiLabel } from '../src/events/meetup-date';
 
 const URL = process.env.TEST_DATABASE_URL ?? 'postgres://drinkgo:drinkgo@localhost:5433/drinkgo_test';
 const LINE_SECRET = 'line-test-secret-odm';
@@ -104,9 +105,31 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
     expect(eventsList.body.length).toBeGreaterThanOrEqual(1);
     expect(eventsList.body[0].locationName).toContain('โรงแรมอุทัยรัตน');
 
+    // งานตั้งต้น (17 มีนา 2569) ผ่านไปแล้ว -> LINE action=events แจ้งว่าไม่มีงานใน 1 เดือนนี้ พร้อมลิงก์ดูทั้งหมด
+    const emptyWindowPostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=events' } }).expect(200);
+    expect(JSON.stringify(emptyWindowPostback.body.replies)).toContain('tab=events&view=all');
+
+    // แอดมินเพิ่มงานในอีก 7 วันข้างหน้า และงานในอีก 45 วันข้างหน้า -> ต้องดึงเฉพาะงานในช่วง 30 วันมาแสดงใน LINE
+    const in7DaysThai = isoDateToThaiLabel(addDaysIsoDate(getBangkokIsoDate(), 7));
+    const in45DaysThai = isoDateToThaiLabel(addDaysIsoDate(getBangkokIsoDate(), 45));
+    await admin.post('/admin/events', {
+      title: 'งานพบปะสมาชิกเดือนนี้', eventDate: in7DaysThai, eventTime: '10.30',
+      locationName: 'ศูนย์ประชุมอุทัยธานี ฮอลล์ 2', contactPhone: '0634455',
+    }).expect(201);
+    await admin.post('/admin/events', {
+      title: 'งานล่วงหน้าสองเดือน', eventDate: in45DaysThai, eventTime: '13.00',
+      locationName: 'ฮอลล์ล่วงหน้าไกลเกินเดือน', contactPhone: '0890001111',
+    }).expect(201);
+
+    const win30Api = await request(server).get('/events?window=30d').expect(200);
+    expect(win30Api.body).toHaveLength(1);
+    expect(win30Api.body[0].locationName).toContain('ศูนย์ประชุมอุทัยธานี ฮอลล์ 2');
+
     const evPostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=events' } }).expect(200);
-    expect(JSON.stringify(evPostback.body.replies)).toContain('โรงแรมอุทัยรัตน');
-    expect(JSON.stringify(evPostback.body.replies)).toContain('0634455');
+    const evReplyJson = JSON.stringify(evPostback.body.replies);
+    expect(evReplyJson).toContain('ศูนย์ประชุมอุทัยธานี ฮอลล์ 2');
+    expect(evReplyJson).toContain('0634455');
+    expect(evReplyJson).not.toContain('ฮอลล์ล่วงหน้าไกลเกินเดือน');
 
     const sharePostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=share_oa' } }).expect(200);
     expect(JSON.stringify(sharePostback.body.replies)).toContain('https://line.me/R/nv/recommendOA/');

@@ -1,8 +1,12 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { Public, Roles } from '../common/auth';
 import { parse } from '../common/validate';
 import { MeetupEventsService } from './meetup-events.service';
+
+const listEventsQuerySchema = z.object({
+  window: z.enum(['30d', 'all']).optional(),
+});
 
 const createEventSchema = z.object({
   title: z.string().trim().max(200).optional(),
@@ -22,8 +26,9 @@ export class MeetupEventsController {
 
   @Get('events')
   @Public()
-  listPublicEvents() {
-    return this.events.listPublic();
+  listPublicEvents(@Query() q?: unknown) {
+    const parsed = parse(listEventsQuerySchema, q ?? {});
+    return this.events.listPublic({ window: parsed.window });
   }
 
   @Get('admin/events')

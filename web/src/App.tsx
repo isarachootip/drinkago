@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { fetchOrderDetail, fetchRiderJobs, loadDevSettings, riderActions, saveDevSettings, syncOfflineQueue } from './api/client';
-import { DevAuthSettings, OrderDetail, RiderJob } from './api/schemas';
+import { loadDevSettings, riderActions, saveDevSettings, syncOfflineQueue } from './api/client';
+import { DevAuthSettings } from './api/schemas';
 import { customerApi, loadStaffSession, saveStaffSession, StaffSession } from './api/role-api';
 import { AdminTrainingPanel } from './components/AdminTrainingPanel';
 import { DevSettingsModal } from './components/DevSettingsModal';
@@ -15,14 +15,16 @@ import {
   resolveActiveIdentity, resolveInitialCustomerSession, resolveInitialOrderId, resolveInitialQueryTab,
   shouldOpenStaffLoginInitially, shouldRequireEntryGate, unlockDemoMode, UserRole,
 } from './domain/session-gate';
+import { resolveInitialRegionParam } from './domain/station-regions';
+import { resolveInitialEventsViewMode } from './domain/thai-datetime';
+import { useRiderWorkspace } from './hooks/useRiderWorkspace';
 import { AdminPage } from './pages/AdminPage';
+import { CustomerEventsPage } from './pages/CustomerEventsPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
 import { CustomerStationsPage } from './pages/CustomerStationsPage';
 import { CustomerTrackPage } from './pages/CustomerTrackPage';
 import { RiderJobsPage } from './pages/RiderJobsPage';
 import { RiderPodPage } from './pages/RiderPodPage';
-import { resolveInitialRegionParam } from './domain/station-regions';
-import { listOfflineMutations } from './storage/offline-queue';
 
 export const App: React.FC = () => {
   const [custSession, setCustSession] = useState(() => resolveInitialCustomerSession());
@@ -33,19 +35,11 @@ export const App: React.FC = () => {
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
-  const [custScreen, setCustScreen] = useState<'shop' | 'track' | 'stations'>(() => { const t = resolveInitialQueryTab(); return t === 'track' ? 'track' : t === 'stations' ? 'stations' : 'shop'; });
+  const [custScreen, setCustScreen] = useState<'shop' | 'track' | 'stations' | 'events'>(() => resolveInitialQueryTab() ?? 'shop');
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(() => resolveInitialOrderId());
   const [liffChecking, setLiffChecking] = useState<boolean>(() => shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }));
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
-  const [jobs, setJobs] = useState<RiderJob[]>([]);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [selectedDetail, setSelectedDetail] = useState<OrderDetail | null>(null);
-  const [riderScreen, setRiderScreen] = useState<'jobs' | 'pod'>('jobs');
   const [showSettings, setShowSettings] = useState(false);
-  const [pickupJob, setPickupJob] = useState<RiderJob | null>(null);
-  const [failJob, setFailJob] = useState<RiderJob | null>(null);
-  const [offlineCount, setOfflineCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const showNotice = useCallback((msg: string) => {
@@ -68,9 +62,10 @@ export const App: React.FC = () => {
   const identity = resolveActiveIdentity({
     staffUser: staffSession?.user ?? null, customerUser, detectedLineName, detectedLineRole, hasLineToken: custSession.hasLineToken,
   });
-
   const isStaffManager = identity.role === 'admin' || identity.role === 'warehouse';
   const activeTab: AppRoleTab = isStaffManager ? adminViewTab : identity.appTab;
+
+  const rider = useRiderWorkspace({ activeTab, settings, staffSession, detectedLineRole, customerUser, showNotice });
 
   const handleLoginSuccess = (s: StaffSession) => {
     saveStaffSession(s); setStaffSession(s); setShowStaffLogin(false); setShowTraining(false);
@@ -80,7 +75,7 @@ export const App: React.FC = () => {
     } else if (s.user.role === 'admin' || s.user.role === 'warehouse') {
       setAdminViewTab('admin');
     } else if (s.user.role === 'rider') {
-      setRiderScreen('jobs');
+      rider.setRiderScreen('jobs');
     }
   };
 
@@ -92,58 +87,6 @@ export const App: React.FC = () => {
     showNotice('ออกจากระบบแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีที่ต้องการทดสอบ');
   };
 
-  const refreshQueueCount = useCallback(async () => setOfflineCount((await listOfflineMutations()).length), []);
-
-  const loadJobs = useCallback(async (currentSettings = settings) => {
-    setLoading(true);
-    const effectiveRiderSettings: DevAuthSettings =
-      staffSession?.user.role === 'rider' ? { ...currentSettings, devUser: staffSession.user.lineUserId }
-        : detectedLineRole === 'rider' ? { ...currentSettings, devUser: customerUser } : currentSettings;
-    try {
-      const list = await fetchRiderJobs(effectiveRiderSettings);
-      setJobs(list);
-      const target = list.find((j) => j.id === selectedJobId) ?? list[0] ?? null;
-      setSelectedJobId(target?.id ?? null);
-      setSelectedDetail(target ? await fetchOrderDetail(target.id, effectiveRiderSettings).catch(() => null) : null);
-    } catch (e) {
-      showNotice(e instanceof Error ? e.message : 'ดึงข้อมูลงานไม่สำเร็จ');
-    } finally {
-      setLoading(false);
-      await refreshQueueCount();
-    }
-  }, [settings, staffSession, detectedLineRole, customerUser, selectedJobId, refreshQueueCount, showNotice]);
-
-  useEffect(() => {
-    if (activeTab === 'rider') void loadJobs(settings);
-  }, [activeTab, settings, loadJobs]);
-
-  const activeJob = jobs.find((j) => j.id === selectedJobId) ?? jobs[0] ?? null;
-
-  const handlePrimaryAction = async (job: RiderJob) => {
-    try {
-      if (job.status === 'CONFIRMED' && !job.riderId) {
-        const res = await riderActions.claim(job.id);
-        showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (รับงาน)' : `🙋‍♂️ รับงาน #${job.code} เรียบร้อย! เดินทางไปกดน้ำที่ตู้ได้เลย`);
-        await loadJobs();
-      } else if (job.status === 'CONFIRMED') {
-        const res = await riderActions.pack(job.id);
-        showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (กดน้ำ)' : `กดน้ำออเดอร์ #${job.code} เรียบร้อย (ขั้นที่ 3 PACKED)`);
-        await loadJobs();
-      } else if (job.status === 'PACKED') {
-        setPickupJob(job);
-      } else if (job.status === 'PICKED_UP') {
-        const res = await riderActions.start(job.id);
-        showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (เริ่มส่ง)' : `เริ่มวิ่งส่งออเดอร์ #${job.code} (ขั้นที่ 5)`);
-        await loadJobs();
-      } else if (job.status === 'OUT_FOR_DELIVERY') {
-        setSelectedJobId(job.id);
-        setRiderScreen('pod');
-      }
-    } catch (e) {
-      showNotice(e instanceof Error ? e.message : 'ดำเนินการไม่สำเร็จ');
-    }
-  };
-
   return (
     <div style={{ maxWidth: activeTab === 'admin' || showTraining ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
       <TopAuthBar
@@ -153,10 +96,10 @@ export const App: React.FC = () => {
         onLogout={handleLogout} onOpenSettings={() => setShowSettings(true)}
       />
 
-      {offlineCount > 0 && (
+      {rider.offlineCount > 0 && (
         <div style={{ background: '#FFB3CB', color: '#0F2236', padding: '8px 14px', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>📡 รอซิงก์ {offlineCount} รายการ</span>
-          <button type="button" onClick={async () => { const { synced, remaining } = await syncOfflineQueue(settings); showNotice(`ซิงก์สำเร็จ ${synced} รายการ (ค้าง ${remaining} รายการ)`); await loadJobs(); }} style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: '#0F2236', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>ซิงก์ทันที</button>
+          <span>📡 รอซิงก์ {rider.offlineCount} รายการ</span>
+          <button type="button" onClick={async () => { const { synced, remaining } = await syncOfflineQueue(settings); showNotice(`ซิงก์สำเร็จ ${synced} รายการ (ค้าง ${remaining} รายการ)`); await rider.loadJobs(); }} style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: '#0F2236', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>ซิงก์ทันที</button>
         </div>
       )}
 
@@ -172,17 +115,19 @@ export const App: React.FC = () => {
         <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} onNotify={showNotice} />
       ) : (
         <>
-          {activeTab === 'customer' && (custScreen === 'stations' ? (
+          {activeTab === 'customer' && (custScreen === 'events' ? (
+            <CustomerEventsPage initialViewMode={resolveInitialEventsViewMode()} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
+          ) : custScreen === 'stations' ? (
             <CustomerStationsPage initialRegion={resolveInitialRegionParam()} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
           ) : custScreen === 'shop' ? (
-            <CustomerOrderPage key={customerUser} customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onGoStations={() => setCustScreen('stations')} onNotify={showNotice} />
+            <CustomerOrderPage key={customerUser} customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onGoStations={() => setCustScreen('stations')} onGoEvents={() => setCustScreen('events')} onNotify={showNotice} />
           ) : (
             <CustomerTrackPage key={customerUser} customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
           ))}
-          {activeTab === 'rider' && (riderScreen === 'jobs' || !activeJob ? (
-            <RiderJobsPage jobs={jobs} selectedJob={activeJob} selectedDetail={selectedDetail} settings={settings} loading={loading} onSelectJob={(j) => setSelectedJobId(j.id)} onPrimaryAction={handlePrimaryAction} onOpenSettings={() => setShowSettings(true)} onRefresh={() => loadJobs(settings)} />
+          {activeTab === 'rider' && (rider.riderScreen === 'jobs' || !rider.activeJob ? (
+            <RiderJobsPage jobs={rider.jobs} selectedJob={rider.activeJob} selectedDetail={rider.selectedDetail} settings={settings} loading={rider.loading} onSelectJob={(j) => rider.setSelectedJobId(j.id)} onPrimaryAction={rider.handlePrimaryAction} onOpenSettings={() => setShowSettings(true)} onRefresh={() => rider.loadJobs(settings)} />
           ) : (
-            <RiderPodPage job={activeJob} detail={selectedDetail} settings={settings} onBack={() => setRiderScreen('jobs')} onDeliver={async (p) => { if (!activeJob) return; const r = await riderActions.deliver(activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${activeJob.code} สำเร็จ!`); setRiderScreen('jobs'); await loadJobs(); }} onOpenFailModal={() => setFailJob(activeJob)} />
+            <RiderPodPage job={rider.activeJob} detail={rider.selectedDetail} settings={settings} onBack={() => rider.setRiderScreen('jobs')} onDeliver={async (p) => { if (!rider.activeJob) return; const r = await riderActions.deliver(rider.activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${rider.activeJob.code} สำเร็จ!`); rider.setRiderScreen('jobs'); await rider.loadJobs(); }} onOpenFailModal={() => rider.setFailJob(rider.activeJob)} />
           ))}
           {activeTab === 'admin' && (staffSession && (staffSession.user.role === 'admin' || staffSession.user.role === 'warehouse') ? (
             <AdminPage staffSession={staffSession} onLogout={handleLogout} onNotify={showNotice} />
@@ -192,8 +137,8 @@ export const App: React.FC = () => {
         </>
       )}
       {showSettings && <DevSettingsModal settings={settings} onSave={(next) => { saveDevSettings(next); setSettings(next); }} onClose={() => setShowSettings(false)} />}
-      {pickupJob && <PickupModal job={pickupJob} settings={settings} onConfirm={async (ev) => { if (!pickupJob) return; const r = await riderActions.pickup(pickupJob.id, ev); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `รับสินค้า #${pickupJob.code} เรียบร้อย`); await loadJobs(); }} onClose={() => setPickupJob(null)} />}
-      {failJob && <FailDeliveryModal job={failJob} settings={settings} onSubmitFail={async (p) => { if (!failJob) return; const r = await riderActions.fail(failJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `บันทึกส่งไม่สำเร็จ #${failJob.code} แล้ว`); setRiderScreen('jobs'); await loadJobs(); }} onClose={() => setFailJob(null)} />}
+      {rider.pickupJob && <PickupModal job={rider.pickupJob} settings={settings} onConfirm={async (ev) => { if (!rider.pickupJob) return; const r = await riderActions.pickup(rider.pickupJob.id, ev); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `รับสินค้า #${rider.pickupJob.code} เรียบร้อย`); await rider.loadJobs(); }} onClose={() => rider.setPickupJob(null)} />}
+      {rider.failJob && <FailDeliveryModal job={rider.failJob} settings={settings} onSubmitFail={async (p) => { if (!rider.failJob) return; const r = await riderActions.fail(rider.failJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `บันทึกส่งไม่สำเร็จ #${rider.failJob.code} แล้ว`); rider.setRiderScreen('jobs'); await rider.loadJobs(); }} onClose={() => rider.setFailJob(null)} />}
     </div>
   );
 };

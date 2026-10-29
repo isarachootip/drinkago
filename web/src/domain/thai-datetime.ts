@@ -14,18 +14,18 @@ export const THAI_MONTHS_SHORT = [
 ] as const;
 
 const THAI_MONTH_PATTERNS: { index: number; regex: RegExp }[] = [
-  { index: 1, regex: /(มกรา|ม\.ค\.)/i },
-  { index: 2, regex: /(กุมภา|ก\.พ\.)/i },
-  { index: 3, regex: /(มีนา|มี\.ค\.)/i },
-  { index: 4, regex: /(เมษา|เม\.ย\.)/i },
-  { index: 5, regex: /(พฤษภา|พ\.ค\.)/i },
-  { index: 6, regex: /(มิถุนา|มิ\.ย\.)/i },
-  { index: 7, regex: /(กรกฎา|ก\.ค\.)/i },
-  { index: 8, regex: /(สิงหา|ส\.ค\.)/i },
-  { index: 9, regex: /(กันยา|ก\.ย\.)/i },
-  { index: 10, regex: /(ตุลา|ต\.ค\.)/i },
-  { index: 11, regex: /(พฤศจิกา|พ\.ย\.)/i },
-  { index: 12, regex: /(ธันวา|ธ\.ค\.)/i },
+  { index: 1, regex: /(มกราคม|มกรา|ม\.ค\.?)/i },
+  { index: 2, regex: /(กุมภาพันธ์|กุมภา|ก\.พ\.?)/i },
+  { index: 3, regex: /(มีนาคม|มีนา|มี\.ค\.?)/i },
+  { index: 4, regex: /(เมษายน|เมษา|เม\.ย\.?)/i },
+  { index: 5, regex: /(พฤษภาคม|พฤษภา|พ\.ค\.?)/i },
+  { index: 6, regex: /(มิถุนายน|มิถุนา|มิ\.ย\.?)/i },
+  { index: 7, regex: /(กรกฎาคม|กรกฎา|ก\.ค\.?)/i },
+  { index: 8, regex: /(สิงหาคม|สิงหา|ส\.ค\.?)/i },
+  { index: 9, regex: /(กันยายน|กันยา|ก\.ย\.?)/i },
+  { index: 10, regex: /(ตุลาคม|ตุลา|ต\.ค\.?)/i },
+  { index: 11, regex: /(พฤศจิกายน|พฤศจิกา|พ\.ย\.?)/i },
+  { index: 12, regex: /(ธันวาคม|ธันวา|ธ\.ค\.?)/i },
 ];
 
 export const HOUR_OPTIONS: string[] = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
@@ -67,4 +67,72 @@ export function normalizeTimeParts(rawTime: string): { hour: string; minute: str
   const hour = String(h).padStart(2, '0');
   const minute = String(m).padStart(2, '0');
   return { hour, minute, display: `${hour}.${minute}` };
+}
+
+export function getBangkokTodayIso(now: Date = new Date()): string {
+  const d = new Date(now.getTime() + 7 * 3600_000);
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+export function addDaysIso(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+}
+
+export type EventWindowCategory = 'within_30d' | 'future_beyond_30d' | 'past';
+
+export function classifyEventWindow(eventDate: string, todayIso: string = getBangkokTodayIso()): EventWindowCategory {
+  const iso = thaiLabelToIsoDate(eventDate);
+  if (iso < todayIso) return 'past';
+  const endIso = addDaysIso(todayIso, 30);
+  return iso <= endIso ? 'within_30d' : 'future_beyond_30d';
+}
+
+export function resolveInitialEventsViewMode(search?: string): '30d' | 'all' {
+  try {
+    const raw = search !== undefined ? search : typeof window !== 'undefined' ? window.location.search : '';
+    if (!raw) return '30d';
+    const params = new URLSearchParams(raw.startsWith('?') ? raw : `?${raw}`);
+    if (params.get('view')?.trim().toLowerCase() === 'all') return 'all';
+    const liffState = params.get('liff.state');
+    if (liffState) {
+      const qIdx = liffState.indexOf('?');
+      const stateQuery = qIdx >= 0 ? liffState.slice(qIdx + 1) : liffState;
+      if (new URLSearchParams(stateQuery).get('view')?.trim().toLowerCase() === 'all') return 'all';
+    }
+    return '30d';
+  } catch {
+    return '30d';
+  }
+}
+
+export function filterAndSortEvents<T extends { id: number; eventDate: string; eventTime: string }>(
+  events: T[],
+  mode: '30d' | 'all',
+  todayIso: string = getBangkokTodayIso(),
+): T[] {
+  const decorated = events.map((ev) => {
+    const iso = thaiLabelToIsoDate(ev.eventDate);
+    const { hour, minute } = normalizeTimeParts(ev.eventTime);
+    const category = classifyEventWindow(ev.eventDate, todayIso);
+    return { ev, iso, timeKey: `${hour}:${minute}`, category };
+  });
+
+  const filtered = mode === '30d' ? decorated.filter((x) => x.category === 'within_30d') : decorated;
+
+  filtered.sort((a, b) => {
+    const aPast = a.category === 'past' ? 1 : 0;
+    const bPast = b.category === 'past' ? 1 : 0;
+    if (aPast !== bPast) return aPast - bPast;
+    if (aPast === 1) {
+      if (a.iso !== b.iso) return b.iso.localeCompare(a.iso);
+      return b.timeKey.localeCompare(a.timeKey);
+    }
+    if (a.iso !== b.iso) return a.iso.localeCompare(b.iso);
+    if (a.timeKey !== b.timeKey) return a.timeKey.localeCompare(b.timeKey);
+    return a.ev.id - b.ev.id;
+  });
+
+  return filtered.map((x) => x.ev);
 }

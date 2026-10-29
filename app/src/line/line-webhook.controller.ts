@@ -106,7 +106,7 @@ export class LineWebhookController {
       const params = new URLSearchParams(ev.postback?.data ?? '');
       const action = params.get('action');
       if (action === 'menu') return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
-      if (action === 'events') return [buildMeetupEventsFlex(await this.eventsService.listPublic(), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
+      if (action === 'events') return [buildMeetupEventsFlex(await this.eventsService.listPublic({ window: '30d' }), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
       if (action === 'find_stations') return this.replyStationDiscovery(customer);
       if (action === 'stations_by_region') return this.replyStationDiscovery(customer, params.get('region'));
       if (action === 'visit_us') return [buildVisitUsFlex(visitInput)];
@@ -159,7 +159,7 @@ export class LineWebhookController {
           const m = /โอน|promptpay/i.test(text) ? 'PROMPTPAY' : /เครดิต|credit/i.test(text) ? 'CREDIT' : 'CASH';
           return this.checkout.completeCheckout(customer, m);
         }
-        if (/กิจกรรม|กิจกรรมพบปะ|ตารางกิจกรรม|event/i.test(text)) return [buildMeetupEventsFlex(await this.eventsService.listPublic(), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
+        if (/กิจกรรม|กิจกรรมพบปะ|ตารางกิจกรรม|event/i.test(text)) return [buildMeetupEventsFlex(await this.eventsService.listPublic({ window: '30d' }), this.cfg.PUBLIC_WEB_URL, customer.lineUserId)];
         if (/เมนู|สั่งน้ำ|สั่งซื้อ|ส่งใบสั่งซื้อ|menu/i.test(text)) return this.cart.showMenu(this.cfg.PUBLIC_WEB_URL);
         if (/ค้นหาตู้|ตู้เติมน้ำ|ตู้กดน้ำ|สาขา|station/i.test(text)) return this.replyStationDiscovery(customer, parseStationRegionFromText(text));
         if (/ตะกร้า|cart|สรุป/i.test(text)) return this.cart.viewCart(customer.lineUserId);
