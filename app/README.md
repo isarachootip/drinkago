@@ -69,6 +69,7 @@ test/                            unit + e2e
 | Method | Path | บทบาท | ขั้น |
 |---|---|---|---|
 | POST | `/auth/login` | ทุกบทบาท (Public) | เข้าสู่ระบบหลังบ้าน/คลังด้วย Username + Password |
+| GET/POST | `/auth/line/config`, `/auth/line/liff`, `/auth/line/start`, `/auth/line/callback` | ทุกบทบาท (Public) | ลูกค้าเข้าสู่ระบบด้วย LINE อัตโนมัติ (รองรับทั้ง LIFF ในแอป LINE และปุ่ม LINE Login OAuth 2.0 บนเว็บเบราว์เซอร์) |
 | GET/POST/PATCH/DELETE | `/admin/users`, `/admin/users/:id` | admin | User Management CRUD (เพิ่ม/ดู/แก้ไข/ลบผู้ใช้งานทุกบทบาท) |
 | POST | `/me/register` | ผู้ใช้ LINE ใหม่ | ลงทะเบียน + PDPA |
 | GET/POST | `/me/addresses` | customer | |

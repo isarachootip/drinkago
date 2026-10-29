@@ -10,6 +10,8 @@ import { IdempotencyService } from './common/idempotency.service';
 import { APP_CONFIG, AppConfig, loadConfig } from './config';
 import { AdminManagementController } from './customers/admin-management.controller';
 import { AdminCustomersController, MeController } from './customers/customers.controller';
+import { LineAuthController } from './customers/line-auth.controller';
+import { LineAuthService } from './customers/line-auth.service';
 import { UsersAdminController } from './customers/users-admin.controller';
 import { DbModule } from './db/db.module';
 import { MeetupEventsController } from './events/meetup-events.controller';
@@ -52,6 +54,7 @@ export class AppModule {
         MeController,
         AdminCustomersController,
         AdminManagementController,
+        LineAuthController,
         UsersAdminController,
         CatalogController,
         MeetupEventsController,
@@ -63,6 +66,7 @@ export class AppModule {
       ],
       providers: [
         BagLedgerService,
+        LineAuthService,
         MeetupEventsService,
         StationsService,
         NotificationsService,

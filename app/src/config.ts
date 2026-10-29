@@ -12,6 +12,8 @@ const schema = z.object({
    */
   DEV_AUTH_KEY: z.string().optional(),
   LINE_LOGIN_CHANNEL_ID: z.string().optional(),
+  LINE_LOGIN_CHANNEL_SECRET: z.string().optional(),
+  LINE_LIFF_ID: z.string().optional(),
   LINE_CHANNEL_SECRET: z.string().optional(),
   LINE_CHANNEL_ACCESS_TOKEN: z.string().optional(),
   /** บังคับให้ไรเดอร์กรอกรหัส 4 หลักจากลูกค้าตอนส่ง */

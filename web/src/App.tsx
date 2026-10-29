@@ -9,6 +9,7 @@ import { PickupModal } from './components/PickupModal';
 import { ProductionEntryGate } from './components/ProductionEntryGate';
 import { StaffLoginCard } from './components/StaffLoginCard';
 import { TopAuthBar } from './components/TopAuthBar';
+import { safeLiffLogout, tryAutoLoginWithLiff } from './domain/liff-auth';
 import {
   AppRoleTab, clearAllAuthSessions, CUSTOMER_USER_STORAGE_KEY, isDemoUnlocked,
   resolveActiveIdentity, resolveInitialCustomerSession, shouldOpenStaffLoginInitially,
@@ -55,11 +56,14 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     if (staffSession) return;
+    void tryAutoLoginWithLiff().then((res) => {
+      if (res) {
+        saveStaffSession(res.session); setStaffSession(res.session);
+        setCustSession({ customerUser: res.session.user.lineUserId, hasLineToken: true });
+      }
+    });
     customerApi.getMe(custSession.customerUser)
-      .then((me) => {
-        setDetectedLineName(me.name || null);
-        setDetectedLineRole(me.role === 'admin' || me.role === 'warehouse' || me.role === 'rider' ? me.role : 'customer');
-      })
+      .then((me) => { setDetectedLineName(me.name || null); setDetectedLineRole(me.role === 'admin' || me.role === 'warehouse' || me.role === 'rider' ? me.role : 'customer'); })
       .catch(() => { setDetectedLineName(null); setDetectedLineRole('customer'); });
   }, [custSession.customerUser, staffSession]);
 
@@ -83,7 +87,7 @@ export const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    clearAllAuthSessions(); saveStaffSession(null); setStaffSession(null);
+    safeLiffLogout(); clearAllAuthSessions(); saveStaffSession(null); setStaffSession(null);
     setCustSession({ customerUser: 'dev-customer', hasLineToken: false });
     setDetectedLineName(null); setDetectedLineRole('customer'); setDemoUnlocked(false);
     setShowTraining(false); setShowStaffLogin(true);
@@ -147,14 +151,10 @@ export const App: React.FC = () => {
   return (
     <div style={{ maxWidth: activeTab === 'admin' || showTraining ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
       <TopAuthBar
-        identity={identity}
-        activeTab={activeTab}
-        showTraining={showTraining}
+        identity={identity} activeTab={activeTab} showTraining={showTraining}
         onSelectTab={(t) => { setShowTraining(false); setShowStaffLogin(false); setAdminViewTab(t); }}
-        onToggleTraining={() => setShowTraining((v) => !v)}
-        onOpenLogin={() => { setShowTraining(false); setShowStaffLogin(true); }}
-        onLogout={handleLogout}
-        onOpenSettings={() => setShowSettings(true)}
+        onToggleTraining={() => setShowTraining((v) => !v)} onOpenLogin={() => { setShowTraining(false); setShowStaffLogin(true); }}
+        onLogout={handleLogout} onOpenSettings={() => setShowSettings(true)}
       />
 
       {offlineCount > 0 && (
@@ -171,7 +171,7 @@ export const App: React.FC = () => {
       ) : showStaffLogin ? (
         <StaffLoginCard targetRole="any" onLoginSuccess={handleLoginSuccess} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
       ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
-        <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} />
+        <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} onNotify={showNotice} />
       ) : (
         <>
           {activeTab === 'customer' && (custScreen === 'shop' ? (

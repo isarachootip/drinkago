@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
 import { StaffSession } from '../api/role-api';
+import { startLineLogin } from '../domain/liff-auth';
 
 interface Props {
   targetRole?: 'rider' | 'admin' | 'warehouse' | 'staff' | 'any';
@@ -63,8 +64,32 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'any', onLoginSuc
             เข้าสู่ระบบ / สลับผู้ใช้งาน (ทุกบทบาท)
           </div>
           <div style={{ fontSize: 12, color: '#4A5B6E', marginTop: 4 }}>
-            รองรับทั้ง ลูกค้า (Customer), ไรเดอร์ (Rider), คลัง (Warehouse) และ แอดมิน (Admin)
+            ลูกค้ากดเข้าสู่ระบบด้วย LINE ได้ทันที · พนักงานใช้ Username &amp; Password
           </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void startLineLogin('shop', onNotify)}
+          style={{
+            minHeight: 46,
+            borderRadius: 12,
+            border: 'none',
+            background: '#06C755',
+            color: '#FFFFFF',
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(6,199,85,0.24)',
+          }}
+        >
+          🟢 ลูกค้า: เข้าสู่ระบบด้วย LINE
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94A3B8', fontSize: 11 }}>
+          <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
+          <span>หรือเข้าสู่ระบบด้วยรหัสผ่าน (พนักงาน / แอดมิน)</span>
+          <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
         </div>
 
         <div style={{ background: '#F8FAFC', borderRadius: 10, border: '1px solid #E2E8F0', padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>

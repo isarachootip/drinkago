@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { startLineLogin } from '../domain/liff-auth';
 
 interface Props {
   onOpenStaffLogin: () => void;
   onUnlockDemo: () => void;
+  onNotify?: (msg: string) => void;
 }
 
-export const ProductionEntryGate: React.FC<Props> = ({ onOpenStaffLogin, onUnlockDemo }) => {
+export const ProductionEntryGate: React.FC<Props> = ({ onOpenStaffLogin, onUnlockDemo, onNotify }) => {
+  const [busyLine, setBusyLine] = useState(false);
+
+  const handleLineLogin = async () => {
+    setBusyLine(true);
+    try {
+      await startLineLogin('shop', onNotify);
+    } finally {
+      setBusyLine(false);
+    }
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 24, gap: 16 }}>
       <div
@@ -23,10 +36,31 @@ export const ProductionEntryGate: React.FC<Props> = ({ onOpenStaffLogin, onUnloc
         }}
       >
         <div style={{ fontSize: 42 }}>💧</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#0F2236' }}>Drink&Go Delivery</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#0F2236' }}>ilife · Drink&amp;Go Delivery</div>
         <div style={{ fontSize: 13, color: '#4A5B6E', lineHeight: 1.5 }}>
-          ระบบสั่งน้ำดื่มและติดตามสถานะการจัดส่งผ่าน LINE Official Account เพื่อความปลอดภัยของข้อมูลลูกค้า กรุณาเข้าใช้งานผ่านลิงก์ในห้องแชท LINE OA
+          เข้าสู่ระบบด้วยบัญชี LINE ของคุณเพื่อสั่งน้ำดื่ม ติดตามสถานะการจัดส่ง และดูรหัส OTP 4 หลักได้ทันที
         </div>
+
+        <button
+          type="button"
+          onClick={handleLineLogin}
+          disabled={busyLine}
+          style={{
+            width: '100%',
+            minHeight: 48,
+            borderRadius: 12,
+            border: 'none',
+            background: '#06C755',
+            color: '#FFFFFF',
+            fontWeight: 700,
+            fontSize: 16,
+            cursor: 'pointer',
+            marginTop: 4,
+            boxShadow: '0 4px 12px rgba(6,199,85,0.28)',
+          }}
+        >
+          {busyLine ? 'กำลังเชื่อมต่อ LINE...' : '🟢 เข้าสู่ระบบด้วย LINE (Log in with LINE)'}
+        </button>
 
         <a
           href="https://line.me/R/ti/p/@157iywjs"
@@ -34,20 +68,20 @@ export const ProductionEntryGate: React.FC<Props> = ({ onOpenStaffLogin, onUnloc
           rel="noreferrer"
           style={{
             width: '100%',
-            minHeight: 46,
+            minHeight: 42,
             borderRadius: 12,
-            background: '#06C755',
-            color: '#FFFFFF',
+            border: '1px solid #06C755',
+            background: '#E8F8EE',
+            color: '#058C3B',
             fontWeight: 700,
-            fontSize: 15,
+            fontSize: 14,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             textDecoration: 'none',
-            marginTop: 4,
           }}
         >
-          💬 เปิดแชท LINE OA (@157iywjs)
+          💬 เปิดแชทสั่งน้ำใน LINE OA (@157iywjs)
         </a>
 
         <button
