@@ -8,7 +8,7 @@ import {
   resolveProductImageUrl,
   validateProductImageFile,
 } from '../src/domain/photo-picker';
-import { canCustomerCancelOrder, shouldRequireEntryGate } from '../src/domain/session-gate';
+import { canCustomerCancelOrder, clearAllAuthSessions, resolveActiveIdentity, shouldRequireEntryGate } from '../src/domain/session-gate';
 import { getRiderTargetLocation, getRiderWorkflowSteps } from '../src/domain/rider-steps';
 import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
@@ -137,30 +137,9 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(canCustomerCancelOrder('PACKED')).toBe(false);
     expect(canCustomerCancelOrder('OUT_FOR_DELIVERY')).toBe(false);
 
-    expect(
-      shouldRequireEntryGate({
-        hostname: 'idrink.tamadee.online',
-        hasLineToken: false,
-        hasStaffSession: false,
-        demoUnlocked: false,
-      }),
-    ).toBe(true);
-    expect(
-      shouldRequireEntryGate({
-        hostname: 'idrink.tamadee.online',
-        hasLineToken: true,
-        hasStaffSession: false,
-        demoUnlocked: false,
-      }),
-    ).toBe(false);
-    expect(
-      shouldRequireEntryGate({
-        hostname: 'localhost',
-        hasLineToken: false,
-        hasStaffSession: false,
-        demoUnlocked: false,
-      }),
-    ).toBe(false);
+    expect(shouldRequireEntryGate({ hostname: 'idrink.tamadee.online', hasLineToken: false, hasStaffSession: false, demoUnlocked: false })).toBe(true);
+    expect(shouldRequireEntryGate({ hostname: 'idrink.tamadee.online', hasLineToken: true, hasStaffSession: false, demoUnlocked: false })).toBe(false);
+    expect(shouldRequireEntryGate({ hostname: 'localhost', hasLineToken: false, hasStaffSession: false, demoUnlocked: false })).toBe(false);
   });
 
   it('คำนวณลำดับ Stepper 5 ขั้นของไรเดอร์ (done / current / locked) และสลับความเด่นปุ่มนำทางตามบริบทได้ถูกต้อง', () => {
@@ -171,5 +150,35 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(getRiderTargetLocation('PACKED', true)).toBe('station');
     expect(getRiderTargetLocation('PICKED_UP', true)).toBe('customer');
     expect(getRiderTargetLocation('OUT_FOR_DELIVERY', true)).toBe('customer');
+  });
+
+  it('ตัดสินสิทธิ์และตัวตนผู้ใช้ปัจจุบันจาก StaffSession (ทุกบทบาท) หรือ LINE Session พร้อมล้างค่าเมื่อ Logout', () => {
+    const asCust = resolveActiveIdentity({
+      staffUser: { id: 'u1', lineUserId: 'U_cust_1', username: 'cust1', name: 'คุณสมชาย', role: 'customer' },
+      customerUser: 'dev-customer',
+      detectedLineName: null,
+      detectedLineRole: 'customer',
+      hasLineToken: false,
+    });
+    expect(asCust).toEqual({
+      displayName: 'คุณสมชาย',
+      username: 'cust1',
+      lineUserId: 'U_cust_1',
+      role: 'customer',
+      appTab: 'customer',
+      isAuthenticated: true,
+    });
+
+    const asWarehouse = resolveActiveIdentity({
+      staffUser: { id: 'u2', lineUserId: 'dev-warehouse', username: 'warehouse', name: 'คลังทดสอบ', role: 'warehouse' },
+      customerUser: 'dev-customer',
+      detectedLineName: null,
+      detectedLineRole: 'customer',
+      hasLineToken: false,
+    });
+    expect(asWarehouse.appTab).toBe('admin');
+    expect(asWarehouse.isAuthenticated).toBe(true);
+
+    clearAllAuthSessions();
   });
 });

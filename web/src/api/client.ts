@@ -50,10 +50,14 @@ function buildHeaders(settings: DevAuthSettings, extra: Record<string, string> =
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('drinkgo_staff_session_v1') : null;
     if (raw) {
       const parsed = JSON.parse(raw) as { token?: string; user?: { role?: string; lineUserId?: string } };
-      if (parsed.token && parsed.user?.role === 'rider') {
+      if (parsed.token && (parsed.user?.role === 'rider' || parsed.user?.role === 'admin')) {
         headers['authorization'] = `Bearer ${parsed.token}`;
-        if (parsed.user.lineUserId) headers['x-dev-user'] = parsed.user.lineUserId;
+        if (parsed.user.lineUserId && parsed.user.role === 'rider') headers['x-dev-user'] = parsed.user.lineUserId;
       }
+    }
+    const lineToken = typeof localStorage !== 'undefined' ? localStorage.getItem('drinkgo_line_token_v1') : null;
+    if (!headers['authorization'] && lineToken) {
+      headers['x-line-token'] = lineToken;
     }
   } catch {
     // ignore invalid localStorage

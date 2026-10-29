@@ -17,6 +17,7 @@ export const DEV_USERS = [
   { lineUserId: 'dev-warehouse', username: 'warehouse', passwordHash: hashPassword('warehouse1234'), role: 'warehouse' as const, name: 'คลังทดสอบ' },
   { lineUserId: 'dev-rider', username: 'rider', passwordHash: hashPassword('rider1234'), role: 'rider' as const, name: 'ไรเดอร์ทดสอบ', vehicle: 'มอเตอร์ไซค์ กข-1234', zone: 'A' },
   { lineUserId: 'dev-rider-2', role: 'rider' as const, name: 'ไรเดอร์ทดสอบ 2', vehicle: 'มอเตอร์ไซค์ ขค-5678', zone: 'B' },
+  { lineUserId: 'dev-customer', username: 'customer', passwordHash: hashPassword('customer1234'), role: 'customer' as const, name: 'ลูกค้าทดสอบ', phone: '0812345678', pdpaConsentAt: new Date() },
 ];
 
 export const SAMPLE_PRODUCTS = [
@@ -92,6 +93,10 @@ export async function seed(url: string) {
     const [rd] = await db.select().from(users).where(eq(users.lineUserId, 'dev-rider')).limit(1);
     if (rd && (!rd.username || !rd.passwordHash)) {
       await db.update(users).set({ username: 'rider', passwordHash: hashPassword('rider1234'), active: true }).where(eq(users.id, rd.id));
+    }
+    const [cust] = await db.select().from(users).where(eq(users.lineUserId, 'dev-customer')).limit(1);
+    if (cust && (!cust.username || !cust.passwordHash)) {
+      await db.update(users).set({ username: 'customer', passwordHash: hashPassword('customer1234'), active: true }).where(eq(users.id, cust.id));
     }
     await runOneTimeOrderReset(db);
     const stations = await db.select().from(waterStations);

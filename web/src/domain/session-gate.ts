@@ -1,6 +1,19 @@
 export const LINE_TOKEN_STORAGE_KEY = 'drinkgo_line_token_v1';
 export const CUSTOMER_USER_STORAGE_KEY = 'drinkgo_customer_user_v1';
 export const DEMO_UNLOCK_STORAGE_KEY = 'drinkgo_demo_unlocked_v1';
+export const STAFF_SESSION_STORAGE_KEY = 'drinkgo_staff_session_v1';
+
+export type UserRole = 'customer' | 'rider' | 'warehouse' | 'admin';
+export type AppRoleTab = 'customer' | 'rider' | 'admin';
+
+export interface ActiveIdentity {
+  displayName: string;
+  username: string | null;
+  lineUserId: string;
+  role: UserRole;
+  appTab: AppRoleTab;
+  isAuthenticated: boolean;
+}
 
 export function canCustomerCancelOrder(status: string): boolean {
   return status === 'PENDING' || status === 'CONFIRMED';
@@ -71,4 +84,56 @@ export function shouldOpenStaffLoginInitially(): boolean {
   const path = window.location.pathname.toLowerCase();
   const mode = new URLSearchParams(window.location.search).get('mode');
   return path.includes('/admin') || path.includes('/login') || mode === 'staff' || window.location.hash === '#admin';
+}
+
+export function clearAllAuthSessions(): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(STAFF_SESSION_STORAGE_KEY);
+      localStorage.removeItem(LINE_TOKEN_STORAGE_KEY);
+      localStorage.removeItem(CUSTOMER_USER_STORAGE_KEY);
+      localStorage.removeItem(DEMO_UNLOCK_STORAGE_KEY);
+    }
+    if (typeof window !== 'undefined' && window.history?.replaceState) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('lineUserId');
+      url.searchParams.delete('lineToken');
+      url.searchParams.delete('mode');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  } catch {
+    // ignore storage/history errors
+  }
+}
+
+export function resolveActiveIdentity(input: {
+  staffUser: { id: string; lineUserId: string; username?: string | null; name: string; role: UserRole } | null;
+  customerUser: string;
+  detectedLineName: string | null;
+  detectedLineRole: UserRole;
+  hasLineToken: boolean;
+}): ActiveIdentity {
+  if (input.staffUser) {
+    const role = input.staffUser.role;
+    const appTab: AppRoleTab = role === 'admin' || role === 'warehouse' ? 'admin' : role === 'rider' ? 'rider' : 'customer';
+    return {
+      displayName: input.staffUser.name,
+      username: input.staffUser.username ?? null,
+      lineUserId: input.staffUser.lineUserId,
+      role,
+      appTab,
+      isAuthenticated: true,
+    };
+  }
+  const role = input.detectedLineRole;
+  const appTab: AppRoleTab = role === 'admin' || role === 'warehouse' ? 'admin' : role === 'rider' ? 'rider' : 'customer';
+  const hasRealUser = Boolean(input.hasLineToken || (input.customerUser && input.customerUser !== 'dev-customer'));
+  return {
+    displayName: input.detectedLineName || input.customerUser || 'dev-customer',
+    username: null,
+    lineUserId: input.customerUser || 'dev-customer',
+    role,
+    appTab,
+    isAuthenticated: hasRealUser || Boolean(input.detectedLineName),
+  };
 }

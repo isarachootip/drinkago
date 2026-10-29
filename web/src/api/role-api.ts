@@ -61,13 +61,13 @@ export async function requestJson<T>(
   } = {},
 ): Promise<T> {
   const s = opts.settings ?? loadDevSettings();
-  const headers: Record<string, string> = {
-    'x-dev-user': opts.userOverride ?? s.devUser,
-  };
+  const headers: Record<string, string> = { 'x-dev-user': opts.userOverride ?? s.devUser };
   const staffSession = loadStaffSession();
   const lineToken = loadLineToken();
-  if (staffSession?.token && (opts.useStaffToken || opts.userOverride === 'dev-admin' || opts.userOverride === 'dev-warehouse')) {
+  const isStaffEndpoint = Boolean(opts.useStaffToken || opts.userOverride === 'dev-admin' || opts.userOverride === 'dev-warehouse');
+  if (staffSession?.token && (isStaffEndpoint || staffSession.user.role === 'customer')) {
     headers['authorization'] = `Bearer ${staffSession.token}`;
+    if (staffSession.user.role === 'customer') headers['x-dev-user'] = staffSession.user.lineUserId;
   } else if (lineToken) {
     headers['x-line-token'] = lineToken;
   }
@@ -81,11 +81,7 @@ export async function requestJson<T>(
   });
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
-    throw new ApiClientError(
-      res.status,
-      String(data.code ?? 'HTTP_ERROR'),
-      String(data.message ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อ'),
-    );
+    throw new ApiClientError(res.status, String(data.code ?? 'HTTP_ERROR'), String(data.message ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อ'));
   }
   return data as T;
 }

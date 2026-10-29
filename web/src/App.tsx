@@ -8,7 +8,12 @@ import { FailDeliveryModal } from './components/FailDeliveryModal';
 import { PickupModal } from './components/PickupModal';
 import { ProductionEntryGate } from './components/ProductionEntryGate';
 import { StaffLoginCard } from './components/StaffLoginCard';
-import { isDemoUnlocked, resolveInitialCustomerSession, shouldOpenStaffLoginInitially, shouldRequireEntryGate, unlockDemoMode } from './domain/session-gate';
+import { TopAuthBar } from './components/TopAuthBar';
+import {
+  AppRoleTab, clearAllAuthSessions, CUSTOMER_USER_STORAGE_KEY, isDemoUnlocked,
+  resolveActiveIdentity, resolveInitialCustomerSession, shouldOpenStaffLoginInitially,
+  shouldRequireEntryGate, unlockDemoMode, UserRole,
+} from './domain/session-gate';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
 import { CustomerTrackPage } from './pages/CustomerTrackPage';
@@ -16,14 +21,12 @@ import { RiderJobsPage } from './pages/RiderJobsPage';
 import { RiderPodPage } from './pages/RiderPodPage';
 import { listOfflineMutations } from './storage/offline-queue';
 
-type AppRoleTab = 'customer' | 'rider' | 'admin';
-
 export const App: React.FC = () => {
-  const [initialCust] = useState(() => resolveInitialCustomerSession());
-  const customerUser = initialCust.customerUser;
+  const [custSession, setCustSession] = useState(() => resolveInitialCustomerSession());
   const [demoUnlocked, setDemoUnlocked] = useState<boolean>(() => isDemoUnlocked());
   const [staffSession, setStaffSession] = useState<StaffSession | null>(() => loadStaffSession());
-  const [detectedLineRole, setDetectedLineRole] = useState<AppRoleTab>('customer');
+  const [detectedLineRole, setDetectedLineRole] = useState<UserRole>('customer');
+  const [detectedLineName, setDetectedLineName] = useState<string | null>(null);
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
@@ -46,17 +49,44 @@ export const App: React.FC = () => {
     setTimeout(() => setToast((cur) => (cur === msg ? null : cur)), 4000);
   }, []);
 
+  const customerUser = staffSession?.user.role === 'customer' ? staffSession.user.lineUserId : custSession.customerUser;
+
   useEffect(() => {
-    customerApi.getMe(customerUser)
-      .then((me) => setDetectedLineRole(me.role === 'admin' || me.role === 'rider' ? me.role : 'customer'))
-      .catch(() => setDetectedLineRole('customer'));
-  }, [customerUser]);
+    if (staffSession) return;
+    customerApi.getMe(custSession.customerUser)
+      .then((me) => {
+        setDetectedLineName(me.name || null);
+        setDetectedLineRole(me.role === 'admin' || me.role === 'warehouse' || me.role === 'rider' ? me.role : 'customer');
+      })
+      .catch(() => { setDetectedLineName(null); setDetectedLineRole('customer'); });
+  }, [custSession.customerUser, staffSession]);
 
-  const effectiveRole: AppRoleTab =
-    staffSession?.user.role === 'admin' || detectedLineRole === 'admin' ? 'admin'
-      : staffSession?.user.role === 'rider' || detectedLineRole === 'rider' ? 'rider' : 'customer';
+  const identity = resolveActiveIdentity({
+    staffUser: staffSession?.user ?? null, customerUser, detectedLineName, detectedLineRole, hasLineToken: custSession.hasLineToken,
+  });
 
-  const activeTab: AppRoleTab = effectiveRole === 'admin' ? adminViewTab : effectiveRole;
+  const isStaffManager = identity.role === 'admin' || identity.role === 'warehouse';
+  const activeTab: AppRoleTab = isStaffManager ? adminViewTab : identity.appTab;
+
+  const handleLoginSuccess = (s: StaffSession) => {
+    saveStaffSession(s); setStaffSession(s); setShowStaffLogin(false); setShowTraining(false);
+    if (s.user.role === 'customer') {
+      try { localStorage.setItem(CUSTOMER_USER_STORAGE_KEY, s.user.lineUserId); } catch { /* ignore */ }
+      setCustSession({ customerUser: s.user.lineUserId, hasLineToken: false }); setCustScreen('shop');
+    } else if (s.user.role === 'admin' || s.user.role === 'warehouse') {
+      setAdminViewTab('admin');
+    } else if (s.user.role === 'rider') {
+      setRiderScreen('jobs');
+    }
+  };
+
+  const handleLogout = () => {
+    clearAllAuthSessions(); saveStaffSession(null); setStaffSession(null);
+    setCustSession({ customerUser: 'dev-customer', hasLineToken: false });
+    setDetectedLineName(null); setDetectedLineRole('customer'); setDemoUnlocked(false);
+    setShowTraining(false); setShowStaffLogin(true);
+    showNotice('ออกจากระบบแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีที่ต้องการทดสอบ');
+  };
 
   const refreshQueueCount = useCallback(async () => {
     setOfflineCount((await listOfflineMutations()).length);
@@ -114,27 +144,16 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ maxWidth: activeTab === 'admin' || showTraining ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
-      {effectiveRole === 'admin' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr) auto auto', gap: 4, padding: 6, background: '#091522' }}>
-          {([{ id: 'customer', label: '1. มุมมองลูกค้า' }, { id: 'rider', label: '2. มุมมองไรเดอร์' }, { id: 'admin', label: '⚙️ หลังบ้าน (Admin)' }] as const).map((t) => (
-            <button key={t.id} type="button" onClick={() => { setShowTraining(false); setAdminViewTab(t.id); }} style={{ minHeight: 36, border: 'none', borderRadius: 8, background: activeTab === t.id && !showTraining ? '#1A56B0' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{t.label}</button>
-          ))}
-          <button type="button" onClick={() => setShowTraining((v) => !v)} style={{ minHeight: 36, padding: '0 10px', border: 'none', borderRadius: 8, background: showTraining ? '#1E7B45' : '#1C3550', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>🎓 คู่มือ</button>
-          <button type="button" onClick={() => setShowSettings(true)} aria-label="ตั้งค่า" style={{ minHeight: 36, padding: '0 10px', border: 'none', borderRadius: 8, background: '#1C3550', color: '#FFFFFF', fontSize: 13, cursor: 'pointer' }}>⚙️</button>
-        </div>
-      )}
-
-      {effectiveRole === 'rider' && (
-        <div style={{ background: '#091522', color: '#FFFFFF', padding: '6px 14px', fontSize: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <span>🛵 โหมดไรเดอร์: <b>{staffSession?.user.name || customerUser}</b></span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" onClick={() => setShowTraining((v) => !v)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>🎓 คู่มือไรเดอร์</button>
-            {staffSession && (
-              <button type="button" onClick={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบไรเดอร์แล้ว'); }} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: '#C2255C', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>ออกจากระบบ</button>
-            )}
-          </div>
-        </div>
-      )}
+      <TopAuthBar
+        identity={identity}
+        activeTab={activeTab}
+        showTraining={showTraining}
+        onSelectTab={(t) => { setShowTraining(false); setShowStaffLogin(false); setAdminViewTab(t); }}
+        onToggleTraining={() => setShowTraining((v) => !v)}
+        onOpenLogin={() => { setShowTraining(false); setShowStaffLogin(true); }}
+        onLogout={handleLogout}
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
       {offlineCount > 0 && (
         <div style={{ background: '#FFB3CB', color: '#0F2236', padding: '8px 14px', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -149,36 +168,26 @@ export const App: React.FC = () => {
         <div style={{ padding: 16 }}>
           <AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} />
         </div>
-      ) : showStaffLogin && !staffSession ? (
-        <StaffLoginCard targetRole="staff" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); setShowStaffLogin(false); if (s.user.role === 'admin') setAdminViewTab('admin'); }} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
-      ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: initialCust.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
+      ) : showStaffLogin ? (
+        <StaffLoginCard targetRole="any" onLoginSuccess={handleLoginSuccess} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
+      ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
         <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} />
       ) : (
         <>
-          {activeTab === 'customer' && (
-            <>
-              {custScreen === 'shop' ? (
-                <CustomerOrderPage customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onNotify={showNotice} />
-              ) : (
-                <CustomerTrackPage customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
-              )}
-              {effectiveRole === 'customer' && (
-                <div style={{ padding: '8px 16px 14px', textAlign: 'center', background: '#F3F7FA', display: 'flex', justifyContent: 'center', gap: 14 }}>
-                  <button type="button" onClick={() => setShowTraining(true)} style={{ border: 'none', background: 'transparent', color: '#0B6E8A', fontSize: 11, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}>🎓 คู่มือการสั่งน้ำดื่ม (Training Agent)</button>
-                  <button type="button" onClick={() => setShowStaffLogin(true)} style={{ border: 'none', background: 'transparent', color: '#64748B', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}>🔐 สำหรับไรเดอร์ / ผู้ดูแลระบบ (Staff Login)</button>
-                </div>
-              )}
-            </>
-          )}
+          {activeTab === 'customer' && (custScreen === 'shop' ? (
+            <CustomerOrderPage key={customerUser} customerUser={customerUser} onOrderCreated={(id) => { setTrackedOrderId(id); setCustScreen('track'); }} onGoTrack={() => setCustScreen('track')} onNotify={showNotice} />
+          ) : (
+            <CustomerTrackPage key={customerUser} customerUser={customerUser} initialOrderId={trackedOrderId} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
+          ))}
           {activeTab === 'rider' && (riderScreen === 'jobs' || !activeJob ? (
             <RiderJobsPage jobs={jobs} selectedJob={activeJob} selectedDetail={selectedDetail} settings={settings} loading={loading} onSelectJob={(j) => setSelectedJobId(j.id)} onPrimaryAction={handlePrimaryAction} onOpenSettings={() => setShowSettings(true)} onRefresh={() => loadJobs(settings)} />
           ) : (
             <RiderPodPage job={activeJob} detail={selectedDetail} settings={settings} onBack={() => setRiderScreen('jobs')} onDeliver={async (p) => { if (!activeJob) return; const r = await riderActions.deliver(activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${activeJob.code} สำเร็จ!`); setRiderScreen('jobs'); await loadJobs(); }} onOpenFailModal={() => setFailJob(activeJob)} />
           ))}
-          {activeTab === 'admin' && (staffSession ? (
-            <AdminPage staffSession={staffSession} onLogout={() => { saveStaffSession(null); setStaffSession(null); showNotice('ออกจากระบบหลังบ้านแล้ว'); }} onNotify={showNotice} />
+          {activeTab === 'admin' && (staffSession && (staffSession.user.role === 'admin' || staffSession.user.role === 'warehouse') ? (
+            <AdminPage staffSession={staffSession} onLogout={handleLogout} onNotify={showNotice} />
           ) : (
-            <StaffLoginCard targetRole="admin" onLoginSuccess={(s) => { saveStaffSession(s); setStaffSession(s); }} onNotify={showNotice} />
+            <StaffLoginCard targetRole="admin" onLoginSuccess={handleLoginSuccess} onCancel={() => setAdminViewTab('customer')} onNotify={showNotice} />
           ))}
         </>
       )}

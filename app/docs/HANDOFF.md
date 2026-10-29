@@ -13,7 +13,7 @@
 | Order state machine (Flow 8 ขั้น) | ✅ | รองรับทั้งคลังและไรเดอร์ (ที่ได้รับมอบหมาย) กดขั้น 3 (`PACKED` / พนักงานขนส่งกดน้ำ) |
 | บัญชีถุง + แจ้งยอดไม่ตรง | ✅ | |
 | API ลูกค้า / คลัง / ไรเดอร์ / แอดมิน | ✅ | ตาราง API ใน `README.md` |
-| Dev auth + LINE ID token + Staff Password Auth | ✅ | รองรับ Login หลังบ้าน/คลังด้วย `username` + `password` (`POST /auth/login` → JWT) ค่าเริ่มต้น `admin` / `admin1234` และ `warehouse` / `warehouse1234` |
+| Dev auth + LINE ID token + Staff Password Auth | ✅ | รองรับ Login ด้วย `username` + `password` (`POST /auth/login` → JWT) ครบทั้ง 4 บทบาท (`admin` / `admin1234`, `warehouse` / `warehouse1234`, `rider` / `rider1234`, `customer` / `customer1234` และผู้ใช้ทุกคนที่สร้างใน `/admin/users`) พร้อมแถบ `TopAuthBar` แสดงปุ่ม `🔑 Login / สลับผู้ใช้` และ `🚪 Logout` ที่ด้านบนสุดทุกหน้าจอ |
 | User Management CRUD (`/admin/users`) | ✅ | เพิ่ม/ดู/แก้ไข/ตั้งรหัสผ่าน/ลบผู้ใช้ครบทุกบทบาท (Hard Delete ถ้ายังไม่มีประวัติ, Soft Delete ถ้ามีประวัติผูกกับ Audit Trail) |
 | LINE webhook (ลายเซ็น + กันซ้ำ + ตอบกลับ自动) | ✅ | เชื่อม LINE OA `@157iywjs` (`llife`), ลงทะเบียนลูกค้าอัตโนมัติเมื่อแอดเพื่อน/ทักแชท และตอบกลับด้วยรหัส OTP ล่าสุด + ลิงก์ผูกบัญชีพร้อม HMAC-SHA256 Signed Token (`?lineUserId=...&lineToken=...`) |
 | LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM) | ✅ | สั่งน้ำดื่มผ่านแชท LINE 100% (Product Carousel → Interactive Cart Bubble `+`/`-` → แชร์พิกัด GPS → Suggest ตู้กดน้ำที่ใกล้ที่สุด → เลือกจำนวนถุงคืน → เลือกวิธีชำระเงินโดยคุมความยาว Quick Reply Label `<= 20` ตัวอักษรตามมาตรฐาน LINE API + รองรับพิมพ์ข้อความ Fallback → สร้างออเดอร์เป็น `CONFIRMED` พร้อมปุ่มยกเลิกออเดอร์ในบิล Flex `action=cancel_order` และหน้าเว็บลูกค้า) |
