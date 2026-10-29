@@ -116,7 +116,7 @@ export const App: React.FC = () => {
       ) : (
         <>
           {activeTab === 'customer' && (custScreen === 'events' ? (
-            <CustomerEventsPage initialViewMode={resolveInitialEventsViewMode()} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
+            <CustomerEventsPage initialViewMode={resolveInitialEventsViewMode()} onNotify={showNotice} />
           ) : custScreen === 'stations' ? (
             <CustomerStationsPage initialRegion={resolveInitialRegionParam()} onBackToShop={() => setCustScreen('shop')} onNotify={showNotice} />
           ) : custScreen === 'shop' ? (

@@ -9,7 +9,6 @@ import {
 
 interface Props {
   initialViewMode?: '30d' | 'all';
-  onBackToShop: () => void;
   onNotify: (msg: string) => void;
 }
 
@@ -19,7 +18,7 @@ const BADGE_STYLE: Record<EventWindowCategory, { text: string; bg: string; color
   past: { text: '⚪ จัดผ่านไปแล้ว', bg: '#F1F5F9', color: '#64748B' },
 };
 
-export const CustomerEventsPage: React.FC<Props> = ({ initialViewMode = '30d', onBackToShop, onNotify }) => {
+export const CustomerEventsPage: React.FC<Props> = ({ initialViewMode = '30d', onNotify }) => {
   const [allEvents, setAllEvents] = useState<MeetupEvent[]>([]);
   const [viewMode, setViewMode] = useState<'30d' | 'all'>(initialViewMode);
   const [loading, setLoading] = useState(true);
@@ -47,14 +46,9 @@ export const CustomerEventsPage: React.FC<Props> = ({ initialViewMode = '30d', o
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <div style={{ background: '#FFFFFF', padding: '16px 16px 12px', borderBottom: '1px solid #DCE4EC', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#7C3AED' }}>📅 กิจกรรมพบปะทีม ilife</div>
-            <div style={{ fontSize: 12, color: '#4A5B6E' }}>ตารางนัดพบปะสมาชิก วัน เวลา สถานที่ และแผนที่นำทาง</div>
-          </div>
-          <button type="button" onClick={onBackToShop} style={{ padding: '7px 12px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-            💧 สั่งน้ำดื่ม
-          </button>
+        <div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: '#7C3AED' }}>📅 กิจกรรมพบปะทีม ilife</div>
+          <div style={{ fontSize: 12, color: '#4A5B6E' }}>ตารางนัดพบปะสมาชิก วัน เวลา สถานที่ และแผนที่นำทาง</div>
         </div>
 
         <div style={{ display: 'flex', background: '#F3F7FA', borderRadius: 12, padding: 3, gap: 4 }}>

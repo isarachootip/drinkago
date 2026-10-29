@@ -1,3 +1,5 @@
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import {
   classifyEventWindow,
@@ -5,6 +7,7 @@ import {
   getBangkokTodayIso,
   resolveInitialEventsViewMode,
 } from '../src/domain/thai-datetime';
+import { CustomerEventsPage } from '../src/pages/CustomerEventsPage';
 
 describe('Frontend Meetup Events 1-Month (30-Day) Window', () => {
   it('classifyEventWindow & getBangkokTodayIso: จำแนกสถานะกิจกรรม (ใน 30 วัน / ล่วงหน้าเกิน 30 วัน / ผ่านไปแล้ว)', () => {
@@ -32,5 +35,17 @@ describe('Frontend Meetup Events 1-Month (30-Day) Window', () => {
 
     const allList = filterAndSortEvents(sample, 'all', '2026-10-29');
     expect(allList.map((x) => x.id)).toEqual([4, 3, 2, 1]);
+  });
+
+  it('CustomerEventsPage: ไม่แสดงปุ่ม "สั่งน้ำดื่ม" บนส่วนหัวหน้ากิจกรรมพบปะ แต่ยังคงแสดงหัวข้อและปุ่มสลับตาราง', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(CustomerEventsPage, {
+        onNotify: () => {},
+      }),
+    );
+    expect(html).toContain('กิจกรรมพบปะทีม ilife');
+    expect(html).toContain('ใน 1 เดือนนี้');
+    expect(html).toContain('ตารางทั้งหมด');
+    expect(html).not.toContain('สั่งน้ำดื่ม');
   });
 });
