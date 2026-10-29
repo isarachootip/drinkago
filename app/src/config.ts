@@ -27,6 +27,8 @@ const schema = z.object({
   PUBLIC_WEB_URL: z.string().default('https://idrink.tamadee.online'),
   /** LINE Official Account ID (@...) */
   LINE_OA_BASIC_ID: z.string().default('@157iywjs'),
+  /** ลิงก์เพจ Facebook สำหรับปุ่ม "เยี่ยมชมเรา" บน Rich Menu */
+  FACEBOOK_PAGE_URL: z.string().default('https://www.facebook.com'),
   /** เบอร์โทรศัพท์หรือเลขบัตรประชาชนสำหรับสร้าง PromptPay QR Code */
   PROMPTPAY_ID: z.string().default('0812345678'),
   /** ชื่อบัญชี PromptPay สำหรับแสดงในใบสรุปคำสั่งซื้อ */

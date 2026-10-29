@@ -1,6 +1,7 @@
 import { LineCartItem } from '../db/schema';
 export { buildOrderTicketFlex, buildStatusAndBagFlex } from './line-ticket.templates';
 export { buildContactAndShareMessages, buildShareOaFlex, ShareOaFlexInput } from './line-share.templates';
+export { buildMeetupEventsFlex, buildStationsCarouselFlex, buildVisitUsFlex, StationFlexItem, VisitUsFlexInput } from './line-discovery.templates';
 
 export interface LineAction {
   type: 'postback' | 'message' | 'uri' | 'location';

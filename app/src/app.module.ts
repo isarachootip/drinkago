@@ -12,6 +12,8 @@ import { AdminManagementController } from './customers/admin-management.controll
 import { AdminCustomersController, MeController } from './customers/customers.controller';
 import { UsersAdminController } from './customers/users-admin.controller';
 import { DbModule } from './db/db.module';
+import { MeetupEventsController } from './events/meetup-events.controller';
+import { MeetupEventsService } from './events/meetup-events.service';
 import { LineCartService } from './line/line-cart.service';
 import { LineCheckoutService } from './line/line-checkout.service';
 import { LinePaymentReorderService } from './line/line-payment-reorder.service';
@@ -52,6 +54,7 @@ export class AppModule {
         AdminManagementController,
         UsersAdminController,
         CatalogController,
+        MeetupEventsController,
         OrdersController,
         RiderController,
         StationsController,
@@ -60,6 +63,7 @@ export class AppModule {
       ],
       providers: [
         BagLedgerService,
+        MeetupEventsService,
         StationsService,
         NotificationsService,
         OrdersService,

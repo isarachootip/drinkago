@@ -26,6 +26,7 @@ COPY app/package*.json ./
 RUN npm ci --omit=dev
 COPY --from=build-app /app/dist ./dist
 COPY app/drizzle ./drizzle
+COPY app/assets ./assets
 COPY --from=build-web /web/dist ./public
 EXPOSE 3000
 CMD ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js && node dist/main.js"]

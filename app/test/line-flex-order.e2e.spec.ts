@@ -88,20 +88,32 @@ describe('LINE Flex Menu Ordering (Delivery Only - สไตล์ ODM)', () => 
 
     const richSpec = await admin.get('/admin/line/rich-menu').expect(200);
     expect(richSpec.body.areas).toHaveLength(6);
-    expect(richSpec.body.areas[0].action.data).toBe('action=share_oa');
-    expect(richSpec.body.areas[3].action.data).toBe('action=share_oa');
-    expect(richSpec.body.areas[4].action.data).toBe('action=menu');
+    expect(richSpec.body.areas[0].action.data).toBe('action=events');
+    expect(richSpec.body.areas[1].action.data).toBe('action=menu');
+    expect(richSpec.body.areas[2].action.data).toBe('action=find_stations');
+    expect(richSpec.body.areas[3].action.data).toBe('action=status');
+    expect(richSpec.body.areas[4].action.data).toBe('action=share_oa');
+    expect(richSpec.body.areas[5].action.data).toBe('action=visit_us');
 
-    const synced = await admin.post('/admin/line/rich-menu/sync', { imageUrl: '/uploads/richmenu-ilife.png' }).expect(201);
+    const synced = await admin.post('/admin/line/rich-menu/sync').expect(201);
     expect(synced.body.ok).toBe(true);
     expect(synced.body.areas).toBe(6);
+    expect(synced.body.imageSource).toBe('bundled');
+
+    const eventsList = await as('U_odm_cust_001').get('/events').expect(200);
+    expect(eventsList.body.length).toBeGreaterThanOrEqual(1);
+    expect(eventsList.body[0].locationName).toContain('โรงแรมอุทัยรัตน');
+
+    const evPostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=events' } }).expect(200);
+    expect(JSON.stringify(evPostback.body.replies)).toContain('โรงแรมอุทัยรัตน');
+    expect(JSON.stringify(evPostback.body.replies)).toContain('0634455');
 
     const sharePostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=share_oa' } }).expect(200);
     expect(JSON.stringify(sharePostback.body.replies)).toContain('https://line.me/R/nv/recommendOA/');
     expect(JSON.stringify(sharePostback.body.replies)).toContain('https://line.me/R/ti/p/');
 
-    const contactText = await sendLineEvent('U_odm_cust_001', { type: 'message', message: { type: 'text', text: 'ติดต่อเรา' } }).expect(200);
-    expect(JSON.stringify(contactText.body.replies)).toContain('https://line.me/R/nv/recommendOA/');
+    const visitPostback = await sendLineEvent('U_odm_cust_001', { type: 'postback', postback: { data: 'action=visit_us' } }).expect(200);
+    expect(JSON.stringify(visitPostback.body.replies)).toContain('facebook.com');
   });
 
   it('2. ลูกค้าสั่งน้ำผ่าน LINE Flex Menu → ตะกร้า Postback → แชร์พิกัด GPS → สร้างออเดอร์ PromptPay → ส่งสลิปในแชท', async () => {

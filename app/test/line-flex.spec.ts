@@ -1,13 +1,17 @@
 import { signCustomerLinkToken, verifyCustomerLinkToken } from '../src/common/password';
 import { loadConfig } from '../src/config';
+import { buildGoogleMapsSearchUrl } from '../src/events/meetup-events.service';
 import { PAYMENT_QUICK_REPLY_ITEMS, safeQuickReplyLabel } from '../src/line/line-checkout.service';
 import {
   buildCartFlex,
   buildContactAndShareMessages,
+  buildMeetupEventsFlex,
   buildOrderTicketFlex,
   buildProductCarouselFlex,
   buildShareOaFlex,
+  buildStationsCarouselFlex,
   buildStatusAndBagFlex,
+  buildVisitUsFlex,
   getSafeProductImageUrl,
 } from '../src/line/line-flex.templates';
 import { LineRichMenuService } from '../src/line/line-rich-menu.service';
@@ -179,7 +183,7 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     expect(contactMsgs[1].type).toBe('flex');
   });
 
-  it('LineRichMenuService: สร้างโครงสร้าง Rich Menu 6 ช่อง (2x3) พร้อมปุ่มแชร์ QR ให้เพื่อน (action=share_oa) และซิงก์สำเร็จ', async () => {
+  it('LineRichMenuService: สร้างโครงสร้าง Rich Menu 6 ช่องใหม่ (กิจกรรมพบปะ, สั่งน้ำดื่ม, ค้นหาตู้เติมน้ำทั่วไทย, ติดตามสถานะ, เป็นเพื่อนกับเรา, เยี่ยมชมเรา) และโหลดภาพมาตรฐาน bundled ได้', async () => {
     const cfg = loadConfig({ AUTH_MODE: 'dev', LINE_OA_BASIC_ID: '@157iywjs' } as unknown as NodeJS.ProcessEnv);
     const mockStorage = {
       save: async () => ({ url: '/uploads/x.png', filename: 'x.png', size: 10, mimetype: 'image/png' }),
@@ -188,16 +192,58 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     const svc = new LineRichMenuService(cfg, mockStorage);
     const def = svc.buildRichMenuDefinition();
     expect(def.areas).toHaveLength(6);
-    expect(def.areas[0].action.data).toBe('action=share_oa');
-    expect(def.areas[1].action.data).toBe('action=status');
-    expect(def.areas[2].action.data).toBe('action=reorder');
-    expect(def.areas[3].action.data).toBe('action=share_oa');
-    expect(def.areas[4].action.data).toBe('action=menu');
-    expect(def.areas[5].action.data).toBe('action=contact');
+    expect(def.areas[0].action.data).toBe('action=events');
+    expect(def.areas[1].action.data).toBe('action=menu');
+    expect(def.areas[2].action.data).toBe('action=find_stations');
+    expect(def.areas[3].action.data).toBe('action=status');
+    expect(def.areas[4].action.data).toBe('action=share_oa');
+    expect(def.areas[5].action.data).toBe('action=visit_us');
 
-    const syncRes = await svc.syncDefaultRichMenu('/uploads/nonexistent.png');
+    const syncRes = await svc.syncDefaultRichMenu();
     expect(syncRes.ok).toBe(true);
     expect(syncRes.areas).toBe(6);
-    expect(syncRes.imageSource).toBe('generated');
+    expect(syncRes.imageSource).toBe('bundled');
+  });
+
+  it('buildMeetupEventsFlex, buildStationsCarouselFlex, buildVisitUsFlex: สร้างการ์ดสำหรับปุ่มกิจกรรมพบปะ, ค้นหาตู้เติมน้ำ และเยี่ยมชมเราครบถ้วน', () => {
+    const defaultLoc = 'โรงแรมอุทัยรัตน อ เมือง อุทัยธานี';
+    const mapUrl = buildGoogleMapsSearchUrl(defaultLoc);
+    expect(mapUrl).toContain('google.com/maps/search/');
+
+    const evFlex = buildMeetupEventsFlex(
+      [
+        {
+          id: 1,
+          title: 'กิจกรรมพบปะทีม ilife',
+          eventDate: '17 มีนา 2569',
+          eventTime: '10.00',
+          locationName: defaultLoc,
+          contactPhone: '0634455',
+          mapUrl,
+          active: true,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      'https://idrink.tamadee.online',
+      'U_cust_01',
+    );
+    const evJson = JSON.stringify(evFlex);
+    expect(evJson).toContain('17 มีนา 2569');
+    expect(evJson).toContain('โรงแรมอุทัยรัตน อ เมือง อุทัยธานี');
+    expect(evJson).toContain('0634455');
+    expect(evJson).toContain('tab=events');
+
+    const stFlex = buildStationsCarouselFlex([
+      { id: 1, code: 'ST-01', name: 'สาขาสุขุมวิท', addressDetail: 'สุขุมวิท 50', lat: 13.7, lng: 100.6, bagBalance: 50, distanceKm: 1.2 },
+    ]);
+    expect(JSON.stringify(stFlex)).toContain('ST-01');
+    expect(JSON.stringify(stFlex)).toContain('1.2 กม.');
+
+    const visitFlex = buildVisitUsFlex({
+      oaBasicId: '@157iywjs',
+      publicWebUrl: 'https://idrink.tamadee.online',
+      facebookUrl: 'https://www.facebook.com/ilife',
+    });
+    expect(JSON.stringify(visitFlex)).toContain('https://www.facebook.com/ilife');
   });
 });

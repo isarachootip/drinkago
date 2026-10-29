@@ -3,6 +3,7 @@ import { adminMgmtApi } from '../api/admin-api';
 import { staffApi, StaffSession } from '../api/role-api';
 import { StaffOrder } from '../api/schemas';
 import { AdminCustomersPanel } from '../components/AdminCustomersPanel';
+import { AdminEventsPanel } from '../components/AdminEventsPanel';
 import { AdminOrdersPanel } from '../components/AdminOrdersPanel';
 import { AdminProductsPanel } from '../components/AdminProductsPanel';
 import { AdminRidersPanel } from '../components/AdminRidersPanel';
@@ -17,7 +18,7 @@ interface Props {
   onNotify: (msg: string) => void;
 }
 
-type AdminSection = 'users' | 'products' | 'stations' | 'riders' | 'customers' | 'orders' | 'training';
+type AdminSection = 'users' | 'products' | 'events' | 'stations' | 'riders' | 'customers' | 'orders' | 'training';
 
 export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify }) => {
   const [section, setSection] = useState<AdminSection>('users');
@@ -96,6 +97,7 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
           {([
             { id: 'users', label: '👤 จัดการผู้ใช้ (CRUD)' },
             { id: 'products', label: '🛒 สินค้า & LINE Menu' },
+            { id: 'events', label: '📅 กิจกรรมพบปะ' },
             { id: 'stations', label: '🚰 ตู้กดน้ำ & สต็อกถุง' },
             { id: 'riders', label: '🛵 จัดการไรเดอร์' },
             { id: 'customers', label: '🏠 สมาชิก & วงเงิน' },
@@ -126,6 +128,7 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {section === 'users' && <AdminUsersPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}
         {section === 'products' && <AdminProductsPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}
+        {section === 'events' && <AdminEventsPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}
         {section === 'stations' && <AdminStationsPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}
         {section === 'riders' && <AdminRidersPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}
         {section === 'customers' && <AdminCustomersPanel onNotify={onNotify} viewMode={viewMode} onViewModeChange={handleViewModeChange} />}

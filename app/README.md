@@ -75,7 +75,9 @@ test/                            unit + e2e
 | GET | `/me/bags` | customer | ยอดถุงค้าง + ประวัติ |
 | GET | `/products` | ทุกบทบาท | รายการสินค้าที่เปิดขาย |
 | GET/POST/PATCH/DELETE | `/admin/products`, `/admin/products/:id` | warehouse, admin | บริหารจัดการ Product Master (SKU/ชื่อ/ราคา/ถุงคืน/รูปภาพสไตล์ ODM + Hard/Soft Delete) |
-| GET/POST | `/admin/line/rich-menu`, `/admin/line/rich-menu/sync` | admin | ดูโครงสร้างและซิงก์ Rich Menu 6 ปุ่ม (พร้อมปุ่มแชร์ QR ให้เพื่อน และรองรับอัปโหลดรูปพื้นหลัง) ขึ้น LINE Official Account |
+| GET | `/events` | ทุกบทบาท (Public) | รายการตารางกิจกรรมพบปะทีม `ilife` ที่เปิดแสดงผล |
+| GET/POST/PATCH/DELETE | `/admin/events`, `/admin/events/:id` | warehouse, admin | จัดการตารางกิจกรรมพบปะ (วัน/เวลา/สถานที่/เบอร์โทร/พิกัดแผนที่ Google Maps) |
+| GET/POST | `/admin/line/rich-menu`, `/admin/line/rich-menu/sync` | admin | ดูโครงสร้างและซิงก์ Rich Menu 6 ปุ่ม (กิจกรรมพบปะ, สั่งน้ำดื่ม, ค้นหาตู้เติมน้ำทั่วไทย, ติดตามสถานะ, เป็นเพื่อนกับเรา, เยี่ยมชมเรา) พร้อมภาพมาตรฐาน `ilife` |
 | POST | `/orders` | customer | 1 สั่งซื้อ |
 | POST | `/orders/reorder` | customer | 1 สั่งซ้ำ 1 คลิก |
 | GET | `/orders/mine` | customer | |

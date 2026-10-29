@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { promises as fs } from 'node:fs';
-import { basename, extname } from 'node:path';
+import { basename, extname, join, resolve } from 'node:path';
 import { deflateSync } from 'node:zlib';
 import { APP_CONFIG, AppConfig } from '../config';
 import { FILE_STORAGE, FileStorage } from '../uploads/storage.interface';
@@ -10,7 +10,7 @@ export interface RichMenuSyncResult {
   mode: 'live' | 'mock';
   richMenuId: string;
   areas: number;
-  imageSource?: 'custom' | 'generated';
+  imageSource?: 'custom' | 'bundled' | 'generated';
 }
 
 @Injectable()
@@ -27,37 +27,39 @@ export class LineRichMenuService {
       size: { width: 2500, height: 1686 },
       selected: true,
       name: 'ilife Drink&Go 6-Grid Menu',
-      chatBarText: 'เมนูสั่งน้ำ & แชร์เพื่อน 💧',
+      chatBarText: 'เมนู ilife สั่งน้ำ & กิจกรรม 💧',
       areas: [
         {
           bounds: { x: 0, y: 0, width: 833, height: 843 },
-          action: { type: 'postback', label: 'แนะนำเพื่อน / แชร์ QR', data: 'action=share_oa', displayText: 'แชร์ QR Code ให้เพื่อน' },
+          action: { type: 'postback', label: 'กิจกรรมพบปะ', data: 'action=events', displayText: 'กิจกรรมพบปะ' },
         },
         {
           bounds: { x: 833, y: 0, width: 834, height: 843 },
-          action: { type: 'postback', label: 'บริการของเรา (สถานะ/OTP)', data: 'action=status', displayText: 'บริการของเรา' },
+          action: { type: 'postback', label: 'สั่งน้ำดื่ม', data: 'action=menu', displayText: 'สั่งน้ำดื่ม' },
         },
         {
           bounds: { x: 1667, y: 0, width: 833, height: 843 },
-          action: { type: 'postback', label: 'โปรโมชั่น / สั่งซ้ำด่วน', data: 'action=reorder', displayText: 'โปรโมชั่น / สั่งซ้ำออเดอร์เดิม' },
+          action: { type: 'postback', label: 'ค้นหาตู้เติมน้ำทั่วไทย', data: 'action=find_stations', displayText: 'ค้นหาตู้เติมน้ำทั่วไทย' },
         },
         {
           bounds: { x: 0, y: 843, width: 833, height: 843 },
-          action: { type: 'postback', label: 'แชร์ LINE OA ให้เพื่อน', data: 'action=share_oa', displayText: 'แชร์ LINE OA ให้เพื่อน' },
+          action: { type: 'postback', label: 'ติดตามสถานะ', data: 'action=status', displayText: 'ติดตามสถานะ' },
         },
         {
           bounds: { x: 833, y: 843, width: 834, height: 843 },
-          action: { type: 'postback', label: 'ส่งใบสั่งซื้อ (ดูเมนู)', data: 'action=menu', displayText: 'ส่งใบสั่งซื้อ' },
+          action: { type: 'postback', label: 'เป็นเพื่อนกับเรา', data: 'action=share_oa', displayText: 'เป็นเพื่อนกับเรา' },
         },
         {
           bounds: { x: 1667, y: 843, width: 833, height: 843 },
-          action: { type: 'postback', label: 'ติดต่อเรา / แชร์เพื่อน', data: 'action=contact', displayText: 'ติดต่อเรา' },
+          action: { type: 'postback', label: 'เยี่ยมชมเรา', data: 'action=visit_us', displayText: 'เยี่ยมชมเรา' },
         },
       ],
     };
   }
 
-  private async resolveRichMenuImage(imageUrl?: string | null): Promise<{ buffer: Buffer; contentType: string; source: 'custom' | 'generated' }> {
+  private async resolveRichMenuImage(
+    imageUrl?: string | null,
+  ): Promise<{ buffer: Buffer; contentType: string; source: 'custom' | 'bundled' | 'generated' }> {
     if (imageUrl && imageUrl.trim()) {
       const filename = basename(imageUrl.trim());
       const filePath = await this.storage.getFilePath(filename);
@@ -68,6 +70,22 @@ export class LineRichMenuService {
         return { buffer, contentType, source: 'custom' };
       }
     }
+
+    const candidates = [
+      resolve(process.cwd(), 'assets', 'richmenu-ilife-default.jpg'),
+      join(__dirname, '..', '..', 'assets', 'richmenu-ilife-default.jpg'),
+    ];
+    for (const candidate of candidates) {
+      try {
+        const buffer = await fs.readFile(candidate);
+        if (buffer.length > 0) {
+          return { buffer, contentType: 'image/jpeg', source: 'bundled' };
+        }
+      } catch {
+        // try next path
+      }
+    }
+
     return { buffer: buildSixGridPng(900, 606), contentType: 'image/png', source: 'generated' };
   }
 
@@ -115,8 +133,8 @@ function buildSixGridPng(width: number, height: number): Buffer {
   const colW = Math.floor(width / 3);
   const rowH = Math.floor(height / 2);
   const palette: [number, number, number][] = [
-    [6, 199, 85], [26, 86, 176], [11, 110, 138],
-    [16, 152, 104], [30, 123, 69], [15, 34, 54],
+    [124, 58, 237], [26, 86, 176], [11, 110, 138],
+    [16, 152, 104], [6, 199, 85], [24, 119, 242],
   ];
   for (let y = 0; y < height; y++) {
     const rowStart = y * rowSize;
