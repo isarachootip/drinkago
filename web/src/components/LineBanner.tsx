@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { eventsApi, MeetupEvent } from '../api/events-api';
+import { resolveInitialQueryTab } from '../domain/session-gate';
 
 export const LINE_OA_BASIC_ID = '@157iywjs';
 export const LINE_OA_NAME = 'llife';
@@ -13,9 +14,7 @@ interface Props {
 export const LineBanner: React.FC<Props> = ({ customerUser }) => {
   const isLinkedRealLine = customerUser.startsWith('U') && customerUser.length > 20;
   const [events, setEvents] = useState<MeetupEvent[]>([]);
-  const [showEvents, setShowEvents] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.location.search.includes('tab=events'),
-  );
+  const [showEvents, setShowEvents] = useState<boolean>(() => resolveInitialQueryTab() === 'events');
 
   useEffect(() => {
     eventsApi.listPublicEvents().then(setEvents).catch(() => setEvents([]));

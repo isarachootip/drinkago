@@ -42,7 +42,7 @@ export class LineAuthController {
   @Get('start')
   @Public()
   startOauth(@Query('tab') tab: string | undefined, @Res() res: Response) {
-    const channelId = this.cfg.LINE_LOGIN_CHANNEL_ID;
+    const channelId = this.lineAuth.getEffectiveLoginChannelId();
     const channelSecret = this.cfg.LINE_LOGIN_CHANNEL_SECRET;
     if (!channelId || !channelSecret) {
       throw new DomainError(

@@ -1,8 +1,8 @@
 import liff from '@line/liff';
 import { z } from 'zod';
 import { loadDevSettings } from '../api/client';
-import { requestJson, StaffSession } from '../api/role-api';
-import { CUSTOMER_USER_STORAGE_KEY, LINE_TOKEN_STORAGE_KEY } from './session-gate';
+import { requestJson, saveStaffSession, StaffSession } from '../api/role-api';
+import { CUSTOMER_USER_STORAGE_KEY, LINE_TOKEN_STORAGE_KEY, resolveInitialQueryTab } from './session-gate';
 
 export const lineAuthConfigSchema = z.object({
   liffId: z.string().nullable(),
@@ -66,8 +66,19 @@ export async function tryAutoLoginWithLiff(): Promise<{ session: StaffSession; l
     try {
       localStorage.setItem(LINE_TOKEN_STORAGE_KEY, parsed.lineToken);
       localStorage.setItem(CUSTOMER_USER_STORAGE_KEY, parsed.user.lineUserId);
+      if (typeof window !== 'undefined' && window.history?.replaceState) {
+        const activeTab = resolveInitialQueryTab();
+        const url = new URL(window.location.href);
+        for (const key of ['code', 'state', 'liff.state', 'liffClientId', 'liffRedirectUri']) {
+          url.searchParams.delete(key);
+        }
+        if (activeTab && !url.searchParams.get('tab')) {
+          url.searchParams.set('tab', activeTab);
+        }
+        window.history.replaceState({}, '', url.pathname + url.search);
+      }
     } catch {
-      // ignore storage errors
+      // ignore storage/history errors
     }
     return {
       session: { token: parsed.token, user: parsed.user },
@@ -80,17 +91,35 @@ export async function tryAutoLoginWithLiff(): Promise<{ session: StaffSession; l
 
 export async function startLineLogin(tab = 'shop', onNotify?: (msg: string) => void): Promise<void> {
   try {
+    const targetTab = resolveInitialQueryTab() ?? tab;
     const cfg = await fetchLineAuthConfig();
     if (cfg.liffId) {
       await ensureLiffReady(cfg.liffId);
       if (!liff.isLoggedIn()) {
-        liff.login({ redirectUri: window.location.href });
+        const host = window.location.hostname.toLowerCase();
+        const isLocal = host === 'localhost' || host === '127.0.0.1';
+        if (isLocal && cfg.oauthEnabled) {
+          const s = loadDevSettings();
+          window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab);
+          return;
+        }
+        liff.login(
+          isLocal
+            ? undefined
+            : { redirectUri: `${window.location.origin}/?tab=${encodeURIComponent(targetTab)}` },
+        );
+        return;
+      }
+      const exchanged = await tryAutoLoginWithLiff();
+      if (exchanged) {
+        saveStaffSession(exchanged.session);
+        window.location.reload();
         return;
       }
     }
     if (cfg.oauthEnabled) {
       const s = loadDevSettings();
-      window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, tab);
+      window.location.href = buildWebLineOauthStartUrl(s.apiBaseUrl, targetTab);
       return;
     }
     onNotify?.('กำลังรอตั้งค่า LINE_LOGIN_CHANNEL_SECRET หรือ LINE_LIFF_ID บนเซิร์ฟเวอร์ (ระหว่างนี้เข้าผ่านแชท LINE OA @157iywjs ได้ทันที)');

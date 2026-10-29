@@ -74,8 +74,14 @@ export class LineAuthService {
     return `${this.cfg.PUBLIC_WEB_URL.replace(/\/+$/, '')}/auth/line/callback`;
   }
 
+  getEffectiveLoginChannelId(): string | null {
+    if (this.cfg.LINE_LOGIN_CHANNEL_ID) return this.cfg.LINE_LOGIN_CHANNEL_ID;
+    const fromLiff = this.cfg.LINE_LIFF_ID?.split('-')[0]?.trim();
+    return fromLiff && /^\d+$/.test(fromLiff) ? fromLiff : null;
+  }
+
   getPublicConfig() {
-    const channelId = this.cfg.LINE_LOGIN_CHANNEL_ID ?? null;
+    const channelId = this.getEffectiveLoginChannelId();
     const hasSecret = Boolean(this.cfg.LINE_LOGIN_CHANNEL_SECRET);
     return {
       liffId: this.cfg.LINE_LIFF_ID || null,
@@ -86,7 +92,7 @@ export class LineAuthService {
   }
 
   async verifyIdTokenWithLine(idToken: string): Promise<{ lineUserId: string; displayName: string }> {
-    const channelId = this.cfg.LINE_LOGIN_CHANNEL_ID;
+    const channelId = this.getEffectiveLoginChannelId();
     if (!channelId) {
       throw new DomainError(400, 'LINE_LOGIN_NOT_CONFIGURED', 'ยังไม่ได้ตั้งค่า LINE_LOGIN_CHANNEL_ID บนเซิร์ฟเวอร์');
     }
@@ -107,7 +113,7 @@ export class LineAuthService {
   }
 
   async exchangeOauthCode(code: string): Promise<{ lineUserId: string; displayName: string }> {
-    const channelId = this.cfg.LINE_LOGIN_CHANNEL_ID;
+    const channelId = this.getEffectiveLoginChannelId();
     const channelSecret = this.cfg.LINE_LOGIN_CHANNEL_SECRET;
     if (!channelId || !channelSecret) {
       throw new DomainError(400, 'LINE_LOGIN_NOT_CONFIGURED', 'ยังไม่ได้ตั้งค่า LINE_LOGIN_CHANNEL_ID หรือ LINE_LOGIN_CHANNEL_SECRET');

@@ -12,8 +12,8 @@ import { TopAuthBar } from './components/TopAuthBar';
 import { safeLiffLogout, tryAutoLoginWithLiff } from './domain/liff-auth';
 import {
   AppRoleTab, clearAllAuthSessions, CUSTOMER_USER_STORAGE_KEY, isDemoUnlocked,
-  resolveActiveIdentity, resolveInitialCustomerSession, shouldOpenStaffLoginInitially,
-  shouldRequireEntryGate, unlockDemoMode, UserRole,
+  resolveActiveIdentity, resolveInitialCustomerSession, resolveInitialQueryTab,
+  shouldOpenStaffLoginInitially, shouldRequireEntryGate, unlockDemoMode, UserRole,
 } from './domain/session-gate';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
@@ -31,9 +31,7 @@ export const App: React.FC = () => {
   const [showStaffLogin, setShowStaffLogin] = useState<boolean>(() => shouldOpenStaffLoginInitially());
   const [showTraining, setShowTraining] = useState<boolean>(false);
   const [adminViewTab, setAdminViewTab] = useState<AppRoleTab>('admin');
-  const [custScreen, setCustScreen] = useState<'shop' | 'track'>(() =>
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'track' ? 'track' : 'shop',
-  );
+  const [custScreen, setCustScreen] = useState<'shop' | 'track'>(() => (resolveInitialQueryTab() === 'track' ? 'track' : 'shop'));
   const [trackedOrderId, setTrackedOrderId] = useState<string | null>(null);
   const [settings, setSettings] = useState<DevAuthSettings>(() => loadDevSettings());
   const [jobs, setJobs] = useState<RiderJob[]>([]);

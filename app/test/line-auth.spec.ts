@@ -1,9 +1,12 @@
+import { loadConfig } from '../src/config';
 import {
   buildLineAuthorizeUrl,
+  LineAuthService,
   sanitizeRedirectTab,
   signLineOauthState,
   verifyLineOauthState,
 } from '../src/customers/line-auth.service';
+import { Db } from '../src/db/db';
 
 describe('LINE Login OAuth 2.0 & LIFF Helpers', () => {
   const secret = 'test-oauth-state-secret-key-2026';
@@ -39,5 +42,23 @@ describe('LINE Login OAuth 2.0 & LIFF Helpers', () => {
     expect(url).toContain('redirect_uri=https%3A%2F%2Fidrink.tamadee.online%2Fauth%2Fline%2Fcallback');
     expect(url).toContain('scope=profile+openid');
     expect(url).toContain('bot_prompt=normal');
+  });
+
+  it('ตั้งค่าเริ่มต้น LINE_LIFF_ID เป็น 2012276679-cVW55jug และดึง Channel ID 2012276679 อัตโนมัติได้', () => {
+    const cfg = loadConfig({
+      NODE_ENV: 'development',
+      DATABASE_URL: 'postgres://drinkgo:drinkgo@localhost:5433/drinkgo',
+      AUTH_MODE: 'dev',
+    });
+    expect(cfg.LINE_LIFF_ID).toBe('2012276679-cVW55jug');
+
+    const svc = new LineAuthService({} as Db, cfg);
+    expect(svc.getEffectiveLoginChannelId()).toBe('2012276679');
+    expect(svc.getPublicConfig()).toEqual({
+      liffId: '2012276679-cVW55jug',
+      loginChannelId: '2012276679',
+      oauthEnabled: false,
+      oaBasicId: '@157iywjs',
+    });
   });
 });

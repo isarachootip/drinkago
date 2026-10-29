@@ -40,14 +40,35 @@ export function loadLineToken(): string | null {
   }
 }
 
-export function isDemoUnlocked(): boolean {
+const ALLOWED_QUERY_TABS = new Set(['events', 'shop', 'stations', 'track']);
+
+export function resolveInitialQueryTab(search?: string): 'events' | 'shop' | 'stations' | 'track' | null {
   try {
-    if (typeof window !== 'undefined') {
-      const tab = new URLSearchParams(window.location.search).get('tab');
-      if (tab === 'events' || tab === 'shop' || tab === 'stations' || tab === 'track') {
-        return true;
+    const rawSearch = search !== undefined ? search : typeof window !== 'undefined' ? window.location.search : '';
+    if (!rawSearch) return null;
+    const params = new URLSearchParams(rawSearch.startsWith('?') ? rawSearch : `?${rawSearch}`);
+    const directTab = params.get('tab')?.trim().toLowerCase();
+    if (directTab && ALLOWED_QUERY_TABS.has(directTab)) {
+      return directTab as 'events' | 'shop' | 'stations' | 'track';
+    }
+    const liffState = params.get('liff.state');
+    if (liffState) {
+      const qIdx = liffState.indexOf('?');
+      const stateQuery = qIdx >= 0 ? liffState.slice(qIdx + 1) : liffState;
+      const stateTab = new URLSearchParams(stateQuery).get('tab')?.trim().toLowerCase();
+      if (stateTab && ALLOWED_QUERY_TABS.has(stateTab)) {
+        return stateTab as 'events' | 'shop' | 'stations' | 'track';
       }
     }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function isDemoUnlocked(): boolean {
+  try {
+    if (resolveInitialQueryTab() !== null) return true;
     return typeof localStorage !== 'undefined' && localStorage.getItem(DEMO_UNLOCK_STORAGE_KEY) === '1';
   } catch {
     return false;
@@ -102,9 +123,9 @@ export function clearAllAuthSessions(): void {
     }
     if (typeof window !== 'undefined' && window.history?.replaceState) {
       const url = new URL(window.location.href);
-      url.searchParams.delete('lineUserId');
-      url.searchParams.delete('lineToken');
-      url.searchParams.delete('mode');
+      for (const key of ['lineUserId', 'lineToken', 'mode', 'code', 'state', 'liff.state', 'liffClientId', 'liffRedirectUri']) {
+        url.searchParams.delete(key);
+      }
       window.history.replaceState({}, '', url.pathname + url.search);
     }
   } catch {
