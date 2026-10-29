@@ -52,13 +52,7 @@ afterAll(async () => {
 describe('การจัดการหลังบ้าน: Rider, ตู้กดน้ำ + สต็อกถุงประจำตู้, ลูกค้า + วงเงินเครดิต', () => {
   it('1. จัดการไรเดอร์: แอดมินเพิ่มไรเดอร์ใหม่และแก้ไขทะเบียนรถ/โซนได้', async () => {
     const created = await admin
-      .post('/admin/riders', {
-        lineUserId: 'U_rider_new_99',
-        name: 'สมศักดิ์ นักซิ่ง',
-        phone: '0891112222',
-        vehicle: 'มอเตอร์ไซค์ ฮอนด้า กก-999',
-        zone: 'C',
-      })
+      .post('/admin/riders', { lineUserId: 'U_rider_new_99', name: 'สมศักดิ์ นักซิ่ง', phone: '0891112222', vehicle: 'มอเตอร์ไซค์ ฮอนด้า กก-999', zone: 'C' })
       .expect(201);
     expect(created.body.role).toBe('rider');
     expect(created.body.zone).toBe('C');
@@ -74,15 +68,8 @@ describe('การจัดการหลังบ้าน: Rider, ตู้�
   });
 
   it('2. ตู้กดน้ำ & สต็อกถุงประจำตู้: เลือกตู้ใกล้บ้านลูกค้าอัตโนมัติ + ตัดสต็อกถุงตอนกดน้ำ + รับคืนถุงเข้าตู้ตอนปิดงาน', async () => {
-    // แอดมินสร้างตู้กดน้ำ ST-NORTH ที่พิกัด (13.8000, 100.5500) และเติมถุงเข้าตู้ 20 ใบ
     const stRes = await admin
-      .post('/admin/stations', {
-        code: 'ST-NORTH',
-        name: 'ตู้กดน้ำสาขาจตุจักร',
-        addressDetail: 'พหลโยธิน 18 เขตจตุจักร',
-        lat: 13.8,
-        lng: 100.55,
-      })
+      .post('/admin/stations', { code: 'ST-NORTH', name: 'ตู้กดน้ำสาขาจตุจักร', addressDetail: 'พหลโยธิน 18 เขตจตุจักร', lat: 13.8, lng: 100.55 })
       .expect(201);
     const stationId: number = stRes.body.id;
 
@@ -154,50 +141,33 @@ describe('การจัดการหลังบ้าน: Rider, ตู้�
       .post('/me/addresses', { label: 'บ้าน', detail: 'สุขุมวิท 24', lat: 13.72, lng: 100.56 })
       .expect(201);
 
-    // แอดมินปรับวงเงินเครดิตของลูกค้าเป็น 100 บาท (10,000 สตางค์) และอัปเดตพิกัดบ้าน
     const patched = await admin
-      .patch(`/admin/customers/${reg.body.id}`, {
-        name: 'คุณเครดิต VIP',
-        phone: '0823334444',
-        creditLimitSatang: 10000,
-        addressDetail: 'สุขุมวิท 24 (อัปเดตพิกัด)',
-        lat: 13.725,
-        lng: 100.565,
-      })
+      .patch(`/admin/customers/${reg.body.id}`, { name: 'คุณเครดิต VIP', phone: '0823334444', creditLimitSatang: 10000, addressDetail: 'สุขุมวิท 24 (อัปเดตพิกัด)', lat: 13.725, lng: 100.565 })
       .expect(200);
     expect(patched.body.creditLimitSatang).toBe(10000);
 
-    // สั่งซื้อแบบ CREDIT 3 ถัง (180 บาท = 18,000 สตางค์ > 10,000 สตางค์) ต้องถูกปฏิเสธ 422 CREDIT_LIMIT_EXCEEDED
-    const over = await c.post('/orders', {
-      addressId: addr.body.id,
-      items: [{ productId: 1, qty: 3 }],
-      paymentMethod: 'CREDIT',
-    });
+    const over = await c.post('/orders', { addressId: addr.body.id, items: [{ productId: 1, qty: 3 }], paymentMethod: 'CREDIT' });
     expect(over.status).toBe(422);
     expect(over.body.code).toBe('CREDIT_LIMIT_EXCEEDED');
 
-    // สั่งซื้อแบบ CREDIT 1 ถัง (60 บาท = 6,000 สตางค์ <= 10,000 สตางค์) ต้องสำเร็จ
-    const within = await c
-      .post('/orders', {
-        addressId: addr.body.id,
-        items: [{ productId: 1, qty: 1 }],
-        paymentMethod: 'CREDIT',
-      })
-      .expect(201);
+    const within = await c.post('/orders', { addressId: addr.body.id, items: [{ productId: 1, qty: 1 }], paymentMethod: 'CREDIT' }).expect(201);
     expect(within.body.paymentMethod).toBe('CREDIT');
   });
 
   it('4. ตั้งค่าโหมดการแสดงผลหลังบ้าน (Grid / Card): บันทึกลงฐานข้อมูล Server และดึงค่ากลับมาได้ตรงกัน', async () => {
     const initial = await admin.get('/admin/preferences').expect(200);
     expect(['card', 'grid']).toContain(initial.body.viewMode);
+    expect((await admin.patch('/admin/preferences', { viewMode: 'grid' }).expect(200)).body.viewMode).toBe('grid');
+    expect((await admin.get('/admin/preferences').expect(200)).body.viewMode).toBe('grid');
+    expect((await admin.patch('/admin/preferences', { viewMode: 'card' }).expect(200)).body.viewMode).toBe('card');
+  });
 
-    const savedGrid = await admin.patch('/admin/preferences', { viewMode: 'grid' }).expect(200);
-    expect(savedGrid.body.viewMode).toBe('grid');
-
-    const afterGrid = await admin.get('/admin/preferences').expect(200);
-    expect(afterGrid.body.viewMode).toBe('grid');
-
-    const savedCard = await admin.patch('/admin/preferences', { viewMode: 'card' }).expect(200);
-    expect(savedCard.body.viewMode).toBe('card');
+  it('5. ล้างออเดอร์เก่าทั้งหมด (POST /admin/orders/clear): เฉพาะแอดมินสั่งล้างได้ และรีเซ็ตสต็อกถุงตั้งต้นตู้ละ 50 ใบ', async () => {
+    await wh.post('/admin/orders/clear').expect(403);
+    const res = await admin.post('/admin/orders/clear').expect(200);
+    expect(res.body.clearedOrders).toBeGreaterThanOrEqual(1);
+    expect(res.body.restockedStations).toBeGreaterThanOrEqual(15);
+    const afterOrders = await admin.get('/orders').expect(200);
+    expect(afterOrders.body).toHaveLength(0);
   });
 });

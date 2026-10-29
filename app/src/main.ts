@@ -33,6 +33,7 @@ async function bootstrap() {
     allowedHeaders: [
       'Content-Type',
       'Authorization',
+      'x-line-token',
       'x-dev-user',
       'x-dev-key',
       'Idempotency-Key',

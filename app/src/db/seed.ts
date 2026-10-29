@@ -5,6 +5,7 @@ import 'dotenv/config';
  */
 import { eq, sql } from 'drizzle-orm';
 import { hashPassword } from '../common/password';
+import { runOneTimeOrderReset } from '../orders/order-reset';
 import { createDb } from './db';
 import { products, stationBagLedger, users, waterStations } from './schema';
 import { SAMPLE_STATIONS } from './seed-stations';
@@ -81,17 +82,18 @@ export async function seed(url: string) {
     await db.insert(waterStations).values(SAMPLE_STATIONS).onConflictDoNothing();
 
     const [admin] = await db.select().from(users).where(eq(users.lineUserId, 'dev-admin')).limit(1);
-    if (admin && !admin.username) {
-      await db.update(users).set({ username: 'admin', passwordHash: hashPassword('admin1234') }).where(eq(users.id, admin.id));
+    if (admin && (!admin.username || !admin.passwordHash)) {
+      await db.update(users).set({ username: 'admin', passwordHash: hashPassword('admin1234'), active: true }).where(eq(users.id, admin.id));
     }
     const [wh] = await db.select().from(users).where(eq(users.lineUserId, 'dev-warehouse')).limit(1);
-    if (wh && !wh.username) {
-      await db.update(users).set({ username: 'warehouse', passwordHash: hashPassword('warehouse1234') }).where(eq(users.id, wh.id));
+    if (wh && (!wh.username || !wh.passwordHash)) {
+      await db.update(users).set({ username: 'warehouse', passwordHash: hashPassword('warehouse1234'), active: true }).where(eq(users.id, wh.id));
     }
     const [rd] = await db.select().from(users).where(eq(users.lineUserId, 'dev-rider')).limit(1);
-    if (rd && !rd.username) {
-      await db.update(users).set({ username: 'rider', passwordHash: hashPassword('rider1234') }).where(eq(users.id, rd.id));
+    if (rd && (!rd.username || !rd.passwordHash)) {
+      await db.update(users).set({ username: 'rider', passwordHash: hashPassword('rider1234'), active: true }).where(eq(users.id, rd.id));
     }
+    await runOneTimeOrderReset(db);
     const stations = await db.select().from(waterStations);
     if (admin) {
       for (const st of stations) {

@@ -24,11 +24,11 @@
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |
 | B3 พร้อมเปิดสู่อินเทอร์เน็ต (CORS, Helmet, Rate Limit, OTP Lockout, CI) | ✅ | ล็อก OTP เมื่อผิด 5 ครั้ง + `POST /orders/:id/unlock-otp` + `test/security.e2e.spec.ts` |
-| F1 หน้า LIFF ไรเดอร์ (`../web/`) | ✅ | Vite + React + TS + Zod + Offline Queue + นำทางไปจุดตู้กดน้ำและบ้านลูกค้าครบขั้น 3–7 |
-| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin พร้อมบันทึกค่าลงฐานข้อมูล Server (`GET/PATCH /admin/preferences`) |
+| F1 หน้า LIFF ไรเดอร์ (`../web/`) | ✅ | Vite + React + TS + Zod + Offline Queue + นำทางไปจุดตู้กดน้ำและบ้านลูกค้าครบขั้น 3–7 + 5-step `RiderStepTracker` |
+| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin พร้อมบันทึกค่าลงฐานข้อมูล Server (`GET/PATCH /admin/preferences`) + ระบบล้างออเดอร์เก่าทั้งหมด (`POST /admin/orders/clear` และ one-time auto-reset `clear_orders_2026_10_29_v1`) |
 | Docker Compose production + Coolify Dockerfile | ✅ | Multi-stage `Dockerfile` ที่ root build ทั้ง `web` และ `app` |
 
-**ผลทดสอบ:** 57/57 (11 ชุดทดสอบ Backend) + 10/10 (Frontend Unit Tests) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และผ่าน typecheck 100%
+**ผลทดสอบ:** 60/60 (12 ชุดทดสอบ Backend) + 11/11 (Frontend Unit Tests) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และผ่าน typecheck 100%
 
 ## 2. การตัดสินใจที่ทำไปแล้ว
 

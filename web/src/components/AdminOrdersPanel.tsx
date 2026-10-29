@@ -12,75 +12,64 @@ interface Props {
   onViewModeChange?: (mode: AdminViewMode) => void;
 }
 
-export const AdminOrdersPanel: React.FC<Props> = ({
-  orders,
-  mismatches,
-  onRefresh,
-  onNotify,
-  viewMode: propMode,
-  onViewModeChange,
-}) => {
+export const AdminOrdersPanel: React.FC<Props> = ({ orders, mismatches, onRefresh, onNotify, viewMode: propMode, onViewModeChange }) => {
   const [localMode, setLocalMode] = useState<AdminViewMode>(() => getSavedViewMode());
   const viewMode = propMode ?? localMode;
-  const handleModeChange = (m: AdminViewMode) => {
-    setLocalMode(m);
-    onViewModeChange?.(m);
-  };
-
+  const handleModeChange = (m: AdminViewMode) => { setLocalMode(m); onViewModeChange?.(m); };
   const [auditOrderId, setAuditOrderId] = useState<string | null>(null);
   const [auditEvents, setAuditEvents] = useState<OrderEvent[]>([]);
   const [resolveNote, setResolveNote] = useState<Record<string, string>>({});
+  const [clearing, setClearing] = useState(false);
 
-  const handleOpenAudit = async (orderId: string) => {
+  const runAction = async (fn: () => Promise<void>, fallbackErr: string) => {
+    try { await fn(); } catch (e) { onNotify(e instanceof Error ? e.message : fallbackErr); }
+  };
+
+  const handleClearAllOrders = async () => {
+    if (!window.confirm('ยืนยันการล้างข้อมูลออเดอร์เก่าทั้งหมด (รวมถึงประวัติถุงค้างและรีเซ็ตสต็อกถุงประจำตู้กดน้ำ 50 ใบ/ตู้) เพื่อเริ่มทดสอบใหม่หรือไม่?')) return;
+    setClearing(true);
+    try {
+      const res = await staffApi.clearAllOrders();
+      onNotify(`ล้างออเดอร์เก่าเรียบร้อย (${res.clearedOrders} ออเดอร์) · รีเซ็ตสต็อกถุง ${res.restockedStations} ตู้ พร้อมทดสอบใหม่`);
+      setAuditOrderId(null);
+      await onRefresh();
+    } catch (e) {
+      onNotify(e instanceof Error ? e.message : 'ล้างออเดอร์ไม่สำเร็จ');
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const handleOpenAudit = (orderId: string) => {
     setAuditOrderId(auditOrderId === orderId ? null : orderId);
     if (auditOrderId === orderId) return;
-    try {
-      setAuditEvents(await staffApi.orderEvents(orderId));
-    } catch (e) {
-      onNotify(e instanceof Error ? e.message : 'ดึง Audit Trail ไม่สำเร็จ');
-    }
+    return runAction(async () => setAuditEvents(await staffApi.orderEvents(orderId)), 'ดึง Audit Trail ไม่สำเร็จ');
   };
 
-  const handleResolveBags = async (o: StaffOrder) => {
+  const handleResolveBags = (o: StaffOrder) => runAction(async () => {
     const note = (resolveNote[o.id] ?? 'ตรวจสอบกับคลังและไรเดอร์แล้ว').trim();
-    try {
-      await staffApi.resolveBags(o.id, note);
-      onNotify(`เคลียร์ยอดถุงไม่ตรง #${o.code} → CLOSED_WITH_RETURN`);
-      await onRefresh();
-    } catch (e) {
-      onNotify(e instanceof Error ? e.message : 'เคลียร์ยอดถุงไม่สำเร็จ');
-    }
-  };
+    await staffApi.resolveBags(o.id, note);
+    onNotify(`เคลียร์ยอดถุงไม่ตรง #${o.code} → CLOSED_WITH_RETURN`);
+    await onRefresh();
+  }, 'เคลียร์ยอดถุงไม่สำเร็จ');
 
-  const handleVerifySlip = async (o: StaffOrder) => {
-    try {
-      await staffApi.verifyPayment(o.id);
-      onNotify(`ยืนยันสลิปออเดอร์ #${o.code} → PAID`);
-      await onRefresh();
-    } catch (e) {
-      onNotify(e instanceof Error ? e.message : 'ยืนยันสลิปไม่สำเร็จ');
-    }
-  };
+  const handleVerifySlip = (o: StaffOrder) => runAction(async () => {
+    await staffApi.verifyPayment(o.id);
+    onNotify(`ยืนยันสลิปออเดอร์ #${o.code} → PAID`);
+    await onRefresh();
+  }, 'ยืนยันสลิปไม่สำเร็จ');
 
-  const handleReschedule = async (o: StaffOrder) => {
-    try {
-      await staffApi.reschedule(o.id, 'แอดมินนัดส่งใหม่');
-      onNotify(`นัดส่งใหม่ #${o.code} → CONFIRMED`);
-      await onRefresh();
-    } catch (e) {
-      onNotify(e instanceof Error ? e.message : 'นัดส่งใหม่ไม่สำเร็จ');
-    }
-  };
+  const handleReschedule = (o: StaffOrder) => runAction(async () => {
+    await staffApi.reschedule(o.id, 'แอดมินนัดส่งใหม่');
+    onNotify(`นัดส่งใหม่ #${o.code} → CONFIRMED`);
+    await onRefresh();
+  }, 'นัดส่งใหม่ไม่สำเร็จ');
 
-  const handleUnlockOtp = async (o: StaffOrder) => {
-    try {
-      await staffApi.unlockOtp(o.id);
-      onNotify(`ปลดล็อก OTP ออเดอร์ #${o.code} เรียบร้อย`);
-      await onRefresh();
-    } catch (e) {
-      onNotify(e instanceof Error ? e.message : 'ปลดล็อก OTP ไม่สำเร็จ');
-    }
-  };
+  const handleUnlockOtp = (o: StaffOrder) => runAction(async () => {
+    await staffApi.unlockOtp(o.id);
+    onNotify(`ปลดล็อก OTP ออเดอร์ #${o.code} เรียบร้อย`);
+    await onRefresh();
+  }, 'ปลดล็อก OTP ไม่สำเร็จ');
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -104,7 +93,12 @@ export const AdminOrdersPanel: React.FC<Props> = ({
         </div>
       )}
 
-      <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายการออเดอร์ทั้งหมด" count={orders.length} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <ViewModeToggle mode={viewMode} onChange={handleModeChange} title="รายการออเดอร์ทั้งหมด" count={orders.length} />
+        <button type="button" disabled={clearing} onClick={handleClearAllOrders} style={{ minHeight: 36, padding: '0 14px', borderRadius: 10, border: 'none', background: '#B91C1C', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: clearing ? 'wait' : 'pointer' }}>
+          {clearing ? '⏳ กำลังล้างออเดอร์...' : `🗑️ ล้างออเดอร์เก่าทั้งหมด (${orders.length})`}
+        </button>
+      </div>
 
       {auditOrderId && (
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '2px solid #1A56B0', padding: 12, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -172,22 +166,14 @@ export const AdminOrdersPanel: React.FC<Props> = ({
                 การชำระเงิน: {o.paymentMethod} ({o.paymentStatus}) · ถุงแจ้งคืน: {o.expectBagReturn} ใบ
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 6, borderTop: '1px solid #EEF2F6' }}>
-                <button type="button" onClick={() => handleOpenAudit(o.id)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #1A56B0', background: '#FFFFFF', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                  📜 ดู Audit Trail
-                </button>
+                <button type="button" onClick={() => handleOpenAudit(o.id)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #1A56B0', background: '#FFFFFF', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📜 ดู Audit Trail</button>
                 {o.paymentStatus === 'PENDING_VERIFY' && (
-                  <button type="button" onClick={() => handleVerifySlip(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                    ✓ อนุมัติสลิปโอนเงิน
-                  </button>
+                  <button type="button" onClick={() => handleVerifySlip(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>✓ อนุมัติสลิปโอนเงิน</button>
                 )}
                 {o.status === 'FAILED_DELIVERY' && (
-                  <button type="button" onClick={() => handleReschedule(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#0B6E8A', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                    🔁 นัดส่งใหม่
-                  </button>
+                  <button type="button" onClick={() => handleReschedule(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: 'none', background: '#0B6E8A', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>🔁 นัดส่งใหม่</button>
                 )}
-                <button type="button" onClick={() => handleUnlockOtp(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #DCE4EC', background: '#F8FAFC', color: '#33475B', fontSize: 12, cursor: 'pointer' }}>
-                  🔓 ปลดล็อก OTP
-                </button>
+                <button type="button" onClick={() => handleUnlockOtp(o)} style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #DCE4EC', background: '#F8FAFC', color: '#33475B', fontSize: 12, cursor: 'pointer' }}>🔓 ปลดล็อก OTP</button>
               </div>
             </div>
           ))}

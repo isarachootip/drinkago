@@ -188,4 +188,12 @@ export const staffApi = {
 
   orderEvents: async (orderId: string): Promise<OrderEvent[]> =>
     z.array(orderEventSchema).parse(await requestJson(`/orders/${orderId}/events`, { userOverride: 'dev-admin' })),
+
+  clearAllOrders: () =>
+    requestJson<{ clearedOrders: number; restockedStations: number }>('/admin/orders/clear', {
+      method: 'POST',
+      body: {},
+      useStaffToken: true,
+      userOverride: 'dev-admin',
+    }),
 };

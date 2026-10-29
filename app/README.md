@@ -105,6 +105,7 @@ test/                            unit + e2e
 | POST | `/admin/stations/:id/bags` | warehouse, admin | เติมถุงเข้าตู้ (`RESTOCK_IN`) / ปรับยอด (`ADJUST`) |
 | GET | `/admin/stations/:id/ledger` | warehouse, admin | ประวัติรับเข้า-จ่ายออกถุงประจำตู้เชื่อมกับสมาชิก |
 | GET/PATCH | `/admin/preferences` | warehouse, admin | ดึงและบันทึกโหมดการแสดงผลหลังบ้าน (`card` / `grid`) ลงฐานข้อมูล Server |
+| POST | `/admin/orders/clear` | admin | ล้างข้อมูลออเดอร์เก่า ประวัติถุงค้าง และรีเซ็ตสต็อกถุงตั้งต้น (50 ใบ/ตู้) เพื่อเริ่มทดสอบใหม่ |
 | GET/POST/PATCH | `/admin/riders`, `/admin/riders/:id` | warehouse, admin | บริหารจัดการไรเดอร์ พาหนะ และโซน |
 | GET/POST/PATCH | `/admin/customers`, `/admin/customers/:id` | warehouse, admin | บริหารจัดการลูกค้า พิกัดบ้าน และวงเงินเครดิต |
 | GET | `/admin/customers/:id/bags` | admin | |

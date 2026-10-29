@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Inject, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { BagLedgerService } from '../bags/bag-ledger.service';
@@ -7,6 +7,7 @@ import { DomainError } from '../common/errors';
 import { parse } from '../common/validate';
 import { Db, DB } from '../db/db';
 import { addresses, orders, users } from '../db/schema';
+import { clearAllOrders } from '../orders/order-reset';
 
 const createRiderSchema = z.object({
   lineUserId: z.string().min(1).max(100), name: z.string().min(1).max(100),
@@ -153,5 +154,12 @@ export class AdminManagementController {
         .where(eq(addresses.id, addr.id));
     }
     return u;
+  }
+
+  @Post('orders/clear')
+  @Roles('admin')
+  @HttpCode(200)
+  clearOrders() {
+    return clearAllOrders(this.db);
   }
 }
