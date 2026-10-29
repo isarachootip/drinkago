@@ -74,6 +74,7 @@ test/                            unit + e2e
 | GET/POST | `/me/addresses` | customer | |
 | GET | `/me/bags` | customer | ยอดถุงค้าง + ประวัติ |
 | GET | `/products` | ทุกบทบาท | รายการสินค้าที่เปิดขาย |
+| GET | `/payment-config` | ทุกบทบาท (Public) | ข้อมูลบัญชีรับชำระ PromptPay ต้นแบบ (`อิศระ ชูทิพย์` · `0636395619`) |
 | GET/POST/PATCH/DELETE | `/admin/products`, `/admin/products/:id` | warehouse, admin | บริหารจัดการ Product Master (SKU/ชื่อ/ราคา/ถุงคืน/รูปภาพสไตล์ ODM + Hard/Soft Delete) |
 | GET | `/events` | ทุกบทบาท (Public) | รายการตารางกิจกรรมพบปะทีม `ilife` ที่เปิดแสดงผล |
 | GET/POST/PATCH/DELETE | `/admin/events`, `/admin/events/:id` | warehouse, admin | จัดการตารางกิจกรรมพบปะ (วัน/เวลา/สถานที่/เบอร์โทร/พิกัดแผนที่ Google Maps) |

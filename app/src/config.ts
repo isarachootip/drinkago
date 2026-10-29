@@ -30,9 +30,9 @@ const schema = z.object({
   /** ลิงก์เพจ Facebook สำหรับปุ่ม "เยี่ยมชมเรา" บน Rich Menu */
   FACEBOOK_PAGE_URL: z.string().default('https://www.facebook.com'),
   /** เบอร์โทรศัพท์หรือเลขบัตรประชาชนสำหรับสร้าง PromptPay QR Code */
-  PROMPTPAY_ID: z.string().default('0812345678'),
+  PROMPTPAY_ID: z.string().default('0636395619'),
   /** ชื่อบัญชี PromptPay สำหรับแสดงในใบสรุปคำสั่งซื้อ */
-  PROMPTPAY_ACCOUNT_NAME: z.string().default('บจก. ดริ้งค์ แอนด์ โก'),
+  PROMPTPAY_ACCOUNT_NAME: z.string().default('อิศระ ชูทิพย์'),
 });
 
 export type AppConfig = z.infer<typeof schema>;

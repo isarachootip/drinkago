@@ -90,8 +90,8 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
       totalSatang: 12000,
       expectBagReturn: 2,
       paymentMethod: 'PROMPTPAY',
-      promptpayId: '0812345678',
-      promptpayAccountName: 'บจก. ดริ้งค์ แอนด์ โก',
+      promptpayId: '0636395619',
+      promptpayAccountName: 'อิศระ ชูทิพย์',
       publicWebUrl: 'https://idrink.tamadee.online',
       lineUserId: 'U12345',
     });
@@ -100,8 +100,8 @@ describe('LINE Flex Message Templates (ODM-style Delivery)', () => {
     const json = JSON.stringify(msg);
     expect(json).toContain('DG-TEST999');
     expect(json).toContain('8421');
-    expect(json).toContain('promptpay.io/0812345678/120');
-    expect(json).toContain('บจก. ดริ้งค์ แอนด์ โก');
+    expect(json).toContain('promptpay.io/0636395619/120');
+    expect(json).toContain('อิศระ ชูทิพย์');
     expect(json).toContain('ส่งรูปสลิป');
   });
 

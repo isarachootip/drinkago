@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, formatBaht, OrderDetail, OrderEvent, StaffOrder } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
+import { PromptPayQrCard } from '../components/PromptPayQrCard';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
 import { canCustomerCancelOrder } from '../domain/session-gate';
 
@@ -125,10 +126,13 @@ export const CustomerTrackPage: React.FC<Props> = ({ customerUser, initialOrderI
               </span>
             </div>
 
-            {detail.paymentMethod === 'PROMPTPAY' && detail.paymentStatus === 'UNPAID' && (
-              <button type="button" onClick={handleSubmitSlip} disabled={busy} style={{ minHeight: 44, borderRadius: 12, border: 'none', background: '#0B6E8A', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}>
-                📎 แนบสลิปโอนเงิน PromptPay (จำลองสลิป)
-              </button>
+            {detail.paymentMethod === 'PROMPTPAY' && (
+              <PromptPayQrCard
+                totalSatang={detail.totalSatang}
+                paymentStatus={detail.paymentStatus}
+                busy={busy}
+                onSubmitSlip={handleSubmitSlip}
+              />
             )}
 
             {/* ไทม์ไลน์สถานะออเดอร์ตาม Track.dc.html */}

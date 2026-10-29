@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder, SuggestedStation } from '../api/schemas';
 import { LineBanner } from '../components/LineBanner';
+import { PromptPayQrCard } from '../components/PromptPayQrCard';
 import { resolveProductImageUrl } from '../domain/photo-picker';
 
 interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onNotify: (msg: string) => void }
@@ -178,11 +179,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#4A5B6E' }}>วิธีชำระเงิน (วงเงิน {formatBaht(creditLimitSatang)})</span>
           <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY' | 'CREDIT')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
-            <option value="CASH">เงินสดปลายทาง (CASH)</option>
-            <option value="PROMPTPAY">สแกนโอน PromptPay QR</option>
-            <option value="CREDIT">วงเงินเครดิตสมาชิก (CREDIT)</option>
+            <option value="CASH">เงินสดปลายทาง (CASH)</option><option value="PROMPTPAY">สแกนโอน PromptPay QR</option><option value="CREDIT">วงเงินเครดิตสมาชิก (CREDIT)</option>
           </select>
         </div>
+        {paymentMethod === 'PROMPTPAY' && <PromptPayQrCard totalSatang={totalSatang} compact />}
       </div>
 
       <div style={{ background: '#FFFFFF', borderTop: '1px solid #DCE4EC', padding: '12px 16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>

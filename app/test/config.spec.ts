@@ -11,5 +11,10 @@ describe('การตั้งค่าบนเซิร์ฟเวอร์'
   it('AUTH_MODE=line ต้องมี LINE_LOGIN_CHANNEL_ID', () => {
     expect(() => loadConfig(env({ AUTH_MODE: 'line' }))).toThrow(/LINE_LOGIN_CHANNEL_ID/);
   });
+  it('ตั้งค่าเริ่มต้น PromptPay QR Code ต้นแบบเป็น อิศระ ชูทิพย์ (0636395619)', () => {
+    const cfg = loadConfig(env({ AUTH_MODE: 'dev' }));
+    expect(cfg.PROMPTPAY_ID).toBe('0636395619');
+    expect(cfg.PROMPTPAY_ACCOUNT_NAME).toBe('อิศระ ชูทิพย์');
+  });
 });
 

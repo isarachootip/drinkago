@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Inject, Param, ParseIntPipe, Patch, Post } from '@nestjs/common';
 import { asc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { Roles } from '../common/auth';
+import { Public, Roles } from '../common/auth';
 import { DomainError } from '../common/errors';
 import { parse } from '../common/validate';
+import { APP_CONFIG, AppConfig } from '../config';
 import { Db, DB } from '../db/db';
 import { orderItems, products } from '../db/schema';
 
@@ -34,7 +35,19 @@ function normalizeProductImageUrl(raw?: string | null): string | null {
 
 @Controller()
 export class CatalogController {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    @Inject(APP_CONFIG) private readonly cfg: AppConfig,
+  ) {}
+
+  @Get('payment-config')
+  @Public()
+  getPaymentConfig() {
+    return {
+      promptpayId: this.cfg.PROMPTPAY_ID,
+      promptpayAccountName: this.cfg.PROMPTPAY_ACCOUNT_NAME,
+    };
+  }
 
   @Get('products')
   list() {

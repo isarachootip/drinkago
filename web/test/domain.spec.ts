@@ -11,6 +11,7 @@ import {
 import { canCustomerCancelOrder, clearAllAuthSessions, resolveActiveIdentity, shouldRequireEntryGate } from '../src/domain/session-gate';
 import { getRiderTargetLocation, getRiderWorkflowSteps } from '../src/domain/rider-steps';
 import { isoDateToThaiLabel, normalizeTimeParts, thaiLabelToIsoDate } from '../src/domain/thai-datetime';
+import { buildPromptPayQrUrl, DEFAULT_PROMPTPAY_ID, DEFAULT_PROMPTPAY_NAME, formatPromptPayPhone } from '../src/components/PromptPayQrCard';
 import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
@@ -189,5 +190,12 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(thaiLabelToIsoDate('5 ม.ค. 2570')).toBe('2027-01-05');
     expect(normalizeTimeParts('10.00')).toEqual({ hour: '10', minute: '00', display: '10.00' });
     expect(normalizeTimeParts('14:30')).toEqual({ hour: '14', minute: '30', display: '14.30' });
+  });
+
+  it('สร้าง URL PromptPay QR Code ต้นแบบของ อิศระ ชูทิพย์ (0636395619) พร้อมยอดเงินได้ถูกต้อง', () => {
+    expect(DEFAULT_PROMPTPAY_ID).toBe('0636395619');
+    expect(DEFAULT_PROMPTPAY_NAME).toBe('อิศระ ชูทิพย์');
+    expect(formatPromptPayPhone(DEFAULT_PROMPTPAY_ID)).toBe('063-639-5619');
+    expect(buildPromptPayQrUrl(DEFAULT_PROMPTPAY_ID, 18000)).toBe('https://promptpay.io/0636395619/180.png');
   });
 });
