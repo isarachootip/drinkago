@@ -10,6 +10,7 @@ import {
 } from '../src/domain/photo-picker';
 import { canCustomerCancelOrder, clearAllAuthSessions, resolveActiveIdentity, shouldRequireEntryGate } from '../src/domain/session-gate';
 import { getRiderTargetLocation, getRiderWorkflowSteps } from '../src/domain/rider-steps';
+import { isoDateToThaiLabel, normalizeTimeParts, thaiLabelToIsoDate } from '../src/domain/thai-datetime';
 import { getSavedViewMode, parseViewMode, saveViewMode } from '../src/components/ViewModeToggle';
 import { enqueueOfflineMutation, listOfflineMutations, removeOfflineMutation } from '../src/storage/offline-queue';
 
@@ -180,5 +181,13 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
     expect(asWarehouse.isAuthenticated).toBe(true);
 
     clearAllAuthSessions();
+  });
+
+  it('แปลงวันที่ปฏิทินมาตรฐาน (YYYY-MM-DD) <-> วันที่ภาษาไทย (พ.ศ.) และแยกชั่วโมง/นาทีสำหรับตารางเวลาหมุนวนได้ถูกต้อง', () => {
+    expect(isoDateToThaiLabel('2026-03-17')).toBe('17 มีนา 2569');
+    expect(thaiLabelToIsoDate('17 มีนา 2569')).toBe('2026-03-17');
+    expect(thaiLabelToIsoDate('5 ม.ค. 2570')).toBe('2027-01-05');
+    expect(normalizeTimeParts('10.00')).toEqual({ hour: '10', minute: '00', display: '10.00' });
+    expect(normalizeTimeParts('14:30')).toEqual({ hour: '14', minute: '30', display: '14.30' });
   });
 });
