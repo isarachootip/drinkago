@@ -25,8 +25,8 @@
 | B1 อัปโหลดรูปภาพหลักฐาน | ✅ | `FileStorage` + `POST /uploads` + e2e test |
 | B2 Idempotency-Key สำหรับ Offline Sync | ✅ | ตาราง `idempotency_keys` + `IdempotencyInterceptor` + e2e test |
 | B3 พร้อมเปิดสู่อินเทอร์เน็ต (CORS, Helmet, Rate Limit, OTP Lockout, CI) | ✅ | ล็อก OTP เมื่อผิด 5 ครั้ง + `POST /orders/:id/unlock-otp` + `test/security.e2e.spec.ts` |
-| F1 หน้า LIFF ไรเดอร์ (`web/`) | ✅ | Vite + React + TS + Zod + Offline Queue (`IndexedDB` + `Idempotency-Key`) ครบขั้น 3–7 |
-| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`web/`) | ✅ | ครบทุกบทบาท (สั่งซื้อขั้น 1, ติดตาม+ดู OTP, คลังรับออเดอร์ขั้น 2 + รับถุงคืนขั้น 8, แอดมินเคลียร์ถุง/ตรวจสลิป/Audit Trail) |
+| F1 หน้า LIFF ไรเดอร์ (`web/`) | ✅ | Vite + React + TS + Zod + Offline Queue (`IndexedDB` + `Idempotency-Key`) ครบขั้น 3–7 + ปุ่มเปิด Google Maps นำทางชัดเจนทั้งในกรอบนำทางด้านบน, ในกรอบขั้นที่ 2 (ตู้กดน้ำ), ขั้นที่ 4–5 และหน้าส่งของ (`RiderPodPage`) พร้อม Fallback ค้นหาเส้นทางตามข้อความที่อยู่เมื่อลูกค้าไม่ได้ปักหมุด GPS |
+| F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`web/`) | ✅ | ครบทุกบทบาท (สั่งซื้อขั้น 1 พร้อมการ์ดแก้ไขที่อยู่จัดส่ง + ปักหมุด GPS ปัจจุบัน `CustomerAddressCard`, ติดตาม+ดู OTP, คลังรับออเดอร์ขั้น 2 + รับถุงคืนขั้น 8, แอดมินเคลียร์ถุง/ตรวจสลิป/Audit Trail) |
 | Docker Compose production + Caddy HTTPS + backup | ✅ | **Docker image ยังไม่เคย build จริง** |
 
 **ผลทดสอบ:** 37/37 ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และ Linux ผ่าน typecheck 100%

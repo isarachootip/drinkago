@@ -1,6 +1,8 @@
 import React from 'react';
 import { RiderJob } from '../api/schemas';
+import { buildCustomerMapsUrl, buildStationMapsUrl, getStepInlineNavTarget } from '../domain/navigation';
 import { getRiderTargetLocation, getRiderWorkflowSteps } from '../domain/rider-steps';
+import { RiderMapNavBox } from './RiderMapNavBox';
 
 interface Props {
   job: RiderJob;
@@ -11,79 +13,13 @@ export const RiderStepTracker: React.FC<Props> = ({ job, onPrimaryAction }) => {
   const isClaimed = Boolean(job.riderId);
   const steps = getRiderWorkflowSteps(job.status, isClaimed);
   const targetLocation = getRiderTargetLocation(job.status, isClaimed);
-  const hasStationCoords = job.station?.lat != null && job.station?.lng != null;
-  const stationHighlight = targetLocation === 'station';
-  const customerHighlight = targetLocation === 'customer';
+  const stationMapsUrl = buildStationMapsUrl(job.station);
+  const customerMaps = buildCustomerMapsUrl(job.address);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* บล็อกที่ 1: แผนที่นำทางอัจฉริยะ (ไฮไลต์เฉพาะจุดหมายของขั้นตอนปัจจุบัน) */}
-      <div style={{ background: '#F8FAFC', border: '1px solid #DCE4EC', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
-          <span style={{ fontWeight: 700, color: stationHighlight ? '#0B6E8A' : '#1A56B0' }}>
-            {stationHighlight ? '🎯 จุดหมายตอนนี้: ไปที่ตู้กดน้ำก่อน (ขั้นที่ 1–3)' : '🎯 จุดหมายตอนนี้: ไปส่งที่บ้านลูกค้า (ขั้นที่ 4–5)'}
-          </span>
-          {job.customerPhone && (
-            <a
-              href={`tel:${job.customerPhone}`}
-              style={{ fontSize: 12, fontWeight: 700, color: '#0F2236', textDecoration: 'none', background: '#FFFFFF', border: '1px solid #CBD5E1', padding: '3px 8px', borderRadius: 8 }}
-            >
-              📞 โทรหาลูกค้า
-            </a>
-          )}
-        </div>
+      <RiderMapNavBox job={job} targetLocation={targetLocation} />
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {hasStationCoords && (
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${job.station!.lat},${job.station!.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                flex: 1,
-                minHeight: 40,
-                borderRadius: 10,
-                background: stationHighlight ? '#0B6E8A' : '#FFFFFF',
-                color: stationHighlight ? '#FFFFFF' : '#64748B',
-                border: stationHighlight ? 'none' : '1px dashed #CBD5E1',
-                fontSize: 12,
-                fontWeight: stationHighlight ? 700 : 600,
-                textDecoration: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0 10px',
-              }}
-            >
-              {stationHighlight ? '🚰 1. นำทางไปตู้กดน้ำ (ไปจุดนี้ก่อน)' : '🚰 ตู้กดน้ำ (รับน้ำแล้ว ✓)'}
-            </a>
-          )}
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${job.address.lat},${job.address.lng}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              flex: 1,
-              minHeight: 40,
-              borderRadius: 10,
-              background: customerHighlight ? '#1A56B0' : '#FFFFFF',
-              color: customerHighlight ? '#FFFFFF' : '#64748B',
-              border: customerHighlight ? 'none' : '1px dashed #CBD5E1',
-              fontSize: 12,
-              fontWeight: customerHighlight ? 700 : 600,
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 10px',
-            }}
-          >
-            {customerHighlight ? '🏠 2. นำทางไปบ้านลูกค้า (ไปจุดนี้ตอนนี้)' : '🏠 พิกัดบ้านลูกค้า (รอรับน้ำเสร็จ)'}
-          </a>
-        </div>
-      </div>
-
-      {/* บล็อกที่ 2: ลำดับขั้นตอนการทำงานของไรเดอร์ 1–5 (กดได้ทีละขั้นตามลำดับ) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#33475B' }}>
           📋 ลำดับขั้นตอนการทำงานไรเดอร์ (ทำทีละขั้นตามลำดับ 1 → 5):
@@ -92,6 +28,16 @@ export const RiderStepTracker: React.FC<Props> = ({ job, onPrimaryAction }) => {
         {steps.map((step) => {
           const isDone = step.state === 'done';
           const isCurrent = step.state === 'current';
+          const inlineNav = isCurrent ? getStepInlineNavTarget(step.stepNumber) : null;
+          const inlineMapUrl =
+            inlineNav === 'station' ? stationMapsUrl : inlineNav === 'customer' ? customerMaps.url : null;
+          const inlineMapLabel =
+            inlineNav === 'station'
+              ? `🗺️ เปิด Google Maps นำทางไปตู้กดน้ำ${job.station?.code ? ` (${job.station.code})` : ''}`
+              : customerMaps.mode === 'address_query'
+                ? '🗺️ เปิด Google Maps นำทางไปบ้านลูกค้า (ค้นตามชื่อที่อยู่)'
+                : '🗺️ เปิด Google Maps นำทางไปบ้านลูกค้า (พิกัด GPS)';
+
           return (
             <div
               key={step.stepNumber}
@@ -103,7 +49,7 @@ export const RiderStepTracker: React.FC<Props> = ({ job, onPrimaryAction }) => {
                 opacity: step.state === 'locked' ? 0.65 : 1,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: isCurrent ? 10 : 2,
+                gap: isCurrent ? 8 : 2,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -129,6 +75,33 @@ export const RiderStepTracker: React.FC<Props> = ({ job, onPrimaryAction }) => {
                   </span>
                 )}
               </div>
+
+              {isCurrent && inlineMapUrl && (
+                <a
+                  href={inlineMapUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    width: '100%',
+                    minHeight: 44,
+                    boxSizing: 'border-box',
+                    borderRadius: 10,
+                    background: '#E8F8EE',
+                    color: '#058C3B',
+                    border: '1.5px solid #058C3B',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px 10px',
+                    textAlign: 'center',
+                  }}
+                >
+                  {inlineMapLabel}
+                </a>
+              )}
 
               {isCurrent && (
                 <button

@@ -1,7 +1,7 @@
 import React from 'react';
 import { DevAuthSettings, formatBaht, OrderDetail, orderStatusBadge, RiderJob } from '../api/schemas';
 import { RiderStepTracker } from '../components/RiderStepTracker';
-import { distanceMeters, formatDistance } from '../domain/geo';
+import { formatJobDistanceLabel } from '../domain/navigation';
 
 interface Props {
   jobs: RiderJob[];
@@ -35,7 +35,7 @@ export const RiderJobsPage: React.FC<Props> = ({
 
   const badge = active ? orderStatusBadge(active.status, Boolean(active.riderId)) : null;
   const distText = active
-    ? formatDistance(distanceMeters(settings.mockLat, settings.mockLng, active.address.lat, active.address.lng))
+    ? formatJobDistanceLabel(settings.mockLat, settings.mockLng, active.address)
     : '';
 
   return (

@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { customerApi } from '../api/role-api';
 import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder, SuggestedStation } from '../api/schemas';
+import { CustomerAddressCard } from '../components/CustomerAddressCard';
+import { CustomerProductCartList } from '../components/CustomerProductCartList';
 import { LineBanner } from '../components/LineBanner';
 import { PromptPayQrCard } from '../components/PromptPayQrCard';
-import { resolveProductImageUrl } from '../domain/photo-picker';
+import { pickPreferredAddress } from '../domain/navigation';
 
 interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onGoStations?: () => void; onGoEvents?: () => void; onNotify: (msg: string) => void }
 
@@ -34,8 +36,8 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       ]);
       const finalAddrs = addrs.length ? addrs : [await customerApi.addAddress({ label: 'บ้าน', detail: 'สุขุมวิท 50 แขวงพระโขนง', lat: 13.7058, lng: 100.6012, note: 'ทางเข้าประตูหลัง' }, customerUser)];
       setAddresses(finalAddrs);
-      const targetAddr = finalAddrs[0];
-      setSelectedAddrId((cur) => cur || (targetAddr?.id ?? ''));
+      const targetAddr = pickPreferredAddress(finalAddrs);
+      setSelectedAddrId((cur) => (finalAddrs.some((a) => a.id === cur) ? cur : (targetAddr?.id ?? '')));
       if (targetAddr) {
         const stList = await customerApi.suggestStations(targetAddr.lat, targetAddr.lng, customerUser).catch(() => []);
         setSuggestedStations(stList); setSelectedStationId((cur) => cur ?? stList[0]?.id);
@@ -89,7 +91,23 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
       </form>
     );
   }
-  const activeAddr = addresses.find((a) => a.id === selectedAddrId) ?? addresses[0];
+  const activeAddr = pickPreferredAddress(addresses, selectedAddrId) ?? undefined;
+  const refreshSuggestedForAddr = async (addr: CustomerAddress) => {
+    const stList = await customerApi.suggestStations(addr.lat, addr.lng, customerUser).catch(() => []);
+    setSuggestedStations(stList); if (stList[0]) setSelectedStationId(stList[0].id);
+  };
+  const handleSelectAddress = async (addrId: string) => {
+    setSelectedAddrId(addrId);
+    const found = addresses.find((a) => a.id === addrId);
+    if (found) await refreshSuggestedForAddr(found);
+  };
+  const handleSaveNewAddress = async (input: { label: string; detail: string; lat: number; lng: number; note?: string }) => {
+    const saved = await customerApi.addAddress(input, customerUser);
+    setAddresses((prev) => [...prev, saved]);
+    if (saved.id) setSelectedAddrId(saved.id);
+    await refreshSuggestedForAddr(saved);
+    onNotify('บันทึกที่อยู่จัดส่งและอัปเดตตู้กดน้ำใกล้บ้านเรียบร้อย');
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -103,12 +121,13 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
           </div>
         </div>
         <LineBanner customerUser={customerUser} />
-        {activeAddr && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', border: '1px solid #DCE4EC', borderRadius: 12, background: '#F3F7FA' }}>
-            <span>📍</span>
-            <div style={{ flex: 1, fontSize: 13 }}><b>{activeAddr.label}:</b> {activeAddr.detail}</div>
-          </div>
-        )}
+        <CustomerAddressCard
+          addresses={addresses}
+          activeAddr={activeAddr}
+          onSelectAddress={(id) => void handleSelectAddress(id)}
+          onSaveNewAddress={handleSaveNewAddress}
+          onNotify={onNotify}
+        />
         {suggestedStations.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid #0B6E8A', borderRadius: 12, background: '#F0F9FF' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#0B6E8A' }}>
@@ -131,50 +150,24 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
           </div>
         )}
 
-        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', overflow: 'hidden' }}>
-          {products.map((p, idx) => {
-            const qty = cart[p.id] ?? 0;
-            const imgUrl = resolveProductImageUrl(p.imageUrl);
-            return (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderBottom: idx < products.length - 1 ? '1px solid #DCE4EC' : 'none' }}>
-                {imgUrl ? (
-                  <img src={imgUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }} />
-                ) : (
-                  <div style={{ width: 48, height: 48, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
-                )}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</div>
-                  <div style={{ fontSize: 13, color: '#4A5B6E' }}>{formatBaht(p.priceSatang)} {p.isReturnable ? '(มีถุงหมุนเวียน)' : ''}</div>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: Math.max(0, qty - 1) })} style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-                  <span style={{ width: 22, textAlign: 'center', fontSize: 16, fontWeight: 700 }}>{qty}</span>
-                  <button type="button" onClick={() => setCart({ ...cart, [p.id]: qty + 1 })} style={{ width: 38, height: 38, borderRadius: 19, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: '#FFFFFF', borderRadius: 14, border: '1px solid #F3C4D4' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>มีถุงคืนรอบนี้ไหม?</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#C2255C', background: '#FCE8EF', padding: '3px 10px', borderRadius: 10 }}>ถุงค้างของคุณ {bags.balance} ใบ</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ display: 'flex', flex: 1, background: '#F3F7FA', borderRadius: 12, padding: 3 }}>
-              <button type="button" onClick={() => { setHasReturnBag(false); setReturnBagQty(0); }} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: !hasReturnBag ? '#0F2236' : 'transparent', color: !hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>ไม่มี</button>
-              <button type="button" onClick={() => { if (bags.balance > 0) { setHasReturnBag(true); setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty))); } }} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: hasReturnBag ? '#C2255C' : 'transparent', color: hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>มี</button>
-            </div>
-            {hasReturnBag && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <button type="button" onClick={() => setReturnBagQty(Math.max(1, returnBagQty - 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-                <span style={{ width: 42, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{returnBagQty} ใบ</span>
-                <button type="button" onClick={() => setReturnBagQty(Math.min(bags.balance, returnBagQty + 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
-              </div>
-            )}
-          </div>
-        </div>
+        <CustomerProductCartList
+          products={products}
+          cart={cart}
+          bagBalance={bags.balance}
+          hasReturnBag={hasReturnBag}
+          returnBagQty={returnBagQty}
+          onChangeCartQty={(productId, nextQty) => setCart({ ...cart, [productId]: nextQty })}
+          onToggleReturnBag={(enabled) => {
+            if (!enabled) {
+              setHasReturnBag(false);
+              setReturnBagQty(0);
+            } else if (bags.balance > 0) {
+              setHasReturnBag(true);
+              setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty)));
+            }
+          }}
+          onChangeReturnBagQty={setReturnBagQty}
+        />
 
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#4A5B6E' }}>วิธีชำระเงิน (วงเงิน {formatBaht(creditLimitSatang)})</span>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { ManagedCustomer } from '../api/admin-api';
 import { formatBaht } from '../api/schemas';
+import { buildCustomerMapsUrl } from '../domain/navigation';
 import { AdminViewMode } from './ViewModeToggle';
 
 interface Props {
@@ -51,12 +52,12 @@ export const AdminCustomersView: React.FC<Props> = ({
                   <td style={{ padding: '10px 12px' }}>
                     <div style={{ color: '#33475B' }}>🏠 <b>{c.addressLabel}:</b> {c.addressDetail || '-'}</div>
                     <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
+                      href={buildCustomerMapsUrl({ lat: c.lat, lng: c.lng, detail: c.addressDetail, label: c.addressLabel }).url}
                       target="_blank"
                       rel="noreferrer"
                       style={{ color: '#058C3B', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
                     >
-                      🗺️ แผนที่ ({c.lat.toFixed(4)}, {c.lng.toFixed(4)})
+                      🗺️ Google Maps ({c.lat.toFixed(4)}, {c.lng.toFixed(4)})
                     </a>
                   </td>
                   <td style={{ padding: '10px 12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -134,12 +135,12 @@ export const AdminCustomersView: React.FC<Props> = ({
             <div style={{ fontSize: 12, color: '#33475B', background: '#F8FAFC', padding: '6px 10px', borderRadius: 8 }}>
               🏠 <b>{c.addressLabel}:</b> {c.addressDetail || '-'} ({c.lat.toFixed(4)}, {c.lng.toFixed(4)}){' '}
               <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`}
+                href={buildCustomerMapsUrl({ lat: c.lat, lng: c.lng, detail: c.addressDetail, label: c.addressLabel }).url}
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: '#058C3B', fontWeight: 700, textDecoration: 'none' }}
               >
-                [แผนที่บ้าน]
+                [Google Maps บ้าน]
               </a>
             </div>
 

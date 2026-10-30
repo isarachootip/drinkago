@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { DevAuthSettings, EvidenceInput, OrderDetail, RiderJob } from '../api/schemas';
 import { OtpBagSection } from '../components/OtpBagSection';
-import { distanceMeters, formatDistance, getCurrentGps } from '../domain/geo';
+import { getCurrentGps } from '../domain/geo';
+import { buildCustomerMapsUrl, formatJobDistanceLabel } from '../domain/navigation';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
 
 interface Props {
@@ -23,7 +24,8 @@ export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, o
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const distMeters = distanceMeters(settings.mockLat, settings.mockLng, job.address.lat, job.address.lng);
+  const distLabel = formatJobDistanceLabel(settings.mockLat, settings.mockLng, job.address);
+  const customerMaps = buildCustomerMapsUrl(job.address);
   const itemsText = detail?.items.map((i) => `${i.name} × ${i.qty}`).join(', ') ?? '';
 
   const handleDigitChange = (idx: number, val: string) => {
@@ -102,6 +104,31 @@ export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, o
       </div>
 
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontSize: 13, color: '#33475B', lineHeight: 1.4 }}>
+            🏠 <b>{job.address.label}:</b> {job.address.detail}
+            {job.address.note ? ` · ${job.address.note}` : ''}
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a
+              href={customerMaps.url}
+              target="_blank"
+              rel="noreferrer"
+              style={{ flex: 1, minHeight: 40, borderRadius: 10, background: '#058C3B', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}
+            >
+              🗺️ เปิด Google Maps บ้านลูกค้า
+            </a>
+            {job.customerPhone && (
+              <a
+                href={`tel:${job.customerPhone}`}
+                style={{ minHeight: 40, borderRadius: 10, background: '#F8FAFC', color: '#0F2236', border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px' }}
+              >
+                📞 โทรหาลูกค้า
+              </a>
+            )}
+          </div>
+        </div>
+
         <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 15, fontWeight: 600 }}>1. รูปถ่ายหลักฐานการส่ง</span>
@@ -123,7 +150,9 @@ export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, o
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#17613A', background: '#E3F3E9', padding: '8px 12px', borderRadius: 10 }}>
             <span>✓</span>
-            <span style={{ flex: 1 }}>พิกัด GPS พร้อมส่ง · ห่างจุดส่ง {formatDistance(distMeters)}</span>
+            <span style={{ flex: 1 }}>
+              {customerMaps.mode === 'address_query' ? 'พิกัด GPS อุปกรณ์พร้อมบันทึกหลักฐานส่งงาน' : `พิกัด GPS พร้อมส่ง · ห่างจุดส่ง ${distLabel}`}
+            </span>
           </div>
         </div>
 
