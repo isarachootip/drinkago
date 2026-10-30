@@ -1,5 +1,8 @@
 import React from 'react';
 import { ActiveIdentity, AppRoleTab } from '../domain/session-gate';
+import { useI18n } from '../i18n/I18nContext';
+import { IconBook, IconKey, IconLogout, IconSettings, IconUser } from './icons/Icons';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface Props {
   identity: ActiveIdentity;
@@ -12,11 +15,27 @@ interface Props {
   onOpenSettings: () => void;
 }
 
-const ROLE_LABELS: Record<ActiveIdentity['role'], { text: string; bg: string }> = {
-  admin: { text: 'ADMIN', bg: '#7C3AED' },
-  warehouse: { text: 'WAREHOUSE', bg: '#0B6E8A' },
-  rider: { text: 'RIDER', bg: '#D97706' },
-  customer: { text: 'CUSTOMER', bg: '#1E7B45' },
+const ROLE_BADGES: Record<ActiveIdentity['role'], { text: string; color: string; bg: string; border: string }> = {
+  admin: { text: 'ADMIN', color: '#E9D5FF', bg: 'rgba(139, 92, 246, 0.16)', border: 'rgba(167, 139, 250, 0.35)' },
+  warehouse: { text: 'WAREHOUSE', color: '#BAE6FD', bg: 'rgba(14, 165, 233, 0.16)', border: 'rgba(125, 211, 252, 0.35)' },
+  rider: { text: 'RIDER', color: '#FDE68A', bg: 'rgba(245, 158, 11, 0.16)', border: 'rgba(252, 211, 77, 0.35)' },
+  customer: { text: 'CUSTOMER', color: '#A7F3D0', bg: 'rgba(16, 185, 129, 0.16)', border: 'rgba(110, 231, 183, 0.35)' },
+};
+
+const ghostBtn: React.CSSProperties = {
+  height: 30,
+  padding: '0 10px',
+  borderRadius: 7,
+  border: '1px solid rgba(255,255,255,0.14)',
+  background: 'rgba(255,255,255,0.05)',
+  color: '#F1F5F9',
+  fontSize: 11.5,
+  fontWeight: 500,
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 5,
+  whiteSpace: 'nowrap',
 };
 
 export const TopAuthBar: React.FC<Props> = ({
@@ -29,85 +48,114 @@ export const TopAuthBar: React.FC<Props> = ({
   onLogout,
   onOpenSettings,
 }) => {
-  const badge = ROLE_LABELS[identity.role];
+  const { t } = useI18n();
+  const badge = ROLE_BADGES[identity.role];
   const isStaffManager = identity.role === 'admin' || identity.role === 'warehouse';
 
   return (
-    <div style={{ background: '#091522', color: '#FFFFFF', padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <header
+      style={{
+        background: '#0F172A',
+        color: '#F8FAFC',
+        padding: '10px 14px',
+        borderBottom: '1px solid #1E293B',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}
+    >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, minWidth: 0 }}>
-          <span>👤 ผู้ใช้:</span>
-          <b style={{ color: '#A8E6C1', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 160 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, minWidth: 0 }}>
+          <IconUser size={14} style={{ color: '#94A3B8' }} />
+          <span style={{ color: '#94A3B8' }}>{t('topUserLabel')}:</span>
+          <span style={{ fontWeight: 600, color: '#F8FAFC', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>
             {identity.displayName}
-          </b>
-          {identity.username && <span style={{ color: '#94A3B8', fontSize: 11 }}>({identity.username})</span>}
-          <span style={{ background: badge.bg, color: '#FFFFFF', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6 }}>
+          </span>
+          {identity.username && <span style={{ color: '#64748B', fontSize: 11.5 }}>({identity.username})</span>}
+          <span
+            style={{
+              background: badge.bg,
+              color: badge.color,
+              border: `1px solid ${badge.border}`,
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              padding: '1px 7px',
+              borderRadius: 99,
+            }}
+          >
             {badge.text}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <LanguageSwitcher variant="dark" compact />
           <button
             type="button"
             onClick={onToggleTraining}
-            style={{ minHeight: 30, padding: '0 8px', border: 'none', borderRadius: 7, background: showTraining ? '#1E7B45' : '#1C3550', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            style={{
+              ...ghostBtn,
+              background: showTraining ? 'rgba(16, 185, 129, 0.22)' : ghostBtn.background,
+              borderColor: showTraining ? 'rgba(52, 211, 153, 0.45)' : 'rgba(255,255,255,0.14)',
+            }}
           >
-            🎓 คู่มือ
+            <IconBook size={13} />
+            <span>{t('topGuide')}</span>
           </button>
           <button
             type="button"
             onClick={onOpenLogin}
-            style={{ minHeight: 30, padding: '0 10px', border: '1px solid #3B82F6', borderRadius: 7, background: '#1A56B0', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            style={{ ...ghostBtn, background: 'rgba(37, 99, 235, 0.22)', borderColor: 'rgba(96, 165, 250, 0.4)' }}
           >
-            🔑 Login / สลับผู้ใช้
+            <IconKey size={13} />
+            <span>{t('topLoginSwitch')}</span>
           </button>
           <button
             type="button"
             onClick={onLogout}
-            style={{ minHeight: 30, padding: '0 10px', border: 'none', borderRadius: 7, background: '#C2255C', color: '#FFFFFF', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+            style={{ ...ghostBtn, color: '#FCA5A5', borderColor: 'rgba(248, 113, 113, 0.28)' }}
           >
-            🚪 Logout
+            <IconLogout size={13} />
+            <span>{t('topLogout')}</span>
           </button>
           {(isStaffManager || identity.role === 'rider') && (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              aria-label="ตั้งค่า"
-              style={{ minHeight: 30, padding: '0 8px', border: 'none', borderRadius: 7, background: '#1C3550', color: '#FFFFFF', fontSize: 12, cursor: 'pointer' }}
-            >
-              ⚙️
+            <button type="button" onClick={onOpenSettings} aria-label={t('topSettings')} style={{ ...ghostBtn, padding: '0 8px' }}>
+              <IconSettings size={14} />
             </button>
           )}
         </div>
       </div>
 
       {isStaffManager && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, background: '#1E293B', padding: 3, borderRadius: 9 }}>
           {([
-            { id: 'customer', label: '1. มุมมองลูกค้า' },
-            { id: 'rider', label: '2. มุมมองไรเดอร์' },
-            { id: 'admin', label: '⚙️ หลังบ้าน (Admin)' },
-          ] as const).map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => onSelectTab(t.id)}
-              style={{
-                minHeight: 34,
-                border: 'none',
-                borderRadius: 7,
-                background: activeTab === t.id && !showTraining ? '#0B6E8A' : '#1C3550',
-                color: '#FFFFFF',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+            { id: 'customer', label: t('tabCustomerView') },
+            { id: 'rider', label: t('tabRiderView') },
+            { id: 'admin', label: t('tabAdminView') },
+          ] as const).map((tab) => {
+            const selected = activeTab === tab.id && !showTraining;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => onSelectTab(tab.id)}
+                style={{
+                  minHeight: 32,
+                  border: 'none',
+                  borderRadius: 7,
+                  background: selected ? '#2563EB' : 'transparent',
+                  color: selected ? '#FFFFFF' : '#CBD5E1',
+                  fontSize: 12,
+                  fontWeight: selected ? 600 : 500,
+                  cursor: 'pointer',
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
       )}
-    </div>
+    </header>
   );
 };

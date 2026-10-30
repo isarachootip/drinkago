@@ -41,13 +41,7 @@ describe('API Boundary Zod Schemas & Status Labels', () => {
       totalSatang: 18000,
       customerName: 'คุณสมใจ',
       customerPhone: '0812345678',
-      address: {
-        label: 'บ้าน',
-        detail: 'สุขุมวิท 50',
-        lat: 13.75,
-        lng: 100.5,
-        note: 'ทางเข้าประตูหลัง',
-      },
+      address: { label: 'บ้าน', detail: 'สุขุมวิท 50', lat: 13.75, lng: 100.5, note: 'ทางเข้าประตูหลัง' },
     };
     const parsed = riderJobSchema.parse(raw);
     expect(parsed.code).toBe('DG-1024');

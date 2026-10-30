@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { eventsApi, MeetupEvent } from '../api/events-api';
 import { resolveInitialQueryTab } from '../domain/session-gate';
+import { useI18n } from '../i18n/I18nContext';
+import { IconCalendar, IconLineChat, IconMapPin, IconNavigation, IconPhone } from './icons/Icons';
 
 export const LINE_OA_BASIC_ID = '@157iywjs';
-export const LINE_OA_NAME = 'llife';
+export const LINE_OA_NAME = 'ilife';
 export const LINE_ADD_FRIEND_URL = `https://line.me/R/ti/p/${LINE_OA_BASIC_ID}`;
 export const LINE_RECOMMEND_OA_URL = `https://line.me/R/nv/recommendOA/${LINE_OA_BASIC_ID}`;
 
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export const LineBanner: React.FC<Props> = ({ customerUser }) => {
+  const { t } = useI18n();
   const isLinkedRealLine = customerUser.startsWith('U') && customerUser.length > 20;
   const [events, setEvents] = useState<MeetupEvent[]>([]);
   const [showEvents, setShowEvents] = useState<boolean>(() => resolveInitialQueryTab() === 'events');
@@ -30,94 +33,111 @@ export const LineBanner: React.FC<Props> = ({ customerUser }) => {
           flexWrap: 'wrap',
           gap: 8,
           padding: '10px 14px',
-          background: '#E8F8EE',
-          border: '1px solid #06C755',
+          background: '#F8FAFC',
+          border: '1px solid #E2E8F0',
           borderRadius: 12,
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#058C3B' }}>
-            💬 LINE OA: {LINE_OA_NAME} ({LINE_OA_BASIC_ID})
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
+            <IconLineChat size={15} style={{ color: '#06C755' }} />
+            <span>LINE OA: {LINE_OA_NAME} ({LINE_OA_BASIC_ID})</span>
           </span>
-          <span style={{ fontSize: 11, color: '#2F4358' }}>
+          <span style={{ fontSize: 11, color: '#64748B' }}>
             {isLinkedRealLine
-              ? `✅ เชื่อมบัญชี LINE แล้ว (${customerUser.slice(0, 8)}...)`
-              : 'แอดเพื่อนและทักแชทเพื่อรับรหัส OTP 4 หลักและลิงก์ผูกบัญชีใน LINE'}
+              ? t('lineOaLinked', { id: `${customerUser.slice(0, 8)}...` })
+              : t('lineOaAddHint')}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setShowEvents((v) => !v)}
+            className="dg-btn-icon"
             style={{
-              padding: '7px 10px',
-              borderRadius: 10,
-              border: '1px solid #7C3AED',
-              background: showEvents ? '#7C3AED' : '#F3E8FF',
-              color: showEvents ? '#FFFFFF' : '#6B21A8',
+              padding: '6px 10px',
+              borderRadius: 8,
+              border: '1px solid #CBD5E1',
+              background: showEvents ? '#0F172A' : '#FFFFFF',
+              color: showEvents ? '#FFFFFF' : '#334155',
               fontSize: 12,
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            📅 กิจกรรมพบปะ ({events.length})
+            <IconCalendar size={13} />
+            <span>{t('lineOaEventsBtn', { count: events.length })}</span>
           </button>
           <a
             href={LINE_RECOMMEND_OA_URL}
             target="_blank"
             rel="noreferrer"
             style={{
-              padding: '7px 10px',
-              borderRadius: 10,
+              padding: '6px 10px',
+              borderRadius: 8,
               background: '#FFFFFF',
-              border: '1px solid #06C755',
-              color: '#058C3B',
+              border: '1px solid #CBD5E1',
+              color: '#334155',
               fontSize: 12,
-              fontWeight: 700,
+              fontWeight: 600,
               textDecoration: 'none',
             }}
           >
-            🤝 แชร์ให้เพื่อน
+            {t('lineOaShareBtn')}
           </a>
           <a
             href={LINE_ADD_FRIEND_URL}
             target="_blank"
             rel="noreferrer"
             style={{
-              padding: '7px 10px',
-              borderRadius: 10,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '6px 10px',
+              borderRadius: 8,
               background: '#06C755',
               color: '#FFFFFF',
               fontSize: 12,
-              fontWeight: 700,
+              fontWeight: 600,
               textDecoration: 'none',
             }}
           >
-            เปิดแชท LINE
+            <IconLineChat size={13} />
+            <span>{t('lineOaOpenChat')}</span>
           </a>
         </div>
       </div>
 
       {showEvents && (
-        <div style={{ background: '#FAF5FF', border: '1px solid #C084FC', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#6B21A8' }}>📅 ตารางกิจกรรมพบปะทีม ilife</div>
+        <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+            <IconCalendar size={14} />
+            <span>{t('eventsTitle')}</span>
+          </div>
           {events.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#64748B' }}>ยังไม่มีกำหนดการกิจกรรมพบปะในขณะนี้</div>
+            <div style={{ fontSize: 12, color: '#64748B' }}>{t('eventsEmpty30d')}</div>
           ) : (
             events.map((ev) => (
-              <div key={ev.id} style={{ background: '#FFFFFF', borderRadius: 10, padding: 10, border: '1px solid #E9D5FF', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0F2236' }}>🗓️ {ev.eventDate} เวลา {ev.eventTime} น.</div>
-                  <div style={{ fontSize: 12, color: '#33475B' }}>📍 สถานที่: <b>{ev.locationName}</b></div>
-                  <div style={{ fontSize: 12, color: '#0B6E8A', fontWeight: 600 }}>📞 โทร: <a href={`tel:${ev.contactPhone}`} style={{ color: '#0B6E8A' }}>{ev.contactPhone}</a></div>
+              <div key={ev.id} style={{ background: '#FFFFFF', borderRadius: 10, padding: 10, border: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>{ev.eventDate} · {ev.eventTime}</div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#475569' }}>
+                    <IconMapPin size={12} />
+                    <span>{ev.locationName}</span>
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#1D4ED8', fontWeight: 600 }}>
+                    <IconPhone size={12} />
+                    <a href={`tel:${ev.contactPhone}`} style={{ color: '#1D4ED8', textDecoration: 'none' }}>{ev.contactPhone}</a>
+                  </div>
                 </div>
                 <a
                   href={ev.mapUrl}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ padding: '6px 12px', borderRadius: 8, background: '#7C3AED', color: '#FFFFFF', fontSize: 12, fontWeight: 700, textDecoration: 'none' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, background: '#0F172A', color: '#FFFFFF', fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
                 >
-                  🗺️ แผนที่ Google Maps
+                  <IconNavigation size={12} />
+                  <span>{t('eventsMapBtn')}</span>
                 </a>
               </div>
             ))

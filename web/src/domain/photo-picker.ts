@@ -68,10 +68,10 @@ export async function compressAndResizeProductImage(
 
 export function validateProductImageFile(file: { size: number; type: string }): { valid: true } | { valid: false; error: string } {
   if (!ALLOWED_PRODUCT_IMAGE_TYPES.includes(file.type)) {
-    return { valid: false, error: '❌ รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WebP เท่านั้น' };
+    return { valid: false, error: 'รองรับเฉพาะไฟล์รูปภาพ JPG, PNG, WebP เท่านั้น' };
   }
   if (file.size > MAX_PRODUCT_IMAGE_BYTES) {
-    return { valid: false, error: '❌ ขนาดไฟล์เกิน 2 MB กรุณาเลือกรูปภาพที่มีขนาดเล็กลง' };
+    return { valid: false, error: 'ขนาดไฟล์เกิน 2 MB กรุณาเลือกรูปภาพที่มีขนาดเล็กลง' };
   }
   return { valid: true };
 }

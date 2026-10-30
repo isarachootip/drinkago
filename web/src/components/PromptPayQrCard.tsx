@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { requestJson } from '../api/role-api';
 import { formatBaht } from '../api/schemas';
+import { IconCamera, IconCheckCircle } from './icons/ActionIcons';
+import { IconClock } from './icons/Icons';
 
 export const DEFAULT_PROMPTPAY_ID = '0636395619';
 export const DEFAULT_PROMPTPAY_NAME = 'อิศระ ชูทิพย์';
@@ -48,7 +50,7 @@ export const PromptPayQrCard: React.FC<Props> = ({
         if (res.promptpayAccountName) setAccountName(res.promptpayAccountName);
       })
       .catch(() => {
-        // Fallback to prototype default (อิศระ ชูทิพย์ 0636395619)
+        // Fallback to prototype default
       });
   }, []);
 
@@ -56,34 +58,32 @@ export const PromptPayQrCard: React.FC<Props> = ({
 
   return (
     <div
+      className="dg-card"
       style={{
-        background: '#FFFFFF',
-        borderRadius: 14,
-        border: '2px solid #1A56B0',
-        padding: compact ? 12 : 16,
+        padding: compact ? 14 : 18,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         gap: 8,
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#1A56B0' }}>📲 สแกนชำระเงิน PromptPay QR</div>
-      <div style={{ fontSize: 13, color: '#0F2236', fontWeight: 700 }}>
-        ชื่อบัญชี: {accountName} ({formatPromptPayPhone(promptpayId)})
+      <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>PromptPay QR</div>
+      <div style={{ fontSize: 13, color: '#334155', fontWeight: 600 }}>
+        {accountName} (<span className="dg-num">{formatPromptPayPhone(promptpayId)}</span>)
       </div>
       {totalSatang > 0 && (
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#1E7B45', background: '#E8F8EE', padding: '4px 12px', borderRadius: 8 }}>
-          ยอดโอน: {formatBaht(totalSatang)}
+        <div className="dg-num" style={{ fontSize: 14, fontWeight: 700, color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 12px', borderRadius: 8 }}>
+          {formatBaht(totalSatang)}
         </div>
       )}
       <img
         src={qrUrl}
         alt={`PromptPay QR ${accountName}`}
         style={{
-          width: compact ? 160 : 200,
-          height: compact ? 160 : 200,
+          width: compact ? 156 : 196,
+          height: compact ? 156 : 196,
           borderRadius: 10,
-          border: '1px solid #DCE4EC',
+          border: '1px solid #E2E8F0',
           background: '#FFFFFF',
           padding: 6,
           objectFit: 'contain',
@@ -91,13 +91,15 @@ export const PromptPayQrCard: React.FC<Props> = ({
       />
 
       {paymentStatus === 'PENDING_VERIFY' && (
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#B45309', background: '#FEF3C7', padding: '6px 12px', borderRadius: 8 }}>
-          ⏳ ส่งสลิปแล้ว รอแอดมินตรวจสอบยอดโอน
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#92400E', background: '#FFFBEB', border: '1px solid #FDE68A', padding: '6px 12px', borderRadius: 8 }}>
+          <IconClock size={14} />
+          <span>ส่งสลิปแล้ว · รอตรวจสอบยอดโอน</span>
         </div>
       )}
       {paymentStatus === 'PAID' && (
-        <div style={{ fontSize: 13, fontWeight: 700, color: '#1E7B45', background: '#E8F8EE', padding: '6px 12px', borderRadius: 8 }}>
-          ✅ ชำระเงินผ่าน PromptPay เรียบร้อยแล้ว
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '6px 12px', borderRadius: 8 }}>
+          <IconCheckCircle size={14} />
+          <span>ชำระเงินผ่าน PromptPay เรียบร้อยแล้ว</span>
         </div>
       )}
       {paymentStatus === 'UNPAID' && onSubmitSlip && (
@@ -105,18 +107,21 @@ export const PromptPayQrCard: React.FC<Props> = ({
           type="button"
           onClick={onSubmitSlip}
           disabled={busy}
+          className="dg-btn-icon"
           style={{
             width: '100%',
-            minHeight: 44,
-            borderRadius: 12,
+            minHeight: 42,
+            borderRadius: 10,
             border: 'none',
-            background: '#0B6E8A',
+            background: '#0F172A',
             color: '#FFFFFF',
-            fontWeight: 700,
+            fontWeight: 600,
+            fontSize: 13,
             cursor: 'pointer',
           }}
         >
-          📎 ยืนยันแจ้งโอน / แนบสลิป PromptPay
+          <IconCamera size={14} />
+          <span>ยืนยันแจ้งโอน / แนบสลิป PromptPay</span>
         </button>
       )}
     </div>

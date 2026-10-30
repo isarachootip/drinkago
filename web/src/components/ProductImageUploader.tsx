@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
 import { compressAndResizeProductImage, resolveProductImageUrl, validateProductImageFile } from '../domain/photo-picker';
+import { IconCamera } from './icons/ActionIcons';
+import { IconClock } from './icons/Icons';
 
 interface Props {
   value: string;
@@ -58,10 +60,10 @@ export const ProductImageUploader: React.FC<Props> = ({
     try {
       const uploadedUrl = await adminMgmtApi.uploadProductImage(file);
       onChange(uploadedUrl);
-      onNotify('✅ อัปโหลดรูปภาพสินค้าและบันทึกลงฐานข้อมูล Server สำเร็จ');
+      onNotify('อัปโหลดรูปภาพสินค้าและบันทึกลงฐานข้อมูล Server สำเร็จ');
     } catch (err) {
       setLocalPreview(null);
-      onNotify(err instanceof Error ? err.message : '❌ อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองอีกครั้ง');
+      onNotify(err instanceof Error ? err.message : 'อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองอีกครั้ง');
     } finally {
       setUploadingState(false);
       e.target.value = '';
@@ -73,17 +75,17 @@ export const ProductImageUploader: React.FC<Props> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <label style={{ fontSize: 12, fontWeight: 700, color: '#33475B' }}>
-        🖼️ รูปภาพสินค้า Product Master (จำกัดไม่เกิน 2 MB · เก็บบนฐานข้อมูล Server ถาวร)
+      <label style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>
+        รูปภาพสินค้า Product Master (จำกัดไม่เกิน 2 MB · เก็บบนฐานข้อมูล Server ถาวร)
       </label>
 
       <div
         style={{
           position: 'relative',
-          border: '2px dashed #CBD5E1',
+          border: '1.5px dashed #CBD5E1',
           borderRadius: 10,
           padding: 10,
-          height: compact ? 104 : 128,
+          height: compact ? 100 : 120,
           background: '#F8FAFC',
           display: 'flex',
           flexDirection: 'column',
@@ -94,9 +96,9 @@ export const ProductImageUploader: React.FC<Props> = ({
         }}
       >
         {uploading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 22 }}>⏳</span>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>กำลังอัปโหลดรูปภาพขึ้น Server...</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: '#64748B' }}>
+            <IconClock size={20} />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>กำลังอัปโหลดรูปภาพขึ้น Server...</span>
           </div>
         ) : displayPreview ? (
           <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -107,16 +109,19 @@ export const ProductImageUploader: React.FC<Props> = ({
                 if (localPreview) setLocalPreview(null);
                 else setPreviewFailed(true);
               }}
-              style={{ maxHeight: compact ? 68 : 88, maxWidth: '100%', objectFit: 'contain', borderRadius: 6 }}
+              style={{ maxHeight: compact ? 64 : 84, maxWidth: '100%', objectFit: 'contain', borderRadius: 6 }}
             />
-            <span style={{ fontSize: 11, color: '#1A56B0', fontWeight: 600 }}>📷 คลิกที่กรอบนี้เพื่อเปลี่ยนรูปใหม่</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#1D4ED8', fontWeight: 600 }}>
+              <IconCamera size={12} />
+              <span>คลิกที่กรอบนี้เพื่อเปลี่ยนรูปใหม่</span>
+            </span>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 34, height: 34, borderRadius: 17, background: '#E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-              📷
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: '#E2E8F0', color: '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IconCamera size={16} />
             </div>
-            <span style={{ fontSize: 12, color: '#1A56B0', fontWeight: 700 }}>คลิกเพื่ออัปโหลดรูปภาพ (Click to Upload)</span>
+            <span style={{ fontSize: 12, color: '#0F172A', fontWeight: 600 }}>คลิกเพื่ออัปโหลดรูปภาพ (Click to Upload)</span>
             <span style={{ fontSize: 11, color: '#94A3B8' }}>รองรับ JPG, PNG, WebP · ขนาดไม่เกิน 2 MB</span>
           </div>
         )}
@@ -140,7 +145,7 @@ export const ProductImageUploader: React.FC<Props> = ({
             setLocalPreview(null);
           }}
           placeholder="หรือวาง URL รูปภาพที่นี่ (เช่น https://... หรือ /uploads/...)"
-          style={{ flex: 1, minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12 }}
+          style={{ flex: 1, minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12 }}
         />
         <button
           type="button"
@@ -150,7 +155,7 @@ export const ProductImageUploader: React.FC<Props> = ({
           }}
           disabled={!value && !localPreview}
           style={{
-            minHeight: 36,
+            minHeight: 34,
             padding: '0 12px',
             borderRadius: 8,
             border: '1px solid #CBD5E1',
@@ -162,7 +167,7 @@ export const ProductImageUploader: React.FC<Props> = ({
             opacity: !value && !localPreview ? 0.5 : 1,
           }}
         >
-          Clear (ลบรูป)
+          ล้างรูป
         </button>
       </div>
     </div>

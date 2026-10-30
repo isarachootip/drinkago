@@ -2,6 +2,9 @@ import React from 'react';
 import { RiderJob } from '../api/schemas';
 import { buildCustomerMapsUrl, buildStationMapsUrl } from '../domain/navigation';
 import { RiderTargetLocation } from '../domain/rider-steps';
+import { useI18n } from '../i18n/I18nContext';
+import { IconCheck } from './icons/ActionIcons';
+import { IconDroplet, IconHome, IconMapPin, IconNavigation, IconPhone } from './icons/Icons';
 
 interface Props {
   job: RiderJob;
@@ -9,6 +12,7 @@ interface Props {
 }
 
 export const RiderMapNavBox: React.FC<Props> = ({ job, targetLocation }) => {
+  const { t } = useI18n();
   const stationHighlight = targetLocation === 'station';
   const customerHighlight = targetLocation === 'customer';
   const stationMapsUrl = buildStationMapsUrl(job.station);
@@ -18,36 +22,48 @@ export const RiderMapNavBox: React.FC<Props> = ({ job, targetLocation }) => {
     <div
       style={{
         background: '#F8FAFC',
-        border: '1px solid #DCE4EC',
+        border: '1px solid #E2E8F0',
         borderRadius: 12,
-        padding: '10px 12px',
+        padding: '12px 14px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 8,
+        gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 12 }}>
-        <span style={{ fontWeight: 700, color: stationHighlight ? '#0B6E8A' : '#058C3B' }}>
-          {stationHighlight
-            ? '🗺️ นำทาง Google Maps: ไปตู้กดน้ำก่อน (ขั้นที่ 1–3)'
-            : '🗺️ นำทาง Google Maps: ไปส่งที่บ้านลูกค้า (ขั้นที่ 4–5)'}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 600,
+            color: '#0F172A',
+          }}
+        >
+          <IconNavigation size={14} style={{ color: stationHighlight ? '#1D4ED8' : '#059669' }} />
+          <span>{stationHighlight ? t('navHeaderToStation') : t('navHeaderToCustomer')}</span>
         </span>
         {job.customerPhone && (
           <a
             href={`tel:${job.customerPhone}`}
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
               fontSize: 12,
-              fontWeight: 700,
-              color: '#0F2236',
+              fontWeight: 600,
+              color: '#0F172A',
               textDecoration: 'none',
               background: '#FFFFFF',
               border: '1px solid #CBD5E1',
-              padding: '4px 9px',
+              padding: '5px 10px',
               borderRadius: 8,
               whiteSpace: 'nowrap',
             }}
           >
-            📞 โทรหาลูกค้า
+            <IconPhone size={13} />
+            <span>{t('navCallCustomer')}</span>
           </a>
         )}
       </div>
@@ -60,23 +76,24 @@ export const RiderMapNavBox: React.FC<Props> = ({ job, targetLocation }) => {
             rel="noreferrer"
             style={{
               flex: '1 1 140px',
-              minHeight: 44,
+              minHeight: 42,
               borderRadius: 10,
-              background: stationHighlight ? '#0B6E8A' : '#FFFFFF',
-              color: stationHighlight ? '#FFFFFF' : '#475569',
-              border: stationHighlight ? 'none' : '1px dashed #CBD5E1',
+              background: stationHighlight ? '#0F172A' : '#FFFFFF',
+              color: stationHighlight ? '#FFFFFF' : '#64748B',
+              border: stationHighlight ? '1px solid #0F172A' : '1px solid #E2E8F0',
               fontSize: 12,
-              fontWeight: stationHighlight ? 700 : 600,
+              fontWeight: 600,
               textDecoration: 'none',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: 6,
               textAlign: 'center',
-              padding: '4px 10px',
-              boxShadow: stationHighlight ? '0 2px 8px rgba(11,110,138,0.22)' : 'none',
+              padding: '6px 10px',
             }}
           >
-            {stationHighlight ? '🗺️ 1. Google Maps ไปตู้กดน้ำ' : '🗺️ แผนที่ตู้กดน้ำ (รับน้ำแล้ว ✓)'}
+            {stationHighlight ? <IconDroplet size={14} /> : <IconCheck size={14} />}
+            <span>{stationHighlight ? t('navBtnToStationActive') : t('navBtnStationDone')}</span>
           </a>
         )}
 
@@ -86,38 +103,43 @@ export const RiderMapNavBox: React.FC<Props> = ({ job, targetLocation }) => {
           rel="noreferrer"
           style={{
             flex: '1 1 140px',
-            minHeight: 44,
+            minHeight: 42,
             borderRadius: 10,
-            background: customerHighlight ? '#058C3B' : '#FFFFFF',
-            color: customerHighlight ? '#FFFFFF' : '#475569',
-            border: customerHighlight ? 'none' : '1px dashed #CBD5E1',
+            background: customerHighlight ? '#1D4ED8' : '#FFFFFF',
+            color: customerHighlight ? '#FFFFFF' : '#64748B',
+            border: customerHighlight ? '1px solid #1D4ED8' : '1px solid #E2E8F0',
             fontSize: 12,
-            fontWeight: customerHighlight ? 700 : 600,
+            fontWeight: 600,
             textDecoration: 'none',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 6,
             textAlign: 'center',
-            padding: '4px 10px',
-            boxShadow: customerHighlight ? '0 2px 8px rgba(5,140,59,0.24)' : 'none',
+            padding: '6px 10px',
           }}
         >
-          {customerHighlight ? '🗺️ 2. Google Maps ไปบ้านลูกค้า' : '🗺️ แผนที่บ้านลูกค้า (รอรับน้ำก่อน)'}
+          <IconHome size={14} />
+          <span>{customerHighlight ? t('navBtnToCustomerActive') : t('navBtnCustomerWait')}</span>
         </a>
       </div>
 
       {customerMaps.mode === 'address_query' && (
         <div
           style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
             fontSize: 11,
             color: '#92400E',
-            background: '#FEF3C7',
+            background: '#FFFBEB',
             border: '1px solid #FDE68A',
             borderRadius: 8,
-            padding: '5px 8px',
+            padding: '6px 10px',
           }}
         >
-          📍 ลูกค้าไม่ได้ปักหมุด GPS — ระบบตั้งลิงก์ Google Maps ให้ค้นหาตามข้อความที่อยู่บ้านลูกค้าอัตโนมัติ
+          <IconMapPin size={13} />
+          <span>{t('navNoGpsFallbackNote')}</span>
         </div>
       )}
     </div>

@@ -27,9 +27,10 @@
 | B3 พร้อมเปิดสู่อินเทอร์เน็ต (CORS, Helmet, Rate Limit, OTP Lockout, CI) | ✅ | ล็อก OTP เมื่อผิด 5 ครั้ง + `POST /orders/:id/unlock-otp` + `test/security.e2e.spec.ts` |
 | F1 หน้า LIFF ไรเดอร์ (`web/`) | ✅ | Vite + React + TS + Zod + Offline Queue (`IndexedDB` + `Idempotency-Key`) ครบขั้น 3–7 + ปุ่มเปิด Google Maps นำทางชัดเจนทั้งในกรอบนำทางด้านบน, ในกรอบขั้นที่ 2 (ตู้กดน้ำ), ขั้นที่ 4–5 และหน้าส่งของ (`RiderPodPage`) พร้อม Fallback ค้นหาเส้นทางตามข้อความที่อยู่เมื่อลูกค้าไม่ได้ปักหมุด GPS |
 | F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`web/`) | ✅ | ครบทุกบทบาท (สั่งซื้อขั้น 1 พร้อมการ์ดแก้ไขที่อยู่จัดส่ง + ปักหมุด GPS ปัจจุบัน `CustomerAddressCard`, ติดตาม+ดู OTP, คลังรับออเดอร์ขั้น 2 + รับถุงคืนขั้น 8, แอดมินเคลียร์ถุง/ตรวจสลิป/Audit Trail) |
+| Minimal Enterprise UI, Multi-Script Typography & 9-Language i18n (`web/`) | ✅ | ปรับโฉม UI/Typography แบบ Minimal Enterprise (`Inter` + `Noto Sans Thai/Lao/SC/Arabic/Hebrew` + `tabular-nums`), แทนที่ inline emoji ทั้งหมดด้วย Monochrome SVG Line Icons (`1.75px` stroke), Dynamic `document.title` ตามบทบาท/ภาษา (แก้ปัญหา `<title>` ค้างหน้าไรเดอร์) และระบบสลับภาษา 9 ภาษา (`th`, `en`, `lo`, `ms`, `zh`, `ar`, `de`, `he`, `ru`) พร้อมสลับทิศทาง RTL (`dir="rtl"`) อัตโนมัติสำหรับภาษาอาหรับและฮีบรู |
 | Docker Compose production + Caddy HTTPS + backup | ✅ | **Docker image ยังไม่เคย build จริง** |
 
-**ผลทดสอบ:** 37/37 ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และ Linux ผ่าน typecheck 100%
+**ผลทดสอบ:** Backend typecheck 100% + Frontend 42/42 (7 ชุดทดสอบ `vitest`) ผ่านครบ 100%
 
 ## 2. การตัดสินใจที่ทำไปแล้ว
 

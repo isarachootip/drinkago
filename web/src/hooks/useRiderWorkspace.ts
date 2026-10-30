@@ -67,7 +67,7 @@ export function useRiderWorkspace({
     try {
       if (job.status === 'CONFIRMED' && !job.riderId) {
         const res = await riderActions.claim(job.id);
-        showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (รับงาน)' : `🙋‍♂️ รับงาน #${job.code} เรียบร้อย! เดินทางไปกดน้ำที่ตู้ได้เลย`);
+        showNotice(res.queued ? 'บันทึกคิวออฟไลน์แล้ว (รับงาน)' : `รับงาน #${job.code} เรียบร้อย เดินทางไปกดน้ำที่ตู้ได้เลย`);
         await loadJobs();
       } else if (job.status === 'CONFIRMED') {
         const res = await riderActions.pack(job.id);

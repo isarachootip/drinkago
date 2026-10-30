@@ -7,6 +7,9 @@ import {
   isFallbackCoordinates,
   validateAddressDraft,
 } from '../domain/navigation';
+import { useI18n } from '../i18n/I18nContext';
+import { IconCheck, IconEdit } from './icons/ActionIcons';
+import { IconHome, IconMapPin, IconNavigation } from './icons/Icons';
 
 interface Props {
   addresses: CustomerAddress[];
@@ -23,6 +26,7 @@ export const CustomerAddressCard: React.FC<Props> = ({
   onSaveNewAddress,
   onNotify,
 }) => {
+  const { t } = useI18n();
   const [editing, setEditing] = useState(false);
   const [label, setLabel] = useState('บ้าน');
   const [detail, setDetail] = useState('');
@@ -52,7 +56,7 @@ export const CustomerAddressCard: React.FC<Props> = ({
         setLat(Number(pos.coords.latitude.toFixed(6)));
         setLng(Number(pos.coords.longitude.toFixed(6)));
         setLocating(false);
-        onNotify('📍 ปักหมุดพิกัด GPS ตำแหน่งปัจจุบันเรียบร้อย');
+        onNotify('ปักหมุดพิกัด GPS ตำแหน่งปัจจุบันเรียบร้อย');
       },
       () => {
         setLocating(false);
@@ -81,20 +85,29 @@ export const CustomerAddressCard: React.FC<Props> = ({
   const hasRealGps = activeAddr ? !isFallbackCoordinates(activeAddr.lat, activeAddr.lng) : false;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px 12px', border: '1px solid #DCE4EC', borderRadius: 12, background: '#F8FAFC' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ flex: 1, fontSize: 13, color: '#0F2236', lineHeight: 1.45 }}>
-          <div>
-            🏠 <b>{activeAddr?.label ?? 'ที่อยู่จัดส่ง'}:</b> {activeAddr?.detail ?? 'ยังไม่ได้ระบุที่อยู่'}
-            {activeAddr?.note ? ` (${activeAddr.note})` : ''}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', border: '1px solid #E2E8F0', borderRadius: 12, background: '#F8FAFC' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ flex: 1, fontSize: 13, color: '#0F172A', lineHeight: 1.5 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <IconHome size={15} style={{ marginTop: 2, color: '#64748B' }} />
+            <span>
+              <strong style={{ fontWeight: 600 }}>{activeAddr?.label ?? t('addrDeliveryLabel')}:</strong> {activeAddr?.detail ?? t('addrUnset')}
+              {activeAddr?.note ? ` (${activeAddr.note})` : ''}
+            </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 3, fontSize: 11 }}>
-            <span style={{ color: hasRealGps ? '#15803D' : '#B45309', fontWeight: 700 }}>
-              {hasRealGps ? `📍 ปักหมุด GPS แล้ว (${activeAddr!.lat.toFixed(4)}, ${activeAddr!.lng.toFixed(4)})` : '⚠️ ยังไม่ได้ปักหมุด GPS หน้าบ้าน'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4, fontSize: 11 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: hasRealGps ? '#047857' : '#B45309', fontWeight: 600 }}>
+              <IconMapPin size={12} />
+              <span>
+                {hasRealGps
+                  ? t('addrGpsPinned', { coords: `${activeAddr!.lat.toFixed(4)}, ${activeAddr!.lng.toFixed(4)}` })
+                  : t('addrGpsNotPinned')}
+              </span>
             </span>
             {mapsInfo && (
-              <a href={mapsInfo.url} target="_blank" rel="noreferrer" style={{ color: '#058C3B', fontWeight: 700, textDecoration: 'none' }}>
-                🗺️ ดูแผนที่ Google Maps
+              <a href={mapsInfo.url} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#1D4ED8', fontWeight: 600, textDecoration: 'none' }}>
+                <IconNavigation size={12} />
+                <span>{t('addrViewMap')}</span>
               </a>
             )}
           </div>
@@ -102,9 +115,11 @@ export const CustomerAddressCard: React.FC<Props> = ({
         <button
           type="button"
           onClick={() => (editing ? setEditing(false) : openEditor())}
-          style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #1A56B0', background: editing ? '#1A56B0' : '#FFFFFF', color: editing ? '#FFFFFF' : '#1A56B0', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          className="dg-btn-icon"
+          style={{ minHeight: 34, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: editing ? '#0F172A' : '#FFFFFF', color: editing ? '#FFFFFF' : '#0F172A', fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
-          {editing ? '✕ ปิด' : '✏️ แก้ที่อยู่ / GPS'}
+          <IconEdit size={13} />
+          <span>{editing ? t('commonClose') : t('addrEditBtn')}</span>
         </button>
       </div>
 
@@ -112,38 +127,42 @@ export const CustomerAddressCard: React.FC<Props> = ({
         <select
           value={activeAddr?.id ?? ''}
           onChange={(e) => onSelectAddress(e.target.value)}
-          style={{ minHeight: 34, padding: '0 8px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12, background: '#FFFFFF' }}
+          style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 12, background: '#FFFFFF', color: '#0F172A' }}
         >
           {addresses.map((a, idx) => (
             <option key={a.id ?? idx} value={a.id ?? ''}>
-              🏠 {a.label}: {a.detail}
+              {a.label}: {a.detail}
             </option>
           ))}
         </select>
       )}
 
       {editing && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 6, borderTop: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8, borderTop: '1px solid #E2E8F0' }}>
           <button
             type="button"
             onClick={handlePinCurrentGps}
             disabled={locating}
-            style={{ minHeight: 40, borderRadius: 10, border: '1.5px solid #058C3B', background: '#E8F8EE', color: '#058C3B', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            className="dg-btn-icon"
+            style={{ minHeight: 38, borderRadius: 9, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
-            {locating ? 'กำลังดึงพิกัด GPS...' : `📍 ปักหมุด GPS ตำแหน่งปัจจุบัน (${lat.toFixed(4)}, ${lng.toFixed(4)})`}
+            <IconMapPin size={14} style={{ color: '#059669' }} />
+            <span>{locating ? t('stationsLocating') : t('addrPinCurrentGps', { coords: `${lat.toFixed(4)}, ${lng.toFixed(4)}` })}</span>
           </button>
           <div style={{ display: 'grid', gridTemplateColumns: '100px 1fr', gap: 6 }}>
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="เช่น บ้าน" style={{ minHeight: 38, padding: '0 10px', borderRadius: 8, border: '1px solid #9AABBD', fontSize: 13 }} />
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="จุดสังเกตให้ไรเดอร์ (ถ้ามี)" style={{ minHeight: 38, padding: '0 10px', borderRadius: 8, border: '1px solid #9AABBD', fontSize: 13 }} />
+            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t('addrDeliveryLabel')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note" style={{ minHeight: 38, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
           </div>
-          <input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="บ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ" style={{ minHeight: 40, padding: '0 10px', borderRadius: 8, border: '1px solid #9AABBD', fontSize: 13 }} />
+          <input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder={t('addrUnset')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13 }} />
           <button
             type="button"
             onClick={handleSave}
             disabled={saving}
-            style={{ minHeight: 42, borderRadius: 10, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            className="dg-btn-icon"
+            style={{ minHeight: 40, borderRadius: 9, border: 'none', background: '#0F172A', color: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
-            {saving ? 'กำลังบันทึก...' : '💾 บันทึกที่อยู่จัดส่งและหมุดนำทาง'}
+            <IconCheck size={14} />
+            <span>{saving ? t('podSubmitting') : t('addrSaveBtn')}</span>
           </button>
         </div>
       )}

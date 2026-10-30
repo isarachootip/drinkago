@@ -3,13 +3,24 @@ import { customerApi } from '../api/role-api';
 import { BagSummary, CustomerAddress, formatBaht, Product, StaffOrder, SuggestedStation } from '../api/schemas';
 import { CustomerAddressCard } from '../components/CustomerAddressCard';
 import { CustomerProductCartList } from '../components/CustomerProductCartList';
+import { IconCheck, IconPackage } from '../components/icons/ActionIcons';
+import { IconCalendar, IconDroplet, IconMapPin } from '../components/icons/Icons';
 import { LineBanner } from '../components/LineBanner';
 import { PromptPayQrCard } from '../components/PromptPayQrCard';
 import { pickPreferredAddress } from '../domain/navigation';
+import { useI18n } from '../i18n/I18nContext';
 
-interface Props { customerUser: string; onOrderCreated: (orderId: string) => void; onGoTrack: () => void; onGoStations?: () => void; onGoEvents?: () => void; onNotify: (msg: string) => void }
+interface Props {
+  customerUser: string;
+  onOrderCreated: (orderId: string) => void;
+  onGoTrack: () => void;
+  onGoStations?: () => void;
+  onGoEvents?: () => void;
+  onNotify: (msg: string) => void;
+}
 
 export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreated, onGoTrack, onGoStations, onGoEvents, onNotify }) => {
+  const { t } = useI18n();
   const [registeredName, setRegisteredName] = useState<string | null>(null);
   const [needsRegister, setNeedsRegister] = useState(false);
   const [regName, setRegName] = useState('คุณสมใจ');
@@ -24,7 +35,9 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
   const [hasReturnBag, setHasReturnBag] = useState(false);
   const [returnBagQty, setReturnBagQty] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'PROMPTPAY' | 'CREDIT'>('CASH');
-  const [creditLimitSatang, setCreditLimitSatang] = useState<number>(100000); const [lastOrder, setLastOrder] = useState<StaffOrder | null>(null); const [submitting, setSubmitting] = useState(false);
+  const [creditLimitSatang, setCreditLimitSatang] = useState<number>(100000);
+  const [lastOrder, setLastOrder] = useState<StaffOrder | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -66,7 +79,7 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
     setSubmitting(true);
     try {
       const order = await customerApi.createOrder({ addressId: selectedAddrId, stationId: selectedStationId, items, expectBagReturn: hasReturnBag ? returnBagQty : 0, paymentMethod, autoConfirm: true }, customerUser);
-      onNotify(`สั่งซื้อสำเร็จ #${order.code} (ส่งงานเข้าคิวไรเดอร์ทันที)`); onOrderCreated(order.id);
+      onNotify(`สั่งซื้อสำเร็จ #${order.code}`); onOrderCreated(order.id);
     } catch (err) { onNotify(err instanceof Error ? err.message : 'สั่งซื้อไม่สำเร็จ'); }
     finally { setSubmitting(false); }
   };
@@ -84,10 +97,10 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
     return (
       <form onSubmit={handleRegister} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <LineBanner customerUser={customerUser} />
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#1A56B0' }}>ลงทะเบียนลูกค้าใหม่ (PDPA)</div>
-        <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder="ชื่อ-นามสกุล" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
-        <input value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder="เบอร์โทรศัพท์ (เช่น 0812345678)" style={{ minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD' }} />
-        <button type="submit" disabled={submitting} style={{ minHeight: 48, borderRadius: 12, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}>ยอมรับ PDPA และเริ่มสั่งน้ำดื่ม</button>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A' }}>{t('custRegTitle')}</div>
+        <input value={regName} onChange={(e) => setRegName(e.target.value)} placeholder={t('custRegNamePlaceholder')} style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1' }} />
+        <input value={regPhone} onChange={(e) => setRegPhone(e.target.value)} placeholder={t('custRegPhonePlaceholder')} style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1' }} />
+        <button type="submit" disabled={submitting} style={{ minHeight: 46, borderRadius: 10, border: 'none', background: '#0F172A', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}>{t('custRegSubmitBtn')}</button>
       </form>
     );
   }
@@ -111,31 +124,29 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <div style={{ background: '#FFFFFF', padding: '16px 16px 12px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #DCE4EC' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#1A56B0' }}>Drink&amp;Go</div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            {onGoEvents && <button type="button" onClick={onGoEvents} style={{ padding: '6px 9px', borderRadius: 12, border: '1px solid #7C3AED', background: '#F3E8FF', color: '#6B21A8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📅 กิจกรรม</button>}
-            {onGoStations && <button type="button" onClick={onGoStations} style={{ padding: '6px 9px', borderRadius: 12, border: '1px solid #0B6E8A', background: '#E0F2FE', color: '#0B6E8A', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>📍 ตู้ทั่วไทย</button>}
-            <button type="button" onClick={onGoTrack} style={{ padding: '6px 10px', borderRadius: 12, border: '1px solid #1A56B0', background: '#E6EEF9', color: '#1A56B0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 สถานะ / OTP ({registeredName})</button>
+      <div style={{ background: '#FFFFFF', padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 10, borderBottom: '1px solid #E2E8F0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 18, fontWeight: 700, color: '#0F172A', letterSpacing: '-0.01em' }}>
+            <IconDroplet size={18} style={{ color: '#1D4ED8' }} />
+            <span>{t('appBrand')}</span>
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            {onGoEvents && <button type="button" onClick={onGoEvents} className="dg-btn-icon" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#334155', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><IconCalendar size={13} /><span>{t('custNavEvents')}</span></button>}
+            {onGoStations && <button type="button" onClick={onGoStations} className="dg-btn-icon" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#334155', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><IconMapPin size={13} /><span>{t('custNavStations')}</span></button>}
+            <button type="button" onClick={onGoTrack} className="dg-btn-icon" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #0F172A', background: '#0F172A', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}><IconPackage size={13} /><span>{t('custNavTrack')}{registeredName ? ` (${registeredName})` : ''}</span></button>
           </div>
         </div>
         <LineBanner customerUser={customerUser} />
-        <CustomerAddressCard
-          addresses={addresses}
-          activeAddr={activeAddr}
-          onSelectAddress={(id) => void handleSelectAddress(id)}
-          onSaveNewAddress={handleSaveNewAddress}
-          onNotify={onNotify}
-        />
+        <CustomerAddressCard addresses={addresses} activeAddr={activeAddr} onSelectAddress={(id) => void handleSelectAddress(id)} onSaveNewAddress={handleSaveNewAddress} onNotify={onNotify} />
         {suggestedStations.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid #0B6E8A', borderRadius: 12, background: '#F0F9FF' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#0B6E8A' }}>
-              🚰 ตู้กดน้ำที่ใกล้คุณที่สุด (แนะนำอัตโนมัติ): {suggestedStations[0].code} · ห่าง {suggestedStations[0].distanceKm} กม.
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1px solid #E2E8F0', borderRadius: 12, background: '#F8FAFC' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#0F172A' }}>
+              <IconDroplet size={14} style={{ color: '#0369A1' }} />
+              <span>{t('custNearestStationTitle', { code: suggestedStations[0].code, km: suggestedStations[0].distanceKm })}</span>
             </div>
-            <select value={selectedStationId ?? suggestedStations[0].id} onChange={(e) => setSelectedStationId(Number(e.target.value))} style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #0B6E8A', fontSize: 13, fontWeight: 600, background: '#FFFFFF' }}>
+            <select value={selectedStationId ?? suggestedStations[0].id} onChange={(e) => setSelectedStationId(Number(e.target.value))} style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 500, background: '#FFFFFF', color: '#0F172A' }}>
               {suggestedStations.map((st, i) => (
-                <option key={st.id} value={st.id}>{i === 0 ? '⭐ แนะนำใกล้สุด: ' : '🚰 '}{st.code} · {st.name} (ห่าง {st.distanceKm} กม.)</option>
+                <option key={st.id} value={st.id}>{i === 0 ? t('custRecommendedPrefix') : ''}{st.code} · {st.name} ({st.distanceKm} km)</option>
               ))}
             </select>
           </div>
@@ -144,47 +155,41 @@ export const CustomerOrderPage: React.FC<Props> = ({ customerUser, onOrderCreate
 
       <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {lastOrder && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#E6EEF9', borderRadius: 14 }}>
-            <div style={{ flex: 1, fontSize: 13 }}><b>ล่าสุด #{lastOrder.code}</b> · {formatBaht(lastOrder.totalSatang)} ({lastOrder.status})</div>
-            <button type="button" onClick={handleReorder} disabled={submitting} style={{ minHeight: 38, padding: '0 14px', border: 'none', borderRadius: 20, background: '#1A56B0', color: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>สั่งซ้ำ</button>
+          <div className="dg-card" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
+            <div style={{ flex: 1, fontSize: 13, color: '#334155' }}>
+              <strong style={{ color: '#0F172A' }}>{t('custLastOrderLabel', { code: lastOrder.code })}</strong> · <span className="dg-num">{formatBaht(lastOrder.totalSatang)}</span> ({lastOrder.status})
+            </div>
+            <button type="button" onClick={handleReorder} disabled={submitting} style={{ minHeight: 34, padding: '0 14px', border: '1px solid #CBD5E1', borderRadius: 8, background: '#F8FAFC', color: '#0F172A', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{t('custReorderBtn')}</button>
           </div>
         )}
 
         <CustomerProductCartList
-          products={products}
-          cart={cart}
-          bagBalance={bags.balance}
-          hasReturnBag={hasReturnBag}
-          returnBagQty={returnBagQty}
+          products={products} cart={cart} bagBalance={bags.balance} hasReturnBag={hasReturnBag} returnBagQty={returnBagQty}
           onChangeCartQty={(productId, nextQty) => setCart({ ...cart, [productId]: nextQty })}
           onToggleReturnBag={(enabled) => {
-            if (!enabled) {
-              setHasReturnBag(false);
-              setReturnBagQty(0);
-            } else if (bags.balance > 0) {
-              setHasReturnBag(true);
-              setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty)));
-            }
+            if (!enabled) { setHasReturnBag(false); setReturnBagQty(0); }
+            else if (bags.balance > 0) { setHasReturnBag(true); setReturnBagQty(Math.min(bags.balance, Math.max(1, returnBagQty))); }
           }}
           onChangeReturnBagQty={setReturnBagQty}
         />
 
-        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#4A5B6E' }}>วิธีชำระเงิน (วงเงิน {formatBaht(creditLimitSatang)})</span>
-          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY' | 'CREDIT')} style={{ minHeight: 38, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD', fontWeight: 600 }}>
-            <option value="CASH">เงินสดปลายทาง (CASH)</option><option value="PROMPTPAY">สแกนโอน PromptPay QR</option><option value="CREDIT">วงเงินเครดิตสมาชิก (CREDIT)</option>
+        <div className="dg-card" style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 13, color: '#475569', fontWeight: 500 }}>{t('custPaymentMethodLabel', { limit: formatBaht(creditLimitSatang) })}</span>
+          <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'PROMPTPAY' | 'CREDIT')} style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', fontWeight: 600, fontSize: 12, color: '#0F172A', background: '#FFFFFF' }}>
+            <option value="CASH">{t('custPayCash')}</option><option value="PROMPTPAY">{t('custPayPromptPay')}</option><option value="CREDIT">{t('custPayCredit')}</option>
           </select>
         </div>
         {paymentMethod === 'PROMPTPAY' && <PromptPayQrCard totalSatang={totalSatang} compact />}
       </div>
 
-      <div style={{ background: '#FFFFFF', borderTop: '1px solid #DCE4EC', padding: '12px 16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div style={{ background: '#FFFFFF', borderTop: '1px solid #E2E8F0', padding: '12px 16px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 12, color: '#4A5B6E' }}>ยอดรวมทั้งหมด</span>
-          <span style={{ fontSize: 20, fontWeight: 700 }}>{formatBaht(totalSatang)}</span>
+          <span style={{ fontSize: 12, color: '#64748B' }}>{t('custTotalLabel')}</span>
+          <span className="dg-num" style={{ fontSize: 20, fontWeight: 700, color: '#0F172A' }}>{formatBaht(totalSatang)}</span>
         </div>
-        <button type="button" onClick={handlePlaceOrder} disabled={submitting} style={{ flex: 1, minHeight: 50, border: 'none', borderRadius: 14, background: '#1A56B0', color: '#FFFFFF', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-          {submitting ? 'กำลังสั่งซื้อ...' : '🚀 ยืนยันสั่งซื้อ (ส่งตรงถึงบ้าน)'}
+        <button type="button" onClick={handlePlaceOrder} disabled={submitting} className="dg-btn-icon" style={{ flex: 1, minHeight: 48, border: 'none', borderRadius: 10, background: '#0F172A', color: '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+          <IconCheck size={16} />
+          <span>{submitting ? t('custOrdering') : t('custConfirmOrderBtn')}</span>
         </button>
       </div>
     </div>

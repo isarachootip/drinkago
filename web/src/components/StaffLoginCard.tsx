@@ -2,6 +2,10 @@ import React, { useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
 import { StaffSession } from '../api/role-api';
 import { startLineLogin } from '../domain/liff-auth';
+import { useI18n } from '../i18n/I18nContext';
+import { IconArrowLeft } from './icons/ActionIcons';
+import { IconKey, IconLineChat } from './icons/Icons';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface Props {
   targetRole?: 'rider' | 'admin' | 'warehouse' | 'staff' | 'any';
@@ -11,6 +15,7 @@ interface Props {
 }
 
 export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'any', onLoginSuccess, onCancel, onNotify }) => {
+  const { t } = useI18n();
   const [username, setUsername] = useState(targetRole === 'admin' ? 'admin' : '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -40,89 +45,126 @@ export const StaffLoginCard: React.FC<Props> = ({ targetRole = 'any', onLoginSuc
         onSubmit={handleSubmit}
         style={{
           width: '100%',
-          maxWidth: 420,
+          maxWidth: 410,
           background: '#FFFFFF',
           borderRadius: 16,
-          border: '1px solid #DCE4EC',
-          padding: 22,
+          border: '1px solid #E2E8F0',
+          padding: '26px 24px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
-          boxShadow: '0 8px 24px rgba(15,34,54,0.08)',
+          gap: 14,
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.03)',
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 30, marginBottom: 4 }}>🔑</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#0F2236' }}>
-            เข้าสู่ระบบ / สลับผู้ใช้งาน (ทุกบทบาท)
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              background: '#EFF6FF',
+              color: '#1D4ED8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid #DBEAFE',
+            }}
+          >
+            <IconKey size={18} />
           </div>
-          <div style={{ fontSize: 12, color: '#4A5B6E', marginTop: 4 }}>
-            ลูกค้ากดเข้าสู่ระบบด้วย LINE ได้ทันที · พนักงานใช้ Username &amp; Password
-          </div>
+          <LanguageSwitcher variant="light" compact />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 19, fontWeight: 600, color: '#0F172A' }}>{t('loginHeading')}</div>
+          <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4, lineHeight: 1.5 }}>{t('loginSubtitle')}</div>
         </div>
 
         <button
           type="button"
           onClick={() => void startLineLogin('shop', onNotify)}
+          className="dg-btn-icon"
           style={{
             minHeight: 46,
-            borderRadius: 12,
+            borderRadius: 10,
             border: 'none',
             background: '#06C755',
             color: '#FFFFFF',
-            fontSize: 15,
-            fontWeight: 700,
+            fontSize: 14.5,
+            fontWeight: 600,
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(6,199,85,0.24)',
+            boxShadow: '0 2px 8px rgba(6, 199, 85, 0.2)',
           }}
         >
-          🟢 ลูกค้า: เข้าสู่ระบบด้วย LINE
+          <IconLineChat size={17} />
+          <span>{t('loginWithLineCustomer')}</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#94A3B8', fontSize: 11 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#94A3B8', fontSize: 11.5 }}>
           <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
-          <span>หรือเข้าสู่ระบบด้วยรหัสผ่าน (พนักงาน / แอดมิน)</span>
+          <span>{t('loginOrStaffDivider')}</span>
           <div style={{ flex: 1, height: 1, background: '#E2E8F0' }} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#33475B' }}>ชื่อผู้ใช้ (Username)</label>
+          <label style={{ fontSize: 12.5, fontWeight: 500, color: '#334155' }}>{t('loginUsernameLabel')}</label>
           <input
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="กรอก Username ที่ตั้งไว้ในระบบ"
+            placeholder={t('loginUsernamePlaceholder')}
             autoComplete="username"
-            style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD', fontSize: 14 }}
+            style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 14 }}
           />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#33475B' }}>รหัสผ่าน (Password)</label>
+          <label style={{ fontSize: 12.5, fontWeight: 500, color: '#334155' }}>{t('loginPasswordLabel')}</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="กรอกรหัสผ่าน"
+            placeholder={t('loginPasswordPlaceholder')}
             autoComplete="current-password"
-            style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #9AABBD', fontSize: 14 }}
+            style={{ minHeight: 42, padding: '0 12px', borderRadius: 10, border: '1px solid #CBD5E1', fontSize: 14 }}
           />
         </div>
 
         <button
           type="submit"
           disabled={busy}
-          style={{ minHeight: 46, borderRadius: 12, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 2 }}
+          style={{
+            minHeight: 44,
+            borderRadius: 10,
+            border: 'none',
+            background: '#0F172A',
+            color: '#FFFFFF',
+            fontSize: 14.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+            marginTop: 2,
+          }}
         >
-          {busy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบตามสิทธิ์ผู้ใช้'}
+          {busy ? t('loginChecking') : t('loginSubmit')}
         </button>
 
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            style={{ minHeight: 38, borderRadius: 10, border: '1px solid #DCE4EC', background: '#F8FAFC', color: '#4A5B6E', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            className="dg-btn-icon"
+            style={{
+              minHeight: 38,
+              borderRadius: 10,
+              border: '1px solid #E2E8F0',
+              background: '#F8FAFC',
+              color: '#475569',
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
           >
-            ← ยกเลิก / กลับหน้าหลัก
+            <IconArrowLeft size={15} />
+            <span>{t('loginCancelBack')}</span>
           </button>
         )}
       </form>

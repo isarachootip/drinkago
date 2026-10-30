@@ -10,7 +10,10 @@ import { AdminRidersPanel } from '../components/AdminRidersPanel';
 import { AdminStationsPanel } from '../components/AdminStationsPanel';
 import { AdminTrainingPanel } from '../components/AdminTrainingPanel';
 import { AdminUsersPanel } from '../components/AdminUsersPanel';
+import { IconAlert, IconCards, IconGrid, IconPackage, IconRefresh, IconShield } from '../components/icons/ActionIcons';
+import { IconBook, IconCalendar, IconDroplet, IconHome, IconLogout, IconTruck, IconUser } from '../components/icons/Icons';
 import { AdminViewMode, getSavedViewMode, parseViewMode, saveViewMode } from '../components/ViewModeToggle';
+import { useI18n } from '../i18n/I18nContext';
 
 interface Props {
   staffSession: StaffSession;
@@ -21,6 +24,7 @@ interface Props {
 type AdminSection = 'users' | 'products' | 'events' | 'stations' | 'riders' | 'customers' | 'orders' | 'training';
 
 export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify }) => {
+  const { t } = useI18n();
   const [section, setSection] = useState<AdminSection>('users');
   const [viewMode, setViewMode] = useState<AdminViewMode>(() => getSavedViewMode());
   const [orders, setOrders] = useState<StaffOrder[]>([]);
@@ -29,9 +33,7 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
   const handleViewModeChange = (next: AdminViewMode) => {
     saveViewMode(next);
     setViewMode(next);
-    void adminMgmtApi.savePreferences(next).catch(() => {
-      // Fallback to localStorage if offline
-    });
+    void adminMgmtApi.savePreferences(next).catch(() => {});
   };
 
   const loadAdmin = useCallback(async () => {
@@ -57,69 +59,82 @@ export const AdminPage: React.FC<Props> = ({ staffSession, onLogout, onNotify })
     void loadAdmin();
   }, [loadAdmin]);
 
+  const tabs: Array<{ id: AdminSection; label: string; icon: React.ReactNode }> = [
+    { id: 'users', label: t('adminTabUsers'), icon: <IconUser size={14} /> },
+    { id: 'products', label: t('adminTabProducts'), icon: <IconPackage size={14} /> },
+    { id: 'events', label: t('adminTabEvents'), icon: <IconCalendar size={14} /> },
+    { id: 'stations', label: t('adminTabStations'), icon: <IconDroplet size={14} /> },
+    { id: 'riders', label: t('adminTabRiders'), icon: <IconTruck size={14} /> },
+    { id: 'customers', label: t('adminTabCustomers'), icon: <IconHome size={14} /> },
+    { id: 'orders', label: t('adminTabOrders', { count: mismatches.length }), icon: <IconAlert size={14} /> },
+    { id: 'training', label: t('adminTabTraining'), icon: <IconBook size={14} /> },
+  ];
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <div style={{ background: '#0F2236', color: '#FFFFFF', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ background: '#0F172A', color: '#FFFFFF', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, borderBottom: '1px solid #1E293B' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 700 }}>ระบบบริหารจัดการหลังบ้าน (Backend Web)</div>
-            <div style={{ fontSize: 12, color: '#A8E6C1' }}>
-              🔐 ผู้ใช้งาน: <b>{staffSession.user.name}</b> ({staffSession.user.username || staffSession.user.role})
+            <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>{t('adminHeaderTitle')}</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+              <IconShield size={13} style={{ color: '#34D399' }} />
+              <span>
+                {t('topUserLabel')}: <strong style={{ color: '#F8FAFC' }}>{staffSession.user.name}</strong> ({staffSession.user.username || staffSession.user.role})
+              </span>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ display: 'inline-flex', background: '#1C3550', padding: 3, borderRadius: 10, gap: 3, border: '1px solid #33475B' }}>
+            <div style={{ display: 'inline-flex', background: '#1E293B', padding: 3, borderRadius: 8, gap: 2, border: '1px solid #334155' }}>
               <button
                 type="button"
                 onClick={() => handleViewModeChange('card')}
-                style={{ padding: '4px 10px', borderRadius: 7, border: 'none', background: viewMode === 'card' ? '#0B6E8A' : 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                className="dg-btn-icon"
+                style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: viewMode === 'card' ? '#1D4ED8' : 'transparent', color: viewMode === 'card' ? '#FFFFFF' : '#CBD5E1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
-                ▦ การ์ด (Card)
+                <IconCards size={13} />
+                <span>{t('adminCardView')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleViewModeChange('grid')}
-                style={{ padding: '4px 10px', borderRadius: 7, border: 'none', background: viewMode === 'grid' ? '#0B6E8A' : 'transparent', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                className="dg-btn-icon"
+                style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: viewMode === 'grid' ? '#1D4ED8' : 'transparent', color: viewMode === 'grid' ? '#FFFFFF' : '#CBD5E1', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
-                ☰ ตาราง (Grid)
+                <IconGrid size={13} />
+                <span>{t('adminGridView')}</span>
               </button>
             </div>
-            <button type="button" onClick={loadAdmin} style={{ padding: '6px 12px', borderRadius: 10, border: '1px solid #33475B', background: '#1C3550', color: '#FFFFFF', fontSize: 12, cursor: 'pointer' }}>
-              🔄 รีเฟรช
+            <button type="button" onClick={loadAdmin} className="dg-btn-icon" style={{ minHeight: 32, padding: '0 10px', borderRadius: 8, border: '1px solid #334155', background: '#1E293B', color: '#E2E8F0', fontSize: 12, fontWeight: 500, cursor: 'pointer' }}>
+              <IconRefresh size={13} />
+              <span>{t('adminRefreshBtn')}</span>
             </button>
-            <button type="button" onClick={onLogout} style={{ padding: '6px 12px', borderRadius: 10, border: 'none', background: '#C2255C', color: '#FFFFFF', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              🚪 ออกจากระบบ
+            <button type="button" onClick={onLogout} className="dg-btn-icon" style={{ minHeight: 32, padding: '0 10px', borderRadius: 8, border: '1px solid rgba(248, 113, 113, 0.3)', background: 'transparent', color: '#FCA5A5', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              <IconLogout size={13} />
+              <span>{t('topLogout')}</span>
             </button>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 6 }}>
-          {([
-            { id: 'users', label: '👤 จัดการผู้ใช้ (CRUD)' },
-            { id: 'products', label: '🛒 สินค้า & LINE Menu' },
-            { id: 'events', label: '📅 กิจกรรมพบปะ' },
-            { id: 'stations', label: '🚰 ตู้กดน้ำ & สต็อกถุง' },
-            { id: 'riders', label: '🛵 จัดการไรเดอร์' },
-            { id: 'customers', label: '🏠 สมาชิก & วงเงิน' },
-            { id: 'orders', label: `🚨 ออเดอร์ (${mismatches.length})` },
-            { id: 'training', label: '📚 คู่มือ & Training (KM)' },
-          ] as const).map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setSection(tab.id)}
+              className="dg-btn-icon"
               style={{
-                minHeight: 38,
-                borderRadius: 10,
-                border: 'none',
-                background: section === tab.id ? '#0B6E8A' : '#1C3550',
-                color: '#FFFFFF',
+                minHeight: 36,
+                borderRadius: 8,
+                border: section === tab.id ? '1px solid #1D4ED8' : '1px solid #334155',
+                background: section === tab.id ? '#1D4ED8' : '#1E293B',
+                color: section === tab.id ? '#FFFFFF' : '#CBD5E1',
                 fontSize: 12,
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
-              {tab.label}
+              {tab.icon}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>

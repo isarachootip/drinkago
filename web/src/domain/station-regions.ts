@@ -1,3 +1,5 @@
+import { TranslationKey } from '../i18n';
+
 export const STATION_REGIONS = [
   'BANGKOK',
   'CENTRAL',
@@ -15,17 +17,18 @@ export interface StationRegionMeta {
   label: string;
   shortLabel: string;
   emoji: string;
+  translationKey: TranslationKey;
   color: string;
   bg: string;
 }
 
 export const STATION_REGION_META: Record<StationRegion, StationRegionMeta> = {
-  BANGKOK: { code: 'BANGKOK', label: 'กรุงเทพฯ และปริมณฑล', shortLabel: 'กรุงเทพฯ', emoji: '🏙️', color: '#0B6E8A', bg: '#E0F2FE' },
-  CENTRAL: { code: 'CENTRAL', label: 'ภาคกลาง', shortLabel: 'ภาคกลาง', emoji: '🌾', color: '#1A56B0', bg: '#DBEAFE' },
-  NORTH: { code: 'NORTH', label: 'ภาคเหนือ', shortLabel: 'ภาคเหนือ', emoji: '⛰️', color: '#1E7B45', bg: '#DCFCE7' },
-  NORTHEAST: { code: 'NORTHEAST', label: 'ภาคอีสาน', shortLabel: 'ภาคอีสาน', emoji: '🦖', color: '#B45309', bg: '#FEF3C7' },
-  EAST: { code: 'EAST', label: 'ภาคตะวันออก', shortLabel: 'ภาคตะวันออก', emoji: '🌊', color: '#0284C7', bg: '#E0F2FE' },
-  SOUTH: { code: 'SOUTH', label: 'ภาคใต้', shortLabel: 'ภาคใต้', emoji: '🏝️', color: '#7C3AED', bg: '#F3E8FF' },
+  BANGKOK: { code: 'BANGKOK', label: 'กรุงเทพฯ และปริมณฑล', shortLabel: 'กรุงเทพฯ', emoji: '', translationKey: 'regionBangkok', color: '#0F172A', bg: '#F1F5F9' },
+  CENTRAL: { code: 'CENTRAL', label: 'ภาคกลาง', shortLabel: 'ภาคกลาง', emoji: '', translationKey: 'regionCentral', color: '#1D4ED8', bg: '#EFF6FF' },
+  NORTH: { code: 'NORTH', label: 'ภาคเหนือ', shortLabel: 'ภาคเหนือ', emoji: '', translationKey: 'regionNorth', color: '#047857', bg: '#ECFDF5' },
+  NORTHEAST: { code: 'NORTHEAST', label: 'ภาคอีสาน', shortLabel: 'ภาคอีสาน', emoji: '', translationKey: 'regionNortheast', color: '#B45309', bg: '#FFFBEB' },
+  EAST: { code: 'EAST', label: 'ภาคตะวันออก', shortLabel: 'ภาคตะวันออก', emoji: '', translationKey: 'regionEast', color: '#0369A1', bg: '#F0F9FF' },
+  SOUTH: { code: 'SOUTH', label: 'ภาคใต้', shortLabel: 'ภาคใต้', emoji: '', translationKey: 'regionSouth', color: '#4338CA', bg: '#EEF2FF' },
 };
 
 export interface RegionStationLike {

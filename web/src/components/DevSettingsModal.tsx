@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { DevAuthSettings } from '../api/schemas';
+import { useI18n } from '../i18n/I18nContext';
+import { IconSettings } from './icons/Icons';
 
 interface Props {
   settings: DevAuthSettings;
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export const DevSettingsModal: React.FC<Props> = ({ settings, onSave, onClose }) => {
+  const { t } = useI18n();
   const [form, setForm] = useState<DevAuthSettings>(settings);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -21,7 +24,8 @@ export const DevSettingsModal: React.FC<Props> = ({ settings, onSave, onClose })
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15, 34, 54, 0.55)',
+        background: 'rgba(15, 23, 42, 0.5)',
+        backdropFilter: 'blur(2px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -33,88 +37,94 @@ export const DevSettingsModal: React.FC<Props> = ({ settings, onSave, onClose })
         onSubmit={handleSubmit}
         style={{
           width: '100%',
-          maxWidth: 360,
+          maxWidth: 368,
           background: '#FFFFFF',
           borderRadius: 16,
-          padding: 18,
+          border: '1px solid #E2E8F0',
+          padding: 20,
           display: 'flex',
           flexDirection: 'column',
-          gap: 12,
+          gap: 14,
+          boxShadow: '0 12px 32px rgba(15, 23, 42, 0.14)',
         }}
       >
-        <div style={{ fontSize: 17, fontWeight: 700 }}>ตั้งค่าโหมดพัฒนา (Dev / LIFF)</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: '#0F172A' }}>
+          <IconSettings size={17} style={{ color: '#1D4ED8' }} />
+          <span>{t('devModalTitle')}</span>
+        </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 500, color: '#334155' }}>
           <span>API Base URL</span>
           <input
             value={form.apiBaseUrl}
             onChange={(e) => setForm({ ...form, apiBaseUrl: e.target.value.trim() })}
-            style={{ minHeight: 44, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD' }}
+            style={{ minHeight: 40, padding: '0 10px', borderRadius: 9, border: '1px solid #CBD5E1', fontSize: 13.5 }}
           />
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
-          <span>บัญชีไรเดอร์ (x-dev-user)</span>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 500, color: '#334155' }}>
+          <span>Rider Account (x-dev-user)</span>
           <select
             value={form.devUser}
             onChange={(e) => setForm({ ...form, devUser: e.target.value })}
-            style={{ minHeight: 44, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD' }}
+            style={{ minHeight: 40, padding: '0 10px', borderRadius: 9, border: '1px solid #CBD5E1', fontSize: 13.5 }}
           >
-            <option value="dev-rider">dev-rider (ไรเดอร์ 1)</option>
-            <option value="dev-rider-2">dev-rider-2 (ไรเดอร์ 2)</option>
+            <option value="dev-rider">dev-rider (Rider 1)</option>
+            <option value="dev-rider-2">dev-rider-2 (Rider 2)</option>
           </select>
         </label>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }}>
-          <span>DEV_AUTH_KEY (x-dev-key ถ้ามี)</span>
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12.5, fontWeight: 500, color: '#334155' }}>
+          <span>DEV_AUTH_KEY (x-dev-key)</span>
           <input
             type="password"
             value={form.devKey}
-            placeholder="เว้นว่างสำหรับ Local Dev"
+            placeholder="Optional for Local Dev"
             onChange={(e) => setForm({ ...form, devKey: e.target.value })}
-            style={{ minHeight: 44, padding: '0 10px', borderRadius: 10, border: '1px solid #9AABBD' }}
+            style={{ minHeight: 40, padding: '0 10px', borderRadius: 9, border: '1px solid #CBD5E1', fontSize: 13.5 }}
           />
         </label>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#334155' }}>
           <input
             type="checkbox"
             checked={form.mockGps}
             onChange={(e) => setForm({ ...form, mockGps: e.target.checked })}
           />
-          <span>จำลองพิกัด GPS (13.7563, 100.5018)</span>
+          <span>Mock GPS (13.7563, 100.5018)</span>
         </label>
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
           <button
             type="button"
             onClick={onClose}
             style={{
               flex: 1,
-              minHeight: 44,
+              minHeight: 42,
               borderRadius: 10,
-              border: '1px solid #DCE4EC',
+              border: '1px solid #E2E8F0',
               background: '#FFFFFF',
-              fontWeight: 600,
+              color: '#475569',
+              fontWeight: 500,
               cursor: 'pointer',
             }}
           >
-            ยกเลิก
+            {t('commonCancel')}
           </button>
           <button
             type="submit"
             style={{
               flex: 1,
-              minHeight: 44,
+              minHeight: 42,
               borderRadius: 10,
               border: 'none',
-              background: '#1A56B0',
+              background: '#0F172A',
               color: '#FFFFFF',
               fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            บันทึก
+            {t('commonSave')}
           </button>
         </div>
       </form>

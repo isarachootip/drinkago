@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { loadDevSettings, riderActions, saveDevSettings, syncOfflineQueue } from './api/client';
-import { DevAuthSettings } from './api/schemas';
 import { customerApi, loadStaffSession, saveStaffSession, StaffSession } from './api/role-api';
+import { DevAuthSettings } from './api/schemas';
 import { AdminTrainingPanel } from './components/AdminTrainingPanel';
 import { DevSettingsModal } from './components/DevSettingsModal';
 import { FailDeliveryModal } from './components/FailDeliveryModal';
+import { IconRefresh } from './components/icons/ActionIcons';
 import { PickupModal } from './components/PickupModal';
 import { ProductionEntryGate } from './components/ProductionEntryGate';
 import { StaffLoginCard } from './components/StaffLoginCard';
@@ -18,6 +19,8 @@ import {
 import { resolveInitialRegionParam } from './domain/station-regions';
 import { resolveInitialEventsViewMode } from './domain/thai-datetime';
 import { useRiderWorkspace } from './hooks/useRiderWorkspace';
+import { resolveDocumentTitle } from './i18n';
+import { useI18n } from './i18n/I18nContext';
 import { AdminPage } from './pages/AdminPage';
 import { CustomerEventsPage } from './pages/CustomerEventsPage';
 import { CustomerOrderPage } from './pages/CustomerOrderPage';
@@ -27,6 +30,7 @@ import { RiderJobsPage } from './pages/RiderJobsPage';
 import { RiderPodPage } from './pages/RiderPodPage';
 
 export const App: React.FC = () => {
+  const { locale, dir, t } = useI18n();
   const [custSession, setCustSession] = useState(() => resolveInitialCustomerSession());
   const [demoUnlocked, setDemoUnlocked] = useState<boolean>(() => isDemoUnlocked());
   const [staffSession, setStaffSession] = useState<StaffSession | null>(() => loadStaffSession());
@@ -65,6 +69,12 @@ export const App: React.FC = () => {
   const isStaffManager = identity.role === 'admin' || identity.role === 'warehouse';
   const activeTab: AppRoleTab = isStaffManager ? adminViewTab : identity.appTab;
 
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = resolveDocumentTitle(locale, activeTab, custScreen);
+    }
+  }, [locale, activeTab, custScreen]);
+
   const rider = useRiderWorkspace({ activeTab, settings, staffSession, detectedLineRole, customerUser, showNotice });
 
   const handleLoginSuccess = (s: StaffSession) => {
@@ -84,33 +94,37 @@ export const App: React.FC = () => {
     setCustSession({ customerUser: 'dev-customer', hasLineToken: false });
     setDetectedLineName(null); setDetectedLineRole('customer'); setDemoUnlocked(false);
     setShowTraining(false); setShowStaffLogin(true);
-    showNotice('ออกจากระบบแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีที่ต้องการทดสอบ');
+    showNotice(t('topLogout'));
   };
 
   return (
-    <div style={{ maxWidth: activeTab === 'admin' || showTraining ? 960 : 460, minHeight: '100vh', margin: '0 auto', background: '#F3F7FA', display: 'flex', flexDirection: 'column', boxShadow: '0 0 24px rgba(15,34,54,0.12)', transition: 'max-width 0.2s ease' }}>
+    <div dir={dir} style={{ maxWidth: activeTab === 'admin' || showTraining ? 980 : 480, minHeight: '100vh', margin: '0 auto', background: '#F8FAFC', display: 'flex', flexDirection: 'column', boxShadow: '0 0 32px rgba(15, 23, 42, 0.08)', transition: 'max-width 0.2s ease' }}>
       <TopAuthBar
         identity={identity} activeTab={activeTab} showTraining={showTraining}
-        onSelectTab={(t) => { setShowTraining(false); setShowStaffLogin(false); setAdminViewTab(t); }}
+        onSelectTab={(tab) => { setShowTraining(false); setShowStaffLogin(false); setAdminViewTab(tab); }}
         onToggleTraining={() => setShowTraining((v) => !v)} onOpenLogin={() => { setShowTraining(false); setShowStaffLogin(true); }}
         onLogout={handleLogout} onOpenSettings={() => setShowSettings(true)}
       />
 
       {rider.offlineCount > 0 && (
-        <div style={{ background: '#FFB3CB', color: '#0F2236', padding: '8px 14px', fontSize: 13, fontWeight: 600, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>📡 รอซิงก์ {rider.offlineCount} รายการ</span>
-          <button type="button" onClick={async () => { const { synced, remaining } = await syncOfflineQueue(settings); showNotice(`ซิงก์สำเร็จ ${synced} รายการ (ค้าง ${remaining} รายการ)`); await rider.loadJobs(); }} style={{ padding: '4px 10px', borderRadius: 8, border: 'none', background: '#0F2236', color: '#FFFFFF', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>ซิงก์ทันที</button>
+        <div style={{ background: '#FFFBEB', color: '#92400E', borderBottom: '1px solid #FDE68A', padding: '8px 14px', fontSize: 12.5, fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <span>{t('offlinePending', { count: rider.offlineCount })}</span>
+          <button type="button" onClick={async () => { const { synced, remaining } = await syncOfflineQueue(settings); showNotice(`Synced ${synced} (${remaining} pending)`); await rider.loadJobs(); }} className="dg-btn-icon" style={{ padding: '4px 10px', borderRadius: 7, border: 'none', background: '#0F172A', color: '#FFFFFF', fontSize: 11.5, fontWeight: 500, cursor: 'pointer' }}>
+            <IconRefresh size={12} /> <span>{t('syncNow')}</span>
+          </button>
         </div>
       )}
 
-      {toast && <div style={{ background: '#17613A', color: '#FFFFFF', padding: '10px 16px', fontSize: 13, fontWeight: 600, textAlign: 'center' }}>{toast}</div>}
+      {toast && <div style={{ background: '#0F172A', color: '#F8FAFC', borderBottom: '1px solid #1E293B', padding: '10px 16px', fontSize: 13, fontWeight: 500, textAlign: 'center' }}>{toast}</div>}
 
       {showTraining ? (
         <div style={{ padding: 16 }}><AdminTrainingPanel initialRole={activeTab} onClose={() => setShowTraining(false)} /></div>
       ) : showStaffLogin ? (
         <StaffLoginCard targetRole="any" onLoginSuccess={handleLoginSuccess} onCancel={() => setShowStaffLogin(false)} onNotify={showNotice} />
       ) : liffChecking ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontWeight: 600, color: '#1A56B0' }}>🔄 กำลังเชื่อมบัญชี LINE ของคุณ...</div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24, fontWeight: 500, color: '#334155', fontSize: 14 }}>
+          <IconRefresh size={16} style={{ color: '#1D4ED8' }} /> <span>{t('connectingLine')}</span>
+        </div>
       ) : shouldRequireEntryGate({ hostname: window.location.hostname, hasLineToken: custSession.hasLineToken, hasStaffSession: Boolean(staffSession), demoUnlocked }) ? (
         <ProductionEntryGate onOpenStaffLogin={() => setShowStaffLogin(true)} onUnlockDemo={() => { unlockDemoMode(); setDemoUnlocked(true); }} onNotify={showNotice} />
       ) : (
@@ -127,7 +141,7 @@ export const App: React.FC = () => {
           {activeTab === 'rider' && (rider.riderScreen === 'jobs' || !rider.activeJob ? (
             <RiderJobsPage jobs={rider.jobs} selectedJob={rider.activeJob} selectedDetail={rider.selectedDetail} settings={settings} loading={rider.loading} onSelectJob={(j) => rider.setSelectedJobId(j.id)} onPrimaryAction={rider.handlePrimaryAction} onOpenSettings={() => setShowSettings(true)} onRefresh={() => rider.loadJobs(settings)} />
           ) : (
-            <RiderPodPage job={rider.activeJob} detail={rider.selectedDetail} settings={settings} onBack={() => rider.setRiderScreen('jobs')} onDeliver={async (p) => { if (!rider.activeJob) return; const r = await riderActions.deliver(rider.activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${rider.activeJob.code} สำเร็จ!`); rider.setRiderScreen('jobs'); await rider.loadJobs(); }} onOpenFailModal={() => rider.setFailJob(rider.activeJob)} />
+            <RiderPodPage job={rider.activeJob} detail={rider.selectedDetail} settings={settings} onBack={() => rider.setRiderScreen('jobs')} onDeliver={async (p) => { if (!rider.activeJob) return; const r = await riderActions.deliver(rider.activeJob.id, p); showNotice(r.queued ? 'บันทึกคิวออฟไลน์แล้ว' : `ส่งออเดอร์ #${rider.activeJob.code} สำเร็จ`); rider.setRiderScreen('jobs'); await rider.loadJobs(); }} onOpenFailModal={() => rider.setFailJob(rider.activeJob)} />
           ))}
           {activeTab === 'admin' && (staffSession && (staffSession.user.role === 'admin' || staffSession.user.role === 'warehouse') ? (
             <AdminPage staffSession={staffSession} onLogout={handleLogout} onNotify={showNotice} />

@@ -29,9 +29,10 @@
 | B3 พร้อมเปิดสู่อินเทอร์เน็ต (CORS, Helmet, Rate Limit, OTP Lockout, CI) | ✅ | ล็อก OTP เมื่อผิด 5 ครั้ง + `POST /orders/:id/unlock-otp` + `test/security.e2e.spec.ts` |
 | F1 หน้า LIFF ไรเดอร์ (`../web/`) | ✅ | Vite + React + TS + Zod + Offline Queue + 5-step `RiderStepTracker` พร้อมปุ่มเปิด Google Maps นำทางชัดเจนทั้งในกรอบนำทางด้านบน (`RiderMapNavBox`), ในกรอบขั้นที่ 2 (ไปตู้กดน้ำ), ขั้นที่ 4–5 (ไปบ้านลูกค้า) และในหน้าส่งงาน `RiderPodPage` + ระบบ Fallback นำทางด้วยข้อความที่อยู่อัตโนมัติเมื่อลูกค้าข้ามการแชร์ GPS (ไม่แสดง `0 ม.` หลอกตา) |
 | F2–F4 หน้าลูกค้า / คลังสินค้า / แอดมิน (`../web/`) | ✅ | ครบทุกบทบาท + การ์ดแก้ไขที่อยู่และปักหมุดพิกัด GPS ปัจจุบันในหน้าสั่งซื้อลูกค้า (`CustomerAddressCard`) + Backend Web บริหารจัดการ Rider, ตู้กดน้ำ 15 สาขา (10 เขต กทม. รวมรามอินทรา 57 & พุทธบูชา 34 + 5 จังหวัดใหญ่ 5 ภาค) พร้อมสต็อกถุงประจำตู้ (`station_bag_ledger` 50 ใบ/ตู้), ลูกค้า + พิกัดบ้าน + วงเงินเครดิต + ปุ่มสลับมุมมอง **แบบการ์ด (Card)** และ **แบบตาราง (Grid)** ครบทุกแท็บในหน้า Admin พร้อมบันทึกค่าลงฐานข้อมูล Server (`GET/PATCH /admin/preferences`) + ระบบล้างออเดอร์เก่าทั้งหมด (`POST /admin/orders/clear` และ one-time auto-reset `clear_orders_2026_10_29_v1`) |
+| Minimal Enterprise UI, Multi-Script Typography & 9-Language i18n (`../web/`) | ✅ | ปรับโฉม UI และฟอนต์ระดับองค์กร (`Inter` + `Noto Sans Thai` + `Noto Sans Lao/SC/Arabic/Hebrew` พร้อม `font-variant-numeric: tabular-nums`), เปลี่ยนไอคอน Emoji ทั้งระบบเป็น Monochrome SVG Line Icons (`1.75px` stroke), แก้ `<title>` ของ LIFF ให้เปลี่ยนตามบทบาท/หน้าจอและภาษาอัตโนมัติ และรองรับการสลับภาษา 9 ภาษา (`th`, `en`, `lo`, `ms`, `zh`, `ar`, `de`, `he`, `ru`) พร้อม RTL (`dir="rtl"`) อัตโนมัติสำหรับภาษาอาหรับ (`ar`) และฮีบรู/อิสราเอล (`he`) |
 | Docker Compose production + Coolify Dockerfile | ✅ | Multi-stage `Dockerfile` ที่ root build ทั้ง `web` และ `app` |
 
-**ผลทดสอบ:** 60/60 (12 ชุดทดสอบ Backend) + 11/11 (Frontend Unit Tests) ผ่านครบทุกชุดบน Windows + PostgreSQL 16 (พอร์ต 5433) และผ่าน typecheck 100%
+**ผลทดสอบ:** 60/60 (12 ชุดทดสอบ Backend) + 42/42 (7 ชุดทดสอบ Frontend `vitest`) และผ่าน typecheck ทั้ง `app` และ `web` 100%
 
 ## 2. การตัดสินใจที่ทำไปแล้ว
 

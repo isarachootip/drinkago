@@ -1,4 +1,6 @@
 import React from 'react';
+import { useI18n } from '../i18n/I18nContext';
+import { IconCards, IconGrid } from './icons/ActionIcons';
 
 export type AdminViewMode = 'card' | 'grid';
 
@@ -40,6 +42,7 @@ interface Props {
 }
 
 export const ViewModeToggle: React.FC<Props> = ({ mode, onChange, title, count, extra }) => {
+  const { t } = useI18n();
   const handleSelect = (next: AdminViewMode) => {
     saveViewMode(next);
     onChange(next);
@@ -49,61 +52,53 @@ export const ViewModeToggle: React.FC<Props> = ({ mode, onChange, title, count, 
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         {title && (
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F2236' }}>
-            {title} {typeof count === 'number' ? `(${count})` : ''}
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            {title} {typeof count === 'number' ? <span className="dg-num" style={{ color: '#64748B', fontWeight: 600 }}>({count})</span> : ''}
           </div>
         )}
         {extra}
       </div>
 
-      <div
-        style={{
-          display: 'inline-flex',
-          background: '#E2E8F0',
-          padding: 3,
-          borderRadius: 10,
-          gap: 3,
-        }}
-      >
+      <div style={{ display: 'inline-flex', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: 3, borderRadius: 9, gap: 3 }}>
         <button
           type="button"
           onClick={() => handleSelect('card')}
+          className="dg-btn-icon"
           style={{
-            minHeight: 32,
-            padding: '0 12px',
-            borderRadius: 8,
+            minHeight: 30,
+            padding: '0 10px',
+            borderRadius: 7,
             border: 'none',
-            background: mode === 'card' ? '#0B6E8A' : 'transparent',
-            color: mode === 'card' ? '#FFFFFF' : '#33475B',
+            background: mode === 'card' ? '#FFFFFF' : 'transparent',
+            color: mode === 'card' ? '#0F172A' : '#64748B',
+            boxShadow: mode === 'card' ? '0 1px 2px rgba(15, 23, 42, 0.08)' : 'none',
             fontSize: 12,
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
           }}
         >
-          <span>▦</span> แบบการ์ด (Card)
+          <IconCards size={13} />
+          <span>{t('adminCardView')}</span>
         </button>
         <button
           type="button"
           onClick={() => handleSelect('grid')}
+          className="dg-btn-icon"
           style={{
-            minHeight: 32,
-            padding: '0 12px',
-            borderRadius: 8,
+            minHeight: 30,
+            padding: '0 10px',
+            borderRadius: 7,
             border: 'none',
-            background: mode === 'grid' ? '#0B6E8A' : 'transparent',
-            color: mode === 'grid' ? '#FFFFFF' : '#33475B',
+            background: mode === 'grid' ? '#FFFFFF' : 'transparent',
+            color: mode === 'grid' ? '#0F172A' : '#64748B',
+            boxShadow: mode === 'grid' ? '0 1px 2px rgba(15, 23, 42, 0.08)' : 'none',
             fontSize: 12,
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
           }}
         >
-          <span>☰</span> แบบตาราง (Grid)
+          <IconGrid size={13} />
+          <span>{t('adminGridView')}</span>
         </button>
       </div>
     </div>

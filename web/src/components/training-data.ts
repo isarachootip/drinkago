@@ -24,28 +24,28 @@ export interface TrainingQaItem {
 
 export const KM_SUMMARY_CARDS: SummaryCardItem[] = [
   {
-    badge: '💬 LINE Flex Ordering',
+    badge: 'LINE Flex Ordering',
     title: 'Delivery Only + PromptPay',
     desc: 'สั่งน้ำผ่านแชท LINE OA (@157iywjs) พร้อมตะกร้า Interactive และ QR Code ยอดเงินอัตโนมัติ',
-    accent: '#0B6E8A',
+    accent: '#0369A1',
   },
   {
-    badge: '📍 Smart Station Suggest',
+    badge: 'Smart Station Suggest',
     title: 'ตู้กดน้ำ 15 สาขาทั่วไทย',
     desc: 'คำนวณระยะทาง Haversine จาก GPS ลูกค้า แนะนำตู้ใกล้สุด (10 เขต กทม. + 5 จังหวัดใหญ่)',
-    accent: '#1E7B45',
+    accent: '#059669',
   },
   {
-    badge: '🛵 Direct Rider Flow',
+    badge: 'Direct Rider Flow',
     title: 'ไม่ต้องผ่านคลัง (No Warehouse)',
     desc: 'ออเดอร์เป็น CONFIRMED ทันที ไรเดอร์กดรับงานเอง (Claim) ไปกดน้ำที่ตู้และวิ่งส่งถึงบ้าน',
-    accent: '#1A56B0',
+    accent: '#1D4ED8',
   },
   {
-    badge: '♻️ Append-Only Bag Ledger',
+    badge: 'Append-Only Bag Ledger',
     title: 'บัญชีถุง & ปิดงานอัตโนมัติ',
     desc: 'ตัดสต็อกถุงตู้ตอนกดน้ำ และบวกถุงคืนเข้าตู้พร้อมปิดงาน CLOSED_WITH_RETURN ทันทีเมื่อส่งสำเร็จ',
-    accent: '#9B1B49',
+    accent: '#0F172A',
   },
 ];
 
@@ -90,7 +90,7 @@ export const ROLE_TRAINING_STEPS: Record<TrainingRole, RoleStepItem[]> = {
       step: 2,
       title: 'กดรับงานด้วยตนเอง (Self-Claim)',
       statusBadge: 'CONFIRMED (Assigned)',
-      detail: 'กดปุ่ม "🙋‍♂️ รับงานนี้" บนออเดอร์ที่ต้องการ ระบบผูกชื่อไรเดอร์เข้ากับออเดอร์ทันทีโดยไม่ต้องรอคลังสินค้ามอบหมาย',
+      detail: 'กดปุ่ม "รับงานนี้" บนออเดอร์ที่ต้องการ ระบบผูกชื่อไรเดอร์เข้ากับออเดอร์ทันทีโดยไม่ต้องรอคลังสินค้ามอบหมาย',
     },
     {
       step: 3,
@@ -102,7 +102,7 @@ export const ROLE_TRAINING_STEPS: Record<TrainingRole, RoleStepItem[]> = {
       step: 4,
       title: 'ถ่ายรูปรับน้ำขึ้นรถ + พิกัด GPS & เริ่มออกเดินทาง',
       statusBadge: 'PICKED_UP → OUT_FOR_DELIVERY',
-      detail: 'ถ่ายรูปหลักฐานรับน้ำที่ตู้พร้อมพิกัด GPS (ขั้นที่ 4 PICKED_UP) แล้วกด "เริ่มวิ่งส่ง" (ขั้นที่ 5 OUT_FOR_DELIVERY) เพื่อแจ้งเตือน LINE ลูกค้า',
+      detail: 'ถ่ายรูปหลักฐานรับน้ำที่ตู้พร้อมพิกัด GPS (ขั้นที่ 4 PICKED_UP) แล้วกด "เริ่มออกเดินทาง" (ขั้นที่ 5 OUT_FOR_DELIVERY) เพื่อแจ้งเตือน LINE ลูกค้า',
     },
     {
       step: 5,
@@ -120,7 +120,7 @@ export const ROLE_TRAINING_STEPS: Record<TrainingRole, RoleStepItem[]> = {
     {
       step: 2,
       title: 'บริหารสินค้า รูปภาพเมนู & ซิงก์ LINE Rich Menu',
-      detail: 'อัปโหลดรูปสินค้า ตั้งราคา (สตางค์) กำหนดสินค้ามีถุงคืน (isReturnable) และกดซิงก์ Rich Menu 4 ปุ่มขึ้น LINE OA ได้ในคลิกเดียว',
+      detail: 'อัปโหลดรูปสินค้า ตั้งราคา (สตางค์) กำหนดสินค้ามีถุงคืน (isReturnable) และกดซิงก์ Rich Menu 6 ปุ่มขึ้น LINE OA ได้ในคลิกเดียว',
     },
     {
       step: 3,
@@ -130,7 +130,7 @@ export const ROLE_TRAINING_STEPS: Record<TrainingRole, RoleStepItem[]> = {
     {
       step: 4,
       title: 'ตรวจสอบสลิปโอนเงิน & จัดการวงเงินเครดิตลูกค้า',
-      detail: 'เมื่อลูกค้าส่งสลิปในแชท LINE สถานะชำระเงินจะเป็น PENDING_VERIFY แอดมินกด "อนุมัติสลิปโอนเงิน" เพื่อเปลี่ยนเป็น PAID หรือตั้งวงเงินเครดิตลูกค้าประจำ',
+      detail: 'เมื่อลูกค้าส่งสลิปในแชท LINE สถานะชำระเงินจะเป็น PENDING_VERIFY แอดมินกด "อนุมัติสลิป" เพื่อเปลี่ยนเป็น PAID หรือตั้งวงเงินเครดิตลูกค้าประจำ',
     },
     {
       step: 5,
@@ -145,14 +145,14 @@ export const TRAINING_QA_LIST: TrainingQaItem[] = [
     id: 'qa-line-order',
     role: 'customer',
     question: 'ลูกค้าสั่งน้ำผ่านแชท LINE และเลือกตู้กดน้ำใกล้บ้านอย่างไร?',
-    answer: 'พิมพ์ "เมนู" ใน LINE OA (@157iywjs) → กดเพิ่มสินค้าลงตะกร้า → กดยืนยันสั่งซื้อ → แชร์พิกัด GPS → ระบบจะคำนวณและแสดงปุ่มตู้กดน้ำสาขาที่ใกล้บ้านที่สุด (เช่น สาขารามอินทรา 57 หรือ พุทธบูชา 34) ให้กดยืนยันได้ทันที',
+    answer: 'พิมพ์ "เมนู" ใน LINE OA (@157iywjs) → กดเพิ่มสินค้าลงตะกร้า → กดยืนยันสั่งซื้อ → แชร์พิกัด GPS → ระบบจะคำนวณและแสดงปุ่มตู้กดน้ำสาขาที่ใกล้บ้านที่สุดให้กดยืนยันได้ทันที',
     keywords: ['line', 'เมนู', 'สั่งน้ำ', 'ตู้ใกล้สุด', 'gps', 'ลูกค้า'],
   },
   {
     id: 'qa-rider-claim',
     role: 'rider',
     question: 'ทำไมไม่มีขั้นตอนคลังสินค้า (Warehouse) แล้วไรเดอร์ต้องทำอย่างไร?',
-    answer: 'ระบบใช้แนวทาง Direct Rider Flow: ทันทีที่ลูกค้าสั่งเสร็จ ออเดอร์จะเป็นสถานะ CONFIRMED ทันที ไรเดอร์เปิดหน้า "งานวันนี้" แล้วกดปุ่ม "🙋‍♂️ รับงานนี้ (Claim)" จากนั้นขับไปกดน้ำที่ตู้สาขาที่ระบุบนใบงานได้เลย',
+    answer: 'ระบบใช้แนวทาง Direct Rider Flow: ทันทีที่ลูกค้าสั่งเสร็จ ออเดอร์จะเป็นสถานะ CONFIRMED ทันที ไรเดอร์เปิดหน้า "งานจัดส่งวันนี้" แล้วกดปุ่ม "รับงานนี้ (Claim)" จากนั้นขับไปกดน้ำที่ตู้สาขาที่ระบุบนใบงานได้เลย',
     keywords: ['คลัง', 'warehouse', 'claim', 'รับงาน', 'ไรเดอร์', 'กดน้ำ'],
   },
   {
@@ -166,14 +166,14 @@ export const TRAINING_QA_LIST: TrainingQaItem[] = [
     id: 'qa-otp-lock',
     role: 'admin',
     question: 'กรอกรหัส OTP ส่งน้ำผิดครบ 5 ครั้งจนถูกล็อก ต้องแก้ไขอย่างไร?',
-    answer: 'เพื่อป้องกันการเดารหัส ระบบจะล็อกออเดอร์เมื่อกรอก OTP ผิด 5 ครั้ง ให้แจ้งแอดมินไปที่แท็บ "🚨 ออเดอร์" แล้วกดปุ่ม "🔓 ปลดล็อก OTP" ของออเดอร์นั้น จากนั้นไรเดอร์จะกรอก OTP ใหม่ได้',
+    answer: 'เพื่อป้องกันการเดารหัส ระบบจะล็อกออเดอร์เมื่อกรอก OTP ผิด 5 ครั้ง ให้แจ้งแอดมินไปที่แท็บ "ออเดอร์" แล้วกดปุ่ม "ปลดล็อก OTP" ของออเดอร์นั้น จากนั้นไรเดอร์จะกรอก OTP ใหม่ได้',
     keywords: ['otp', 'ล็อก', 'ผิด 5 ครั้ง', 'unlock', 'รหัสส่งมอบ'],
   },
   {
     id: 'qa-slip-verify',
     role: 'admin',
     question: 'ลูกค้าโอนเงิน PromptPay และส่งรูปสลิปใน LINE แล้ว ตรวจที่ไหน?',
-    answer: 'เมื่อลูกค้าส่งรูปสลิปในแชท LINE ระบบจะบันทึกภาพและเปลี่ยนสถานะการชำระเงินเป็น PENDING_VERIFY แอดมินสามารถไปที่แท็บ "🚨 ออเดอร์" แล้วกดปุ่ม "✓ อนุมัติสลิปโอนเงิน" เพื่อเปลี่ยนสถานะเป็น PAID',
+    answer: 'เมื่อลูกค้าส่งรูปสลิปในแชท LINE ระบบจะบันทึกภาพและเปลี่ยนสถานะการชำระเงินเป็น PENDING_VERIFY แอดมินสามารถไปที่แท็บ "ออเดอร์" แล้วกดปุ่ม "อนุมัติสลิป" เพื่อเปลี่ยนสถานะเป็น PAID',
     keywords: ['สลิป', 'promptpay', 'โอนเงิน', 'paid', 'pending_verify'],
   },
 ];

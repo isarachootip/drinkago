@@ -1,9 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { DevAuthSettings, EvidenceInput, OrderDetail, RiderJob } from '../api/schemas';
+import { IconArrowLeft, IconCamera, IconCheckCircle } from '../components/icons/ActionIcons';
+import { IconHome, IconNavigation, IconPhone } from '../components/icons/Icons';
 import { OtpBagSection } from '../components/OtpBagSection';
 import { getCurrentGps } from '../domain/geo';
 import { buildCustomerMapsUrl, formatJobDistanceLabel } from '../domain/navigation';
 import { uploadSelectedOrDemoPhoto } from '../domain/photo-picker';
+import { useI18n } from '../i18n/I18nContext';
 
 interface Props {
   job: RiderJob;
@@ -15,6 +18,7 @@ interface Props {
 }
 
 export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, onDeliver, onOpenFailModal }) => {
+  const { t } = useI18n();
   const podFileRef = useRef<HTMLInputElement | null>(null);
   const [digits, setDigits] = useState<[string, string, string, string]>(['', '', '', '']);
   const [bagsCollected, setBagsCollected] = useState<number>(job.expectBagReturn);
@@ -91,67 +95,66 @@ export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, o
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <div style={{ background: '#FFFFFF', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #DCE4EC' }}>
-        <button type="button" onClick={onBack} aria-label="กลับไปงานวันนี้" style={{ width: 44, height: 44, borderRadius: 22, border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer' }}>
-          ←
+      <div style={{ background: '#FFFFFF', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #E2E8F0' }}>
+        <button type="button" onClick={onBack} aria-label={t('commonBack')} style={{ width: 38, height: 38, borderRadius: 10, border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <IconArrowLeft size={16} />
         </button>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontSize: 17, fontWeight: 700 }}>ยืนยันส่งสำเร็จ</span>
-          <span style={{ fontSize: 13, color: '#4A5B6E' }}>
-            #{job.code} · {job.customerName} {itemsText ? `· ${itemsText}` : ''}
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#0F172A' }}>{t('podHeaderTitle')}</span>
+          <span style={{ fontSize: 12, color: '#64748B' }}>
+            <span className="dg-num">#{job.code}</span> · {job.customerName} {itemsText ? `· ${itemsText}` : ''}
           </span>
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ fontSize: 13, color: '#33475B', lineHeight: 1.4 }}>
-            🏠 <b>{job.address.label}:</b> {job.address.detail}
-            {job.address.note ? ` · ${job.address.note}` : ''}
+      <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="dg-card" style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 13, color: '#334155' }}>
+            <IconHome size={15} style={{ marginTop: 2, color: '#64748B' }} />
+            <span>
+              <strong style={{ fontWeight: 600 }}>{job.address.label}:</strong> {job.address.detail}
+              {job.address.note ? ` · ${job.address.note}` : ''}
+            </span>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a
-              href={customerMaps.url}
-              target="_blank"
-              rel="noreferrer"
-              style={{ flex: 1, minHeight: 40, borderRadius: 10, background: '#058C3B', color: '#FFFFFF', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}
-            >
-              🗺️ เปิด Google Maps บ้านลูกค้า
+            <a href={customerMaps.url} target="_blank" rel="noreferrer" style={{ flex: 1, minHeight: 38, borderRadius: 9, background: '#0F172A', color: '#FFFFFF', fontSize: 12, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 10px' }}>
+              <IconNavigation size={14} />
+              <span>{t('podOpenCustomerMap')}</span>
             </a>
             {job.customerPhone && (
-              <a
-                href={`tel:${job.customerPhone}`}
-                style={{ minHeight: 40, borderRadius: 10, background: '#F8FAFC', color: '#0F2236', border: '1px solid #CBD5E1', fontSize: 13, fontWeight: 700, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 12px' }}
-              >
-                📞 โทรหาลูกค้า
+              <a href={`tel:${job.customerPhone}`} style={{ minHeight: 38, borderRadius: 9, background: '#FFFFFF', color: '#0F172A', border: '1px solid #CBD5E1', fontSize: 12, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 12px' }}>
+                <IconPhone size={13} />
+                <span>{t('navCallCustomer')}</span>
               </a>
             )}
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="dg-card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 15, fontWeight: 600 }}>1. รูปถ่ายหลักฐานการส่ง</span>
-            <span style={{ fontSize: 12, color: '#C2255C', fontWeight: 600 }}>จำเป็น</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>{t('podPhotoSectionTitle')}</span>
+            <span style={{ fontSize: 11, color: '#B91C1C', background: '#FEF2F2', padding: '2px 8px', borderRadius: 99, fontWeight: 600 }}>{t('podRequiredBadge')}</span>
           </div>
           <input ref={podFileRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" style={{ display: 'none' }} onChange={(e) => handleUploadPod(e.target.files?.[0])} />
           <button
             type="button"
             onClick={() => podFileRef.current?.click()}
             disabled={uploading}
-            style={{ height: 112, border: '2px dashed #9AABBD', borderRadius: 12, background: podPhotoUrl ? '#E3F3E9' : '#F3F7FA', color: podPhotoUrl ? '#17613A' : '#1A56B0', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+            className="dg-btn-icon"
+            style={{ height: 96, border: podPhotoUrl ? '1px solid #A7F3D0' : '1.5px dashed #CBD5E1', borderRadius: 10, background: podPhotoUrl ? '#ECFDF5' : '#F8FAFC', color: podPhotoUrl ? '#047857' : '#0F172A', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
-            {podPhotoUrl ? '✓ แนบรูปส่งสินค้าแล้ว (แตะเพื่อถ่ายใหม่)' : '📷 ถ่ายรูปสินค้าที่ส่งถึงมือลูกค้า'}
+            {podPhotoUrl ? <IconCheckCircle size={16} /> : <IconCamera size={16} />}
+            <span>{podPhotoUrl ? t('podPhotoAttached') : t('podTakePhotoBtn')}</span>
           </button>
           {!podPhotoUrl && (
-            <button type="button" onClick={() => handleUploadPod(null)} disabled={uploading} style={{ minHeight: 36, borderRadius: 8, border: '1px solid #DCE4EC', background: '#F8FAFC', fontSize: 12, cursor: 'pointer' }}>
-              ใช้รูปจำลองส่งสินค้า (Dev Mode)
+            <button type="button" onClick={() => handleUploadPod(null)} disabled={uploading} style={{ minHeight: 34, borderRadius: 8, border: '1px solid #E2E8F0', background: '#FFFFFF', color: '#475569', fontSize: 12, cursor: 'pointer' }}>
+              {t('podUseDemoPhoto')}
             </button>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#17613A', background: '#E3F3E9', padding: '8px 12px', borderRadius: 10 }}>
-            <span>✓</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#047857', background: '#ECFDF5', border: '1px solid #A7F3D0', padding: '8px 10px', borderRadius: 8 }}>
+            <IconCheckCircle size={14} />
             <span style={{ flex: 1 }}>
-              {customerMaps.mode === 'address_query' ? 'พิกัด GPS อุปกรณ์พร้อมบันทึกหลักฐานส่งงาน' : `พิกัด GPS พร้อมส่ง · ห่างจุดส่ง ${distLabel}`}
+              {customerMaps.mode === 'address_query' ? t('podGpsReadyFallback') : t('podGpsReadyDist', { dist: distLabel })}
             </span>
           </div>
         </div>
@@ -167,15 +170,15 @@ export const RiderPodPage: React.FC<Props> = ({ job, detail, settings, onBack, o
           onUploadBag={handleUploadBag}
         />
 
-        {err && <div style={{ background: '#FCE8EF', color: '#9B1B49', padding: '10px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600 }}>{err}</div>}
+        {err && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', padding: '10px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600 }}>{err}</div>}
       </div>
 
-      <div style={{ background: '#FFFFFF', borderTop: '1px solid #DCE4EC', padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <button type="button" onClick={handleSubmit} disabled={submitting || uploading} style={{ width: '100%', minHeight: 54, border: 'none', borderRadius: 14, background: '#1E7B45', color: '#FFFFFF', fontSize: 16, fontWeight: 600, cursor: 'pointer' }}>
-          {submitting ? 'กำลังบันทึก...' : bagsCollected > 0 ? `ยืนยันส่งสำเร็จ และรับถุง ${bagsCollected} ใบ` : 'ยืนยันส่งสำเร็จ (ไม่มีถุงคืน)'}
+      <div style={{ background: '#FFFFFF', borderTop: '1px solid #E2E8F0', padding: '12px 16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <button type="button" onClick={handleSubmit} disabled={submitting || uploading} style={{ width: '100%', minHeight: 48, border: 'none', borderRadius: 10, background: '#059669', color: '#FFFFFF', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}>
+          {submitting ? t('podSubmitting') : bagsCollected > 0 ? t('podSubmitWithBags', { count: bagsCollected }) : t('podSubmitNoBags')}
         </button>
-        <button type="button" onClick={onOpenFailModal} style={{ width: '100%', minHeight: 44, border: 'none', background: 'transparent', color: '#4A5B6E', fontSize: 14, textDecoration: 'underline', cursor: 'pointer' }}>
-          ส่งไม่สำเร็จ แจ้งเหตุผล
+        <button type="button" onClick={onOpenFailModal} style={{ width: '100%', minHeight: 40, border: 'none', background: 'transparent', color: '#64748B', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
+          {t('podFailLink')}
         </button>
       </div>
     </div>

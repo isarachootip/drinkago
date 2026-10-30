@@ -1,6 +1,9 @@
 import React from 'react';
 import { formatBaht, Product } from '../api/schemas';
 import { resolveProductImageUrl } from '../domain/photo-picker';
+import { useI18n } from '../i18n/I18nContext';
+import { IconPackage } from './icons/ActionIcons';
+import { IconBag, IconDroplet } from './icons/Icons';
 
 interface Props {
   products: Product[];
@@ -23,48 +26,92 @@ export const CustomerProductCartList: React.FC<Props> = ({
   onToggleReturnBag,
   onChangeReturnBagQty,
 }) => {
+  const { t } = useI18n();
+
   return (
     <>
-      <div style={{ background: '#FFFFFF', borderRadius: 14, border: '1px solid #DCE4EC', overflow: 'hidden' }}>
+      <div className="dg-card" style={{ overflow: 'hidden' }}>
         {products.map((p, idx) => {
           const qty = cart[p.id] ?? 0;
           const imgUrl = resolveProductImageUrl(p.imageUrl);
           return (
-            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderBottom: idx < products.length - 1 ? '1px solid #DCE4EC' : 'none' }}>
+            <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderBottom: idx < products.length - 1 ? '1px solid #E2E8F0' : 'none' }}>
               {imgUrl ? (
-                <img src={imgUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #DCE4EC', background: '#F8FAFC' }} />
+                <img src={imgUrl} alt={p.name} style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', border: '1px solid #E2E8F0', background: '#F8FAFC' }} />
               ) : (
-                <div style={{ width: 48, height: 48, borderRadius: 10, background: '#E6EEF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{p.isReturnable ? '🛢️' : '📦'}</div>
+                <div style={{ width: 48, height: 48, borderRadius: 10, background: '#F1F5F9', color: '#334155', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {p.isReturnable ? <IconDroplet size={20} /> : <IconPackage size={20} />}
+                </div>
               )}
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 600 }}>{p.name}</div>
-                <div style={{ fontSize: 13, color: '#4A5B6E' }}>{formatBaht(p.priceSatang)} {p.isReturnable ? '(มีถุงหมุนเวียน)' : ''}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#0F172A' }}>{p.name}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B' }}>
+                  <span className="dg-num" style={{ fontWeight: 600, color: '#334155' }}>{formatBaht(p.priceSatang)}</span>
+                  {p.isReturnable && (
+                    <span style={{ fontSize: 11, background: '#F1F5F9', color: '#475569', padding: '1px 7px', borderRadius: 6, fontWeight: 500 }}>
+                      {t('custReturnableTag')}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button type="button" onClick={() => onChangeCartQty(p.id, Math.max(0, qty - 1))} style={{ width: 38, height: 38, borderRadius: 19, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-                <span style={{ width: 22, textAlign: 'center', fontSize: 16, fontWeight: 700 }}>{qty}</span>
-                <button type="button" onClick={() => onChangeCartQty(p.id, qty + 1)} style={{ width: 38, height: 38, borderRadius: 19, border: 'none', background: '#1A56B0', color: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => onChangeCartQty(p.id, Math.max(0, qty - 1))}
+                  style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', fontSize: 18, cursor: 'pointer' }}
+                >
+                  −
+                </button>
+                <span className="dg-num" style={{ width: 22, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onChangeCartQty(p.id, qty + 1)}
+                  style={{ width: 34, height: 34, borderRadius: 8, border: 'none', background: '#0F172A', color: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}
+                >
+                  +
+                </button>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', background: '#FFFFFF', borderRadius: 14, border: '1px solid #F3C4D4' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 14, fontWeight: 600 }}>มีถุงคืนรอบนี้ไหม?</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#C2255C', background: '#FCE8EF', padding: '3px 10px', borderRadius: 10 }}>ถุงค้างของคุณ {bagBalance} ใบ</span>
+      <div className="dg-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '12px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
+            <IconBag size={15} style={{ color: '#475569' }} />
+            <span>{t('custReturnBagQuestion')}</span>
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#475569', background: '#F1F5F9', border: '1px solid #E2E8F0', padding: '3px 9px', borderRadius: 99 }}>
+            {t('custBagBalanceBadge', { count: bagBalance })}
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ display: 'flex', flex: 1, background: '#F3F7FA', borderRadius: 12, padding: 3 }}>
-            <button type="button" onClick={() => onToggleReturnBag(false)} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: !hasReturnBag ? '#0F2236' : 'transparent', color: !hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>ไม่มี</button>
-            <button type="button" onClick={() => onToggleReturnBag(true)} style={{ flex: 1, minHeight: 38, border: 'none', borderRadius: 10, background: hasReturnBag ? '#C2255C' : 'transparent', color: hasReturnBag ? '#FFFFFF' : '#4A5B6E', fontWeight: 600, cursor: 'pointer' }}>มี</button>
+          <div style={{ display: 'flex', flex: 1, background: '#F1F5F9', borderRadius: 10, padding: 3 }}>
+            <button
+              type="button"
+              onClick={() => onToggleReturnBag(false)}
+              style={{ flex: 1, minHeight: 34, border: 'none', borderRadius: 8, background: !hasReturnBag ? '#FFFFFF' : 'transparent', color: !hasReturnBag ? '#0F172A' : '#64748B', fontWeight: 600, fontSize: 13, boxShadow: !hasReturnBag ? '0 1px 2px rgba(15,23,42,0.08)' : 'none', cursor: 'pointer' }}
+            >
+              {t('custNo')}
+            </button>
+            <button
+              type="button"
+              onClick={() => onToggleReturnBag(true)}
+              style={{ flex: 1, minHeight: 34, border: 'none', borderRadius: 8, background: hasReturnBag ? '#0F172A' : 'transparent', color: hasReturnBag ? '#FFFFFF' : '#64748B', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+            >
+              {t('custYes')}
+            </button>
           </div>
           {hasReturnBag && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button type="button" onClick={() => onChangeReturnBagQty(Math.max(1, returnBagQty - 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>−</button>
-              <span style={{ width: 42, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{returnBagQty} ใบ</span>
-              <button type="button" onClick={() => onChangeReturnBagQty(Math.min(bagBalance, returnBagQty + 1))} style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #DCE4EC', background: '#FFFFFF', fontSize: 18, cursor: 'pointer' }}>+</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button type="button" onClick={() => onChangeReturnBagQty(Math.max(1, returnBagQty - 1))} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 16, cursor: 'pointer' }}>−</button>
+              <span className="dg-num" style={{ minWidth: 36, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                {returnBagQty} {t('riderStatBagUnit')}
+              </span>
+              <button type="button" onClick={() => onChangeReturnBagQty(Math.min(bagBalance, returnBagQty + 1))} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 16, cursor: 'pointer' }}>+</button>
             </div>
           )}
         </div>

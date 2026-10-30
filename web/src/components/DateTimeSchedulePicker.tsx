@@ -6,6 +6,7 @@ import {
   normalizeTimeParts,
   thaiLabelToIsoDate,
 } from '../domain/thai-datetime';
+import { IconCalendar, IconClock } from './icons/Icons';
 
 interface Props {
   eventDate: string;
@@ -31,20 +32,15 @@ export const DateTimeSchedulePicker: React.FC<Props> = ({
     onChangeDate(isoDateToThaiLabel(nextIso));
   };
 
-  const handleHourChange = (nextHour: string) => {
-    onChangeTime(`${nextHour}.${minute}`);
-  };
-
-  const handleMinuteChange = (nextMinute: string) => {
-    onChangeTime(`${hour}.${nextMinute}`);
-  };
-
   return (
     <div style={{ display: 'grid', gridTemplateColumns: compact ? '1fr 1fr' : 'repeat(auto-fit, minmax(230px, 1fr))', gap: 10 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#F8FAFC', padding: '8px 10px', borderRadius: 10, border: '1px solid #CBD5E1' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, background: '#F8FAFC', padding: '8px 10px', borderRadius: 10, border: '1px solid #E2E8F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>📅 เลือกวันที่จากปฏิทิน</label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#6B21A8', background: '#F3E8FF', padding: '2px 8px', borderRadius: 6 }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#475569' }}>
+            <IconCalendar size={13} />
+            <span>เลือกวันที่จากปฏิทิน</span>
+          </label>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#1D4ED8', background: '#EFF6FF', padding: '2px 8px', borderRadius: 6 }}>
             {eventDate || isoDateToThaiLabel(isoDate)}
           </span>
         </div>
@@ -52,24 +48,18 @@ export const DateTimeSchedulePicker: React.FC<Props> = ({
           type="date"
           value={isoDate}
           onChange={(e) => handleDateInput(e.target.value)}
-          style={{
-            minHeight: 38,
-            padding: '0 10px',
-            borderRadius: 8,
-            border: '1px solid #9AABBD',
-            background: '#FFFFFF',
-            fontSize: 14,
-            fontWeight: 600,
-            color: '#0F2236',
-            cursor: 'pointer',
-          }}
+          className="dg-num"
+          style={{ minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}
         />
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#F8FAFC', padding: '8px 10px', borderRadius: 10, border: '1px solid #CBD5E1' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, background: '#F8FAFC', padding: '8px 10px', borderRadius: 10, border: '1px solid #E2E8F0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>⏰ เลือกเวลา (ตารางหมุนวน ชั่วโมง : นาที)</label>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#0B6E8A', background: '#E0F2FE', padding: '2px 8px', borderRadius: 6 }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#475569' }}>
+            <IconClock size={13} />
+            <span>เลือกเวลา (ชั่วโมง : นาที)</span>
+          </label>
+          <span className="dg-num" style={{ fontSize: 11, fontWeight: 600, color: '#0369A1', background: '#F0F9FF', padding: '2px 8px', borderRadius: 6 }}>
             {hour}.{minute} น.
           </span>
         </div>
@@ -77,48 +67,24 @@ export const DateTimeSchedulePicker: React.FC<Props> = ({
           <select
             aria-label="ชั่วโมง"
             value={hour}
-            onChange={(e) => handleHourChange(e.target.value)}
-            style={{
-              flex: 1,
-              minHeight: 38,
-              padding: '0 10px',
-              borderRadius: 8,
-              border: '1px solid #9AABBD',
-              background: '#FFFFFF',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#0F2236',
-              cursor: 'pointer',
-            }}
+            onChange={(e) => onChangeTime(`${e.target.value}.${minute}`)}
+            className="dg-num"
+            style={{ flex: 1, minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}
           >
             {HOUR_OPTIONS.map((h) => (
-              <option key={h} value={h}>
-                {h} นาฬิกา
-              </option>
+              <option key={h} value={h}>{h} นาฬิกา</option>
             ))}
           </select>
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#475569' }}>:</span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#64748B' }}>:</span>
           <select
             aria-label="นาที"
             value={minute}
-            onChange={(e) => handleMinuteChange(e.target.value)}
-            style={{
-              flex: 1,
-              minHeight: 38,
-              padding: '0 10px',
-              borderRadius: 8,
-              border: '1px solid #9AABBD',
-              background: '#FFFFFF',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#0F2236',
-              cursor: 'pointer',
-            }}
+            onChange={(e) => onChangeTime(`${hour}.${e.target.value}`)}
+            className="dg-num"
+            style={{ flex: 1, minHeight: 36, padding: '0 10px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', fontSize: 13, fontWeight: 600, color: '#0F172A', cursor: 'pointer' }}
           >
             {minuteChoices.map((m) => (
-              <option key={m} value={m}>
-                {m} นาที
-              </option>
+              <option key={m} value={m}>{m} นาที</option>
             ))}
           </select>
         </div>

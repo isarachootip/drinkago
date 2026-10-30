@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { adminMgmtApi } from '../api/admin-api';
+import { IconRefresh } from './icons/ActionIcons';
+import { IconLineChat, IconSettings } from './icons/Icons';
 import { ProductImageUploader } from './ProductImageUploader';
 
 interface Props {
@@ -41,60 +43,59 @@ export const AdminRichMenuBanner: React.FC<Props> = ({ busy, onBusyChange, onNot
   };
 
   return (
-    <div style={{ background: '#E6EEF9', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="dg-card" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#1A56B0' }}>📱 Product Master &amp; LINE Rich Menu 6 ช่อง (ภาพมาตรฐาน ilife ใหม่)</div>
-          <div style={{ fontSize: 12, color: '#33475B' }}>1. กิจกรรมพบปะ · 2. สั่งน้ำดื่ม · 3. ค้นหาตู้เติมน้ำทั่วไทย · 4. ติดตามสถานะ · 5. เป็นเพื่อนกับเรา · 6. เยี่ยมชมเรา</div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 700, color: '#0F172A' }}>
+            <IconLineChat size={16} style={{ color: '#06C755' }} />
+            <span>Product Master &amp; LINE Rich Menu 6 ช่อง (มาตรฐาน ilife)</span>
+          </div>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+            1. กิจกรรมพบปะ · 2. สั่งน้ำดื่ม · 3. ค้นหาตู้เติมน้ำทั่วไทย · 4. ติดตามสถานะ · 5. เป็นเพื่อนกับเรา · 6. เยี่ยมชมเรา
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={() => setShowConfig((v) => !v)}
-            style={{ minHeight: 40, padding: '0 12px', borderRadius: 10, border: '1px solid #1A56B0', background: '#FFFFFF', color: '#1A56B0', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+            className="dg-btn-icon"
+            style={{ minHeight: 36, padding: '0 12px', borderRadius: 8, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}
           >
-            {showConfig ? '▲ ซ่อนผังและตัวอย่างภาพ Rich Menu' : '🖼️ ดูภาพตัวอย่าง / ตั้งค่ารูป Rich Menu'}
+            <IconSettings size={13} />
+            <span>{showConfig ? 'ซ่อนผัง Rich Menu' : 'ดูภาพตัวอย่าง / ตั้งค่ารูป'}</span>
           </button>
           <button
             type="button"
             onClick={handleSyncRichMenu}
             disabled={busy || uploading}
-            style={{ minHeight: 40, padding: '0 14px', borderRadius: 10, border: 'none', background: '#1E7B45', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+            className="dg-btn-icon"
+            style={{ minHeight: 36, padding: '0 14px', borderRadius: 8, border: 'none', background: '#059669', color: '#FFFFFF', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
           >
-            🔄 ซิงก์ LINE Rich Menu 6 ปุ่ม
+            <IconRefresh size={13} />
+            <span>ซิงก์ LINE Rich Menu 6 ปุ่ม</span>
           </button>
         </div>
       </div>
 
       {showConfig && (
-        <div style={{ background: '#FFFFFF', borderRadius: 10, padding: 12, border: '1px solid #CBD5E1', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ background: '#F8FAFC', borderRadius: 10, padding: 12, border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <img
-              src="/richmenu-ilife-default.jpg"
-              alt="ilife Rich Menu 6 ปุ่ม"
-              style={{ width: 240, borderRadius: 10, border: '1px solid #CBD5E1', objectFit: 'cover' }}
-            />
+            <img src="/richmenu-ilife-default.jpg" alt="ilife Rich Menu 6 ปุ่ม" style={{ width: 240, borderRadius: 10, border: '1px solid #E2E8F0', objectFit: 'cover' }} />
             <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0F2236' }}>🗺️ ผังการทำงาน Rich Menu 6 ช่อง (ฝังภาพนี้เป็นค่าเริ่มต้นในระบบแล้ว):</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>ผังการทำงาน Rich Menu 6 ช่อง:</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 6 }}>
                 {RICH_MENU_SLOTS.map((slot) => (
-                  <div key={slot} style={{ fontSize: 12, background: '#F8FAFC', padding: '6px 10px', borderRadius: 8, border: '1px solid #E2E8F0', color: '#1E293B' }}>
+                  <div key={slot} style={{ fontSize: 12, background: '#FFFFFF', padding: '6px 10px', borderRadius: 8, border: '1px solid #E2E8F0', color: '#334155' }}>
                     {slot}
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          <div style={{ fontSize: 12, color: '#475569' }}>
-            💡 หากต้องการเปลี่ยนภาพพื้นหลัง Rich Menu ใหม่ สามารถอัปโหลดด้านล่างแล้วกดซิงก์ (หากเว้นว่างไว้ ระบบจะใช้ภาพมาตรฐาน <strong>ilife 6 ปุ่ม</strong> ด้านบนอัตโนมัติ)
+          <div style={{ fontSize: 12, color: '#64748B' }}>
+            หากต้องการเปลี่ยนภาพพื้นหลัง Rich Menu ใหม่ สามารถอัปโหลดด้านล่างแล้วกดซิงก์ (เว้นว่างเพื่อใช้ภาพมาตรฐาน ilife 6 ปุ่ม)
           </div>
-          <ProductImageUploader
-            value={richMenuImageUrl}
-            onChange={setRichMenuImageUrl}
-            onNotify={onNotify}
-            onUploadingChange={setUploading}
-            compact
-          />
+          <ProductImageUploader value={richMenuImageUrl} onChange={setRichMenuImageUrl} onNotify={onNotify} onUploadingChange={setUploading} compact />
         </div>
       )}
     </div>

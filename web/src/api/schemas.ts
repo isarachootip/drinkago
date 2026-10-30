@@ -176,16 +176,16 @@ export function orderStatusBadge(status: OrderStatus, isClaimed = true): {
   switch (status) {
     case 'CONFIRMED':
       if (!isClaimed) {
-        return { stepText: '🆕 งานใหม่รอไรเดอร์ · กดรับงานเพื่อไปกดน้ำที่ตู้', actionLabel: '🙋‍♂️ รับงานนี้ (ไปกดน้ำที่ตู้)', buttonColor: '#C2255C' };
+        return { stepText: 'งานใหม่รอไรเดอร์ · กดรับงานเพื่อไปกดน้ำที่ตู้', actionLabel: 'รับงานนี้ (ไปกดน้ำที่ตู้)', buttonColor: '#0F172A' };
       }
-      return { stepText: 'ขั้นที่ 3 · รอกดน้ำที่ตู้เติมน้ำ', actionLabel: 'ขั้นที่ 3: กดน้ำที่ตู้เสร็จแล้ว (PACKED)', buttonColor: '#0B6E8A' };
+      return { stepText: 'ขั้นที่ 3 · รอกดน้ำที่ตู้เติมน้ำ', actionLabel: 'ขั้นที่ 3: กดน้ำที่ตู้เสร็จแล้ว (PACKED)', buttonColor: '#1D4ED8' };
     case 'PACKED':
-      return { stepText: 'ขั้นที่ 4 · รอรับสินค้าขึ้นรถ', actionLabel: 'ขั้นที่ 4: ยืนยันการรับสินค้า (ถ่ายรูป + GPS)', buttonColor: '#1A56B0' };
+      return { stepText: 'ขั้นที่ 4 · รอรับสินค้าขึ้นรถ', actionLabel: 'ขั้นที่ 4: ยืนยันการรับสินค้า (ถ่ายรูป + GPS)', buttonColor: '#1D4ED8' };
     case 'PICKED_UP':
-      return { stepText: 'ขั้นที่ 5 · รับสินค้าแล้ว พร้อมออกส่ง', actionLabel: 'ขั้นที่ 5: เริ่มวิ่งส่งสินค้า', buttonColor: '#1A56B0' };
+      return { stepText: 'ขั้นที่ 5 · รับสินค้าแล้ว พร้อมออกส่ง', actionLabel: 'ขั้นที่ 5: เริ่มวิ่งส่งสินค้า', buttonColor: '#1D4ED8' };
     case 'OUT_FOR_DELIVERY':
-      return { stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า', actionLabel: 'ถึงแล้ว · ยืนยันส่งน้ำ & รับถุงคืน', buttonColor: '#1E7B45' };
+      return { stepText: 'ขั้นที่ 6 · กำลังวิ่งส่งสินค้า', actionLabel: 'ถึงแล้ว · ยืนยันส่งน้ำ & รับถุงคืน', buttonColor: '#059669' };
     default:
-      return { stepText: status, actionLabel: 'ดูรายละเอียด', buttonColor: '#4A5B6E' };
+      return { stepText: status, actionLabel: 'ดูรายละเอียด', buttonColor: '#475569' };
   }
 }
